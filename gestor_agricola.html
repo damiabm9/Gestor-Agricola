@@ -416,9 +416,15 @@
     <!-- Repostatges -->
     <div class="card">
       <div class="card-title">⛽ Registrar repostatge</div>
-      <div class="form-row g2">
+      <div class="form-row g3">
         <div><label>Data</label><input type="date" id="rep-data"/></div>
         <div><label>Màquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
+        <div><label>Tipus</label>
+          <select id="rep-tipus">
+            <option value="Dièsel">⛽ Dièsel</option>
+            <option value="AdBlue">🟦 AdBlue</option>
+          </select>
+        </div>
       </div>
       <div class="form-row g3">
         <div><label>Litres</label><input type="number" id="rep-litres" placeholder="0" min="0" step="0.1" oninput="calcRepostatge()"/></div>
@@ -434,7 +440,7 @@
         <button class="btn btn-sm" onclick="loadRepostatges()">↺ Recarregar</button>
       </div>
       <table class="mov-table">
-        <thead><tr><th>Data</th><th>Màquina</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
+        <thead><tr><th>Data</th><th>Màquina</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
         <tbody id="rep-list"><tr><td colspan="6"><div class="empty">Carregant...</div></td></tr></tbody>
       </table>
     </div>
@@ -1078,6 +1084,7 @@ function calcRepostatge(){
 async function addRepostatge(){
   const data = document.getElementById('rep-data').value;
   const maquina = document.getElementById('rep-maquina').value;
+  const tipus_rep = document.getElementById('rep-tipus').value;
   const litres = document.getElementById('rep-litres').value;
   const preu = document.getElementById('rep-preu').value;
   const total = document.getElementById('rep-total').value;
@@ -1086,9 +1093,16 @@ async function addRepostatge(){
   const id = Date.now().toString();
   setSyncing(true,'Desant...');
   try {
-    await appendRow(SHEET_REPOSTATGES,[id,data,maquina,litres,preu,total]);
+    await appendRow(SHEET_REPOSTATGES,[id,data,maquina,tipus_rep,litres,preu,total]);
+    // Crear despesa automàtica a Maquinària
+    const idDespesa = (Date.now()+1).toString();
+    const totalNum = parseFloat(total)||0;
+    if(totalNum>0){
+      await appendRow(SHEET_MOV,[idDespesa,data,'maquinaria','gasto','Dièsel / combustible',`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,totalNum.toFixed(2),maquina,'','','Auto-generat des de repostatge']);
+      movimientos.push({id:idDespesa,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Dièsel / combustible',concepto:`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,importe:totalNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
+    }
     setSyncing(false,'Connectat a Google Sheets');
-    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat.'; setTimeout(()=>msg.textContent='',2500);
+    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat i comptabilitzat a Maquinària.'; setTimeout(()=>msg.textContent='',3000);
     ['rep-litres','rep-preu','rep-total'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('rep-data').valueAsDate=new Date();
     loadRepostatges();
@@ -1100,11 +1114,12 @@ async function loadRepostatges(){
   if(!tbody) return;
   try {
     const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:F');
-    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',litres:row[3]||'',preu:row[4]||'',total:row[5]||''}));
+    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'Dièsel',litres:row[4]||'',preu:row[5]||'',total:row[6]||''}));
     if(!rows.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Encara no hi ha repostatges registrats.</div></td></tr>'; return; }
     tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
       <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
       <td><span class="badge badge-area">${r.maquina}</span></td>
+      <td><span class="badge ${r.tipus==='AdBlue'?'badge-cat':'badge-gas'}">${r.tipus||'Dièsel'}</span></td>
       <td style="text-align:right">${r.litres}L</td>
       <td style="text-align:right">${r.preu}€/L</td>
       <td style="text-align:right;font-weight:600;color:var(--rojo)">${r.total?fmt(parseFloat(r.total)):'-'}</td>
@@ -1140,8 +1155,15 @@ async function addManteniment(){
   setSyncing(true,'Desant...');
   try {
     await appendRow(SHEET_MANTENIMENTS,[id,data,maquina,tipus,desc,cost||'0',estat]);
+    // Crear despesa automàtica a Maquinària si hi ha cost
+    const costNum = parseFloat(cost)||0;
+    if(costNum>0){
+      const idDespesa2 = (Date.now()+2).toString();
+      await appendRow(SHEET_MOV,[idDespesa2,data,'maquinaria','gasto','Reparacions',`${tipus}: ${desc} (${maquina})`,costNum.toFixed(2),maquina,'','','Auto-generat des de manteniment']);
+      movimientos.push({id:idDespesa2,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Reparacions',concepto:`${tipus}: ${desc} (${maquina})`,importe:costNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
+    }
     setSyncing(false,'Connectat a Google Sheets');
-    msg.className='msg-ok'; msg.textContent='✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',2500);
+    msg.className='msg-ok'; msg.textContent=costNum>0?'✓ Manteniment desat i comptabilitzat a Maquinària.':'✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',3000);
     ['mant-desc','mant-cost'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('mant-data').valueAsDate=new Date();
     loadManteniments();
