@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="ca">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -113,9 +113,9 @@
     <p>Controla los gastos e ingresos de tus cultivos, maquinaria y granjas. Los datos se guardan directamente en tu Google Sheets.</p>
     <button class="btn-google" onclick="signIn()">
       <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Entrar con Google
+      Entrar amb Google
     </button>
-    <p style="margin-top:1rem;font-size:11px;color:#aaa">Tus datos se guardan en tu propio Google Sheets.<br>Funciona en Mac, Windows e iPhone.</p>
+    <p style="margin-top:1rem;font-size:11px;color:#aaa">Les teves dades es guarden al teu Google Sheets.<br>Funciona a Mac, Windows i iPhone.</p>
   </div>
 </div>
 
@@ -128,20 +128,20 @@
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <div class="user-chip" id="user-chip">—</div>
-      <button class="btn-logout" onclick="signOut()">Salir</button>
+      <button class="btn-logout" onclick="signOut()">Sortir</button>
     </div>
   </div>
 
   <div class="sync-bar">
     <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-msg">Conectado a Google Sheets</span>
+    <span id="sync-msg">Connectat a Google Sheets</span>
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('resumen',this)">📊 Resumen</button>
+    <button class="tab active" onclick="showTab('resumen',this)">📊 Resum</button>
     <button class="tab" onclick="showTab('registrar',this)">➕ Registrar</button>
-    <button class="tab" onclick="showTab('movimientos',this)">📋 Movimientos</button>
-    <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rentabilidad</button>
+    <button class="tab" onclick="showTab('movimientos',this)">📋 Moviments</button>
+    <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
     <button class="tab" onclick="showTab('comparador',this)">🧮 Comparador</button>
   </div>
@@ -150,7 +150,7 @@
   <div id="tab-resumen" class="section visible">
     <div class="kpi-grid" id="kpi-grid"></div>
     <div class="card">
-      <div class="card-title">⏱ Últimos movimientos</div>
+      <div class="card-title">⏱ Últims moviments</div>
       <div id="resumen-list"></div>
     </div>
   </div>
@@ -158,20 +158,20 @@
   <!-- REGISTRAR -->
   <div id="tab-registrar" class="section">
     <div class="card">
-      <div class="card-title">➕ Nuevo movimiento</div>
+      <div class="card-title">➕ Nou moviment</div>
       <div class="form-row g2">
         <div><label>Tipo</label>
           <select id="f-tipo" onchange="onTipoChange()">
-            <option value="ingreso">Ingreso</option>
-            <option value="gasto">Gasto</option>
+            <option value="ingreso">Ingrés</option>
+            <option value="gasto">Despesa</option>
           </select>
         </div>
         <div><label>Área</label>
           <select id="f-area" onchange="onAreaChange()">
-            <option value="cultivos">🌾 Cultivos</option>
-            <option value="maquinaria">🚜 Maquinaria</option>
-            <option value="cerdos">🐷 Cerdos</option>
-            <option value="pollos">🐔 Pollos</option>
+            <option value="cultivos">🌾 Cultius</option>
+            <option value="maquinaria">🚜 Maquinària</option>
+            <option value="cerdos">🐷 Porcs</option>
+            <option value="pollos">🐔 Pollastres</option>
           </select>
         </div>
       </div>
@@ -181,31 +181,31 @@
       </div>
       <div id="f-maq-wrap" class="hidden">
         <div class="form-row g3">
-          <div><label>Máquina utilizada</label><select id="f-maquina"><option value="">— Ninguna —</option></select></div>
-          <div><label>Apero utilizado</label><select id="f-apero"><option value="">— Ninguno —</option></select></div>
-          <div><label>Horas trabajadas</label><input type="number" id="f-horas" placeholder="0" min="0" step="0.5"/></div>
+          <div><label>Màquina utilitzada</label><select id="f-maquina"><option value="">— Cap —</option></select></div>
+          <div><label>Apero utilitzat</label><select id="f-apero"><option value="">— Cap —</option></select></div>
+          <div><label>Hores treballades</label><input type="number" id="f-horas" placeholder="0" min="0" step="0.5"/></div>
         </div>
       </div>
       <div id="f-amort-wrap" class="hidden">
         <hr>
-        <div class="card-title" style="font-size:12px;margin-bottom:.75rem">🔧 Datos del apero (amortización)</div>
+        <div class="card-title" style="font-size:12px;margin-bottom:.75rem">🔧 Dades de l'apero (amortització)</div>
         <div class="form-row g3">
-          <div><label>Nombre del apero</label><input type="text" id="f-amort-nombre" placeholder="Ej: Sembradora Maschio"/></div>
-          <div><label>Coste de compra (€)</label><input type="number" id="f-amort-coste" placeholder="0" oninput="calcAmort()"/></div>
-          <div><label>Vida útil (años)</label><input type="number" id="f-amort-years" placeholder="10" oninput="calcAmort()"/></div>
+          <div><label>Nom de l'apero</label><input type="text" id="f-amort-nombre" placeholder="Ex: Sembradora Maschio"/></div>
+          <div><label>Cost de compra (€)</label><input type="number" id="f-amort-coste" placeholder="0" oninput="calcAmort()"/></div>
+          <div><label>Vida útil (anys)</label><input type="number" id="f-amort-years" placeholder="10" oninput="calcAmort()"/></div>
         </div>
         <div id="amort-result"></div>
       </div>
       <hr>
       <div class="form-row g3">
-        <div><label>Concepto / descripción</label><input type="text" id="f-concepto" placeholder="Ej: Compra herbicida Roundup"/></div>
-        <div><label>Importe (€)</label><input type="number" id="f-importe" placeholder="0.00" min="0" step="0.01"/></div>
-        <div><label>Fecha</label><input type="date" id="f-fecha"/></div>
+        <div><label>Concepte / descripció</label><input type="text" id="f-concepto" placeholder="Ex: Compra herbicida Roundup"/></div>
+        <div><label>Import (€)</label><input type="number" id="f-importe" placeholder="0.00" min="0" step="0.01"/></div>
+        <div><label>Data</label><input type="date" id="f-fecha"/></div>
       </div>
-      <div><label>Notas (opcional)</label><input type="text" id="f-notas" placeholder="Observaciones..."/></div>
+      <div><label>Notes (opcional)</label><input type="text" id="f-notas" placeholder="Observacions..."/></div>
       <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="addMovimiento()">✓ Guardar en Sheets</button>
-        <button class="btn" onclick="clearForm()">↺ Limpiar</button>
+        <button class="btn btn-primary" onclick="addMovimiento()">✓ Desar a Sheets</button>
+        <button class="btn" onclick="clearForm()">↺ Netejar</button>
       </div>
       <div id="form-msg"></div>
     </div>
@@ -216,15 +216,15 @@
     <div class="card">
       <div class="card-title">🔍 Filtrar</div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr auto">
-        <div><label>Área</label><select id="fil-area" onchange="renderMovimientos()"><option value="">Todas</option><option value="cultivos">🌾 Cultivos</option><option value="maquinaria">🚜 Maquinaria</option><option value="cerdos">🐷 Cerdos</option><option value="pollos">🐔 Pollos</option></select></div>
-        <div><label>Tipo</label><select id="fil-tipo" onchange="renderMovimientos()"><option value="">Todos</option><option value="ingreso">Ingresos</option><option value="gasto">Gastos</option></select></div>
-        <div><label>Categoría</label><select id="fil-cat" onchange="renderMovimientos()"><option value="">Todas</option></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="loadFromSheets()">↺ Recargar</button></div>
+        <div><label>Área</label><select id="fil-area" onchange="renderMovimientos()"><option value="">Totes</option><option value="cultivos">🌾 Cultius</option><option value="maquinaria">🚜 Maquinària</option><option value="cerdos">🐷 Porcs</option><option value="pollos">🐔 Pollastres</option></select></div>
+        <div><label>Tipo</label><select id="fil-tipo" onchange="renderMovimientos()"><option value="">Tots</option><option value="ingreso">Ingréss</option><option value="gasto">Despesas</option></select></div>
+        <div><label>Categoría</label><select id="fil-cat" onchange="renderMovimientos()"><option value="">Totes</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="loadFromSheets()">↺ Recarregar</button></div>
       </div>
     </div>
     <div class="card">
       <table class="mov-table">
-        <thead><tr><th>Fecha</th><th>Concepto</th><th>Área</th><th>Categoría</th><th>Tipo</th><th style="text-align:right">Importe</th><th></th></tr></thead>
+        <thead><tr><th>Data</th><th>Concepto</th><th>Área</th><th>Categoría</th><th>Tipo</th><th style="text-align:right">Importe</th><th></th></tr></thead>
         <tbody id="mov-list"></tbody>
       </table>
     </div>
@@ -234,7 +234,7 @@
   <div id="tab-rentabilidad" class="section">
     <div class="rent-grid" id="rent-grid"></div>
     <div class="card">
-      <div class="card-title">📂 Desglose por categoría</div>
+      <div class="card-title">📂 Desglossament per categoria</div>
       <div id="cat-breakdown"></div>
     </div>
   </div>
@@ -242,39 +242,39 @@
   <!-- FLOTA -->
   <div id="tab-flota" class="section">
     <div class="card">
-      <div class="card-title">🚜 Añadir máquina o apero</div>
+      <div class="card-title">🚜 Afegir màquina o apero</div>
       <div class="form-row g3">
         <div><label>Tipo</label><select id="fl-tipo"><option value="maquina">Máquina</option><option value="apero">Apero</option></select></div>
-        <div><label>Nombre</label><input type="text" id="fl-nombre" placeholder="Ej: Tractor John Deere 6120R"/></div>
-        <div><label>Año / ref. (opcional)</label><input type="text" id="fl-ref" placeholder="Ej: 2018 / H-1234-BC"/></div>
+        <div><label>Nombre</label><input type="text" id="fl-nombre" placeholder="Ex: Tractor John Deere 6120R"/></div>
+        <div><label>Any / ref. (opcional)</label><input type="text" id="fl-ref" placeholder="Ex: 2018 / H-1234-BC"/></div>
       </div>
-      <button class="btn btn-primary" onclick="addFlota()">➕ Añadir a la flota</button>
+      <button class="btn btn-primary" onclick="addFlota()">➕ Afegir a la flota</button>
       <div id="flota-msg"></div>
     </div>
-    <div class="card"><div class="card-title">🚗 Máquinas</div><div id="flota-maquinas"></div></div>
+    <div class="card"><div class="card-title">🚗 Màquines</div><div id="flota-maquinas"></div></div>
     <div class="card"><div class="card-title">🔧 Aperos</div><div id="flota-aperos"></div></div>
   </div>
 
   <!-- COMPARADOR -->
   <div id="tab-comparador" class="section">
     <div class="card">
-      <div class="card-title">🧮 ¿Me sale mejor tener la máquina o contratar?</div>
+      <div class="card-title">🧮 Em surt millor tenir la màquina o contractar?</div>
       <div class="form-row g2">
-        <div><label>Coste anual máquina propia (amortiz. + diesel + reparaciones + seguro, €)</label><input type="number" id="c-propia" placeholder="0" oninput="calcComparador()"/></div>
-        <div><label>Coste anual servicio contratado (€)</label><input type="number" id="c-contratado" placeholder="0" oninput="calcComparador()"/></div>
+        <div><label>Cost anual màquina pròpia (amortitz. + dièsel + reparacions + assegurança, €)</label><input type="number" id="c-propia" placeholder="0" oninput="calcComparador()"/></div>
+        <div><label>Cost anual servei contractat (€)</label><input type="number" id="c-contratado" placeholder="0" oninput="calcComparador()"/></div>
       </div>
       <div class="form-row g2">
-        <div><label>Horas anuales de uso estimadas</label><input type="number" id="c-horas" placeholder="0" oninput="calcComparador()"/></div>
-        <div><label>Precio hora servicio contratado (€/h, opcional)</label><input type="number" id="c-hora-ext" placeholder="0" oninput="calcComparador()"/></div>
+        <div><label>Hores anuals d'ús estimades</label><input type="number" id="c-horas" placeholder="0" oninput="calcComparador()"/></div>
+        <div><label>Preu hora servei contractat (€/h, opcional)</label><input type="number" id="c-hora-ext" placeholder="0" oninput="calcComparador()"/></div>
       </div>
       <div id="comparador-result" style="margin-top:1rem;font-size:14px;color:var(--gris-texto)"></div>
     </div>
     <div class="card">
-      <div class="card-title">📐 Calculadora de amortización</div>
+      <div class="card-title">📐 Calculadora d'amortització</div>
       <div class="form-row g3">
         <div><label>Nombre</label><input type="text" id="ca-nombre" placeholder="Ej: Sembradora"/></div>
-        <div><label>Coste de compra (€)</label><input type="number" id="ca-coste" placeholder="0" oninput="calcAmortLib()"/></div>
-        <div><label>Vida útil (años)</label><input type="number" id="ca-years" placeholder="10" oninput="calcAmortLib()"/></div>
+        <div><label>Cost de compra (€)</label><input type="number" id="ca-coste" placeholder="0" oninput="calcAmortLib()"/></div>
+        <div><label>Vida útil (anys)</label><input type="number" id="ca-years" placeholder="10" oninput="calcAmortLib()"/></div>
       </div>
       <div id="amort-lib-result"></div>
     </div>
@@ -290,15 +290,15 @@ const SHEET_MOV = 'Movimientos';
 const SHEET_FLOTA = 'Flota';
 
 const CATS = {
-  cultivos:   { gasto: ['Herbicidas','Semillas','Fertilizantes','Fitosanitarios','Mano de obra','Otros'], ingreso: ['Venta cosecha','Subvenciones','Otros'] },
-  maquinaria: { gasto: ['Diesel / combustible','Reparaciones','Compra / amortización apero','Seguros','Otros'], ingreso: ['Trabajos a terceros','Alquiler maquinaria','Otros'] },
-  cerdos:     { gasto: ['Agua','Luz / electricidad','Gas','Diesel / combustible','Reparaciones','Medicamentos / veterinario','Pienso / alimentación','Otros'], ingreso: ['Venta animales','Subvenciones','Otros'] },
-  pollos:     { gasto: ['Agua','Luz / electricidad','Gas','Diesel / combustible','Cama','Reparaciones','Medicamentos / veterinario','Pienso / alimentación','Otros'], ingreso: ['Venta animales','Subvenciones','Otros'] }
+  cultivos:   { gasto: ['Herbicides','Llavors','Fertilitzants','Fitosanitaris','Mà d\'obra','Altres'], ingreso: ['Venda collita','Subvencions','Altres'] },
+  maquinaria: { gasto: ['Dièsel / combustible','Reparacions','Compra / amortització apero','Assegurances','Altres'], ingreso: ['Treballs a tercers','Lloguer maquinària','Altres'] },
+  cerdos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Reparacions','Medicaments / veterinari','Pinso / alimentació','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] },
+  pollos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Jaç','Reparacions','Medicaments / veterinari','Pinso / alimentació','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] }
 };
-const AREAS = { cultivos:{label:'Cultivos',icon:'🌾'}, maquinaria:{label:'Maquinaria',icon:'🚜'}, cerdos:{label:'Cerdos',icon:'🐷'}, pollos:{label:'Pollos',icon:'🐔'} };
+const AREAS = { cultivos:{label:'Cultius',icon:'🌾'}, maquinaria:{label:'Maquinària',icon:'🚜'}, cerdos:{label:'Porcs',icon:'🐷'}, pollos:{label:'Pollastres',icon:'🐔'} };
 
 let accessToken = null;
-let movimientos = [];
+let moviments = [];
 let flota = [];
 let userEmail = '';
 
@@ -333,7 +333,7 @@ async function getUserInfo(){
 
 function signOut(){
   google.accounts.oauth2.revoke(accessToken, ()=>{});
-  accessToken = null; movimientos = []; flota = [];
+  accessToken = null; moviments = []; flota = [];
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
@@ -346,7 +346,7 @@ function sheetsReq(path, method='GET', body=null){
 }
 
 async function ensureSheets(){
-  setSyncing(true,'Comprobando hojas...');
+  setSyncing(true,'Comprovant fulls...');
   const meta = await sheetsReq('');
   const nombres = (meta.sheets||[]).map(s=>s.properties.title);
   const toCreate = [];
@@ -357,19 +357,19 @@ async function ensureSheets(){
     await sheetsReq('/values/'+SHEET_MOV+'!A1:K1+:append?valueInputOption=RAW','POST',{values:[['ID','Fecha','Área','Tipo','Categoría','Concepto','Importe','Máquina','Apero','Horas','Notas']]});
     await sheetsReq('/values/'+SHEET_FLOTA+'!A1:D1+:append?valueInputOption=RAW','POST',{values:[['ID','Tipo','Nombre','Ref']]});
   }
-  setSyncing(false,'Conectado a Google Sheets');
+  setSyncing(false,'Connectat a Google Sheets');
 }
 
 async function loadFromSheets(){
-  setSyncing(true,'Cargando datos...');
+  setSyncing(true,'Carregant dades...');
   try {
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
     const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:D');
-    movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
+    moviments = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
     flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||''}));
-    setSyncing(false,'Conectado · '+movimientos.length+' movimientos');
+    setSyncing(false,'Connectat · '+movimientos.length+' moviments');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
-  } catch(e){ setSyncing(false,'Error al cargar',true); }
+  } catch(e){ setSyncing(false,'Error en carregar',true); }
 }
 
 async function appendRow(sheet, values){
@@ -425,18 +425,18 @@ function onCatChange(){
   document.getElementById('f-maq-wrap').classList.add('hidden');
   document.getElementById('f-amort-wrap').classList.add('hidden');
   if(area==='maquinaria'&&tipo==='gasto'){
-    if(['Diesel / combustible','Reparaciones','Seguros'].includes(cat)){
+    if(['Dièsel / combustible','Reparacions','Assegurances'].includes(cat)){
       document.getElementById('f-maq-wrap').classList.remove('hidden');
       populateMaqSelects();
     }
-    if(cat==='Compra / amortización apero') document.getElementById('f-amort-wrap').classList.remove('hidden');
+    if(cat==='Compra / amortització apero') document.getElementById('f-amort-wrap').classList.remove('hidden');
   }
 }
 function populateMaqSelects(){
   const maquinas = flota.filter(f=>f.tipo==='maquina');
   const aperos = flota.filter(f=>f.tipo==='apero');
-  document.getElementById('f-maquina').innerHTML = '<option value="">— Ninguna —</option>'+maquinas.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
-  document.getElementById('f-apero').innerHTML = '<option value="">— Ninguno —</option>'+aperos.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
+  document.getElementById('f-maquina').innerHTML = '<option value="">— Cap —</option>'+maquinas.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  document.getElementById('f-apero').innerHTML = '<option value="">— Cap —</option>'+aperos.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
 }
 function calcAmort(){
   const coste = parseFloat(document.getElementById('f-amort-coste').value)||0;
@@ -444,7 +444,7 @@ function calcAmort(){
   const div = document.getElementById('amort-result');
   if(coste>0&&years>0){
     const anual = coste/years;
-    div.innerHTML = `<div class="amort-badge">Cuota anual: ${fmt(anual)} · ${fmt(anual/12)}/mes</div>`;
+    div.innerHTML = `<div class="amort-badge">Quota anual: ${fmt(anual)} · ${fmt(anual/12)}/mes</div>`;
     document.getElementById('f-importe').value = anual.toFixed(2);
   } else div.textContent='';
 }
@@ -459,25 +459,25 @@ async function addMovimiento(){
   const notas = document.getElementById('f-notas').value.trim();
   const msg = document.getElementById('form-msg');
   if(!concepto||isNaN(importe)||importe<=0||!fecha){
-    msg.className='msg-err'; msg.textContent='Completa todos los campos obligatorios.'; return;
+    msg.className='msg-err'; msg.textContent='Omple tots els camps obligatoris.'; return;
   }
   const id = Date.now().toString();
   let maquina='', apero='', horas='';
-  if(area==='maquinaria'&&tipo==='gasto'&&['Diesel / combustible','Reparaciones','Seguros'].includes(categoria)){
+  if(area==='maquinaria'&&tipo==='gasto'&&['Dièsel / combustible','Reparacions','Assegurances'].includes(categoria)){
     maquina = document.getElementById('f-maquina').value;
     apero = document.getElementById('f-apero').value;
     horas = document.getElementById('f-horas').value||'';
   }
-  setSyncing(true,'Guardando...');
+  setSyncing(true,'Desant...');
   msg.className=''; msg.textContent='';
   try {
     await appendRow(SHEET_MOV,[id,fecha,area,tipo,categoria,concepto,importe.toFixed(2),maquina,apero,horas,notas]);
-    movimientos.push({id,fecha,area,tipo,categoria,concepto,importe,maquina,apero,horas,notas});
-    setSyncing(false,'Guardado en Google Sheets ✓');
-    msg.className='msg-ok'; msg.textContent='✓ Guardado correctamente en tu Google Sheets.';
+    moviments.push({id,fecha,area,tipo,categoria,concepto,importe,maquina,apero,horas,notas});
+    setSyncing(false,'Desat a Google Sheets ✓');
+    msg.className='msg-ok'; msg.textContent='✓ Desat correctament al teu Google Sheets.';
     setTimeout(()=>msg.textContent='',3000);
     clearForm(); renderResumen(); renderMovimientos(); renderRentabilidad();
-  } catch(e){ setSyncing(false,'Error al guardar',true); msg.className='msg-err'; msg.textContent='Error al guardar. Comprueba tu conexión.'; }
+  } catch(e){ setSyncing(false,'Error al guardar',true); msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexió.'; }
 }
 
 function clearForm(){
@@ -489,16 +489,16 @@ function clearForm(){
 }
 
 async function deleteMovimiento(id){
-  if(!confirm('¿Eliminar este movimiento?')) return;
-  const idx = movimientos.findIndex(m=>m.id===id);
+  if(!confirm('Vols eliminar aquest moviment?')) return;
+  const idx = moviments.findIndex(m=>m.id===id);
   if(idx<0) return;
-  setSyncing(true,'Eliminando...');
+  setSyncing(true,'Eliminant...');
   try {
     await deleteRow(SHEET_MOV, idx+1);
-    movimientos.splice(idx,1);
-    setSyncing(false,'Conectado a Google Sheets');
+    moviments.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
     renderMovimientos(); renderResumen(); renderRentabilidad();
-  } catch(e){ setSyncing(false,'Error al eliminar',true); }
+  } catch(e){ setSyncing(false,'Error en eliminar',true); }
 }
 
 // ── RENDER RESUMEN ─────────────────────────────────────
@@ -514,8 +514,8 @@ function renderResumen(){
   `;
   const recientes=[...movimientos].sort((a,b)=>b.id-a.id).slice(0,6);
   const list=document.getElementById('resumen-list');
-  if(!recientes.length){list.innerHTML='<div class="empty">Aún no hay movimientos registrados.</div>';return;}
-  list.innerHTML='<table class="mov-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Área</th><th>Categoría</th><th>Tipo</th><th style="text-align:right">Importe</th></tr></thead><tbody>'+
+  if(!recientes.length){list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>';return;}
+  list.innerHTML='<table class="mov-table"><thead><tr><th>Data</th><th>Concepto</th><th>Área</th><th>Categoría</th><th>Tipo</th><th style="text-align:right">Importe</th></tr></thead><tbody>'+
     recientes.map(m=>`<tr>
       <td style="color:var(--gris-texto)">${m.fecha}</td>
       <td>${m.concepto}${m.maquina?` <span style="font-size:11px;color:var(--gris-texto)">(${m.maquina}${m.horas?', '+m.horas+'h':''})</span>`:''}</td>
@@ -534,13 +534,13 @@ function renderMovimientos(){
   const allCats=[...new Set(movimientos.map(m=>m.categoria).filter(Boolean))];
   const filCat=document.getElementById('fil-cat');
   const cur=filCat.value;
-  filCat.innerHTML='<option value="">Todas</option>'+allCats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  filCat.innerHTML='<option value="">Totes</option>'+allCats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
   let data=[...movimientos].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
   if(area) data=data.filter(m=>m.area===area);
   if(tipo) data=data.filter(m=>m.tipo===tipo);
   if(cat) data=data.filter(m=>m.categoria===cat);
   const tbody=document.getElementById('mov-list');
-  if(!data.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hay movimientos con este filtro.</div></td></tr>';return;}
+  if(!data.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hi ha moviments amb aquest filtre.</div></td></tr>';return;}
   tbody.innerHTML=data.map(m=>`<tr>
     <td style="color:var(--gris-texto);white-space:nowrap">${m.fecha}</td>
     <td>${m.concepto}${m.maquina?` <span style="font-size:11px;color:var(--gris-texto)">(${m.maquina}${m.horas?', '+m.horas+'h':''})</span>`:''}</td>
@@ -563,8 +563,8 @@ function renderRentabilidad(){
     const share=totalIng>0?Math.round((ing/totalIng)*100):0;
     return `<div class="rent-card">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem"><span style="font-size:22px">${a.icon}</span><span style="font-size:14px;font-weight:600">${a.label}</span></div>
-      <div class="rent-stat"><span style="color:var(--gris-texto)">Ingresos</span><span style="color:var(--verde)">${fmt(ing)}</span></div>
-      <div class="rent-stat"><span style="color:var(--gris-texto)">Gastos</span><span style="color:var(--rojo)">${fmt(gas)}</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde)">${fmt(ing)}</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo)">${fmt(gas)}</span></div>
       <div class="rent-stat"><span style="color:var(--gris-texto)">Margen</span><span style="${res>=0?'color:var(--verde)':'color:var(--rojo)'}">${pct}%</span></div>
       <div class="rent-stat"><span style="color:var(--gris-texto)">% del negocio</span><span>${share}%</span></div>
       <div class="rent-bar-wrap"><div class="rent-bar" style="width:${Math.max(0,Math.min(100,Math.abs(pct)))}%;background:${res>=0?'var(--verde-mid)':'var(--rojo)'}"></div></div>
@@ -584,7 +584,7 @@ function renderRentabilidad(){
     });
     html+='</div>';
   });
-  document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra gastos para ver el desglose.</div>';
+  document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra despeses per veure el desglossament.</div>';
 }
 
 // ── FLOTA ──────────────────────────────────────────────
@@ -593,28 +593,28 @@ async function addFlota(){
   const nombre=document.getElementById('fl-nombre').value.trim();
   const ref=document.getElementById('fl-ref').value.trim();
   const msg=document.getElementById('flota-msg');
-  if(!nombre){msg.className='msg-err';msg.textContent='Introduce un nombre.';return;}
+  if(!nombre){msg.className='msg-err';msg.textContent='Introdueix un nom.';return;}
   const id=Date.now().toString();
-  setSyncing(true,'Guardando flota...');
+  setSyncing(true,'Desant flota...');
   try {
     await appendRow(SHEET_FLOTA,[id,tipo,nombre,ref]);
     flota.push({id,tipo,nombre,ref});
-    setSyncing(false,'Conectado a Google Sheets');
+    setSyncing(false,'Connectat a Google Sheets');
     document.getElementById('fl-nombre').value='';document.getElementById('fl-ref').value='';
-    msg.className='msg-ok';msg.textContent='✓ Añadido.';setTimeout(()=>msg.textContent='',2000);
+    msg.className='msg-ok';msg.textContent='✓ Afegit.';setTimeout(()=>msg.textContent='',2000);
     renderFlota();
-  } catch(e){setSyncing(false,'Error',true);msg.className='msg-err';msg.textContent='Error al guardar.';}
+  } catch(e){setSyncing(false,'Error',true);msg.className='msg-err';msg.textContent='Error en desar.';}
 }
 
 async function deleteFlota(id){
-  if(!confirm('¿Eliminar este elemento de la flota?')) return;
+  if(!confirm('Vols eliminar aquest element de la flota?')) return;
   const idx=flota.findIndex(f=>f.id===id);
   if(idx<0) return;
-  setSyncing(true,'Eliminando...');
+  setSyncing(true,'Eliminant...');
   try {
     await deleteRow(SHEET_FLOTA,idx+1);
     flota.splice(idx,1);
-    setSyncing(false,'Conectado a Google Sheets');
+    setSyncing(false,'Connectat a Google Sheets');
     renderFlota();
   } catch(e){setSyncing(false,'Error',true);}
 }
@@ -623,7 +623,7 @@ function renderFlota(){
   ['maquinas','aperos'].forEach(tipo=>{
     const items=flota.filter(f=>f.tipo===(tipo==='maquinas'?'maquina':'apero'));
     const el=document.getElementById('flota-'+tipo);
-    if(!items.length){el.innerHTML='<div class="empty">Ninguno registrado aún.</div>';return;}
+    if(!items.length){el.innerHTML='<div class="empty">Cap registrat encara.</div>';return;}
     el.innerHTML=items.map(m=>`<div class="flota-item">
       <div><div class="flota-nombre">${m.nombre}</div>${m.ref?`<div class="flota-ref">${m.ref}</div>`:''}</div>
       <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕ Eliminar</button>
@@ -642,11 +642,11 @@ function calcComparador(){
   if(!propia&&!contTot){div.innerHTML='';return;}
   const dif=propia-contTot;
   let html='';
-  if(dif<0) html+=`<div style="margin-bottom:8px"><span style="color:var(--verde);font-weight:600">✓ Te sale mejor la máquina propia</span> — ahorras <strong>${fmt(Math.abs(dif))}/año</strong> respecto a contratar.</div>`;
-  else if(dif>0) html+=`<div style="margin-bottom:8px"><span style="color:var(--azul);font-weight:600">→ Te sale mejor contratar</span> — ahorras <strong>${fmt(dif)}/año</strong> respecto a la máquina propia.</div>`;
-  else html+=`<div style="margin-bottom:8px;color:var(--gris-texto)">Empate — ambas opciones tienen el mismo coste.</div>`;
-  if(horas>0&&propia>0) html+=`<div style="color:var(--gris-texto);font-size:13px">Coste propio por hora: <strong>${fmt(propia/horas)}/h</strong></div>`;
-  if(horas>0&&contTot>0) html+=`<div style="color:var(--gris-texto);font-size:13px">Coste contratado por hora: <strong>${fmt(contTot/horas)}/h</strong></div>`;
+  if(dif<0) html+=`<div style="margin-bottom:8px"><span style="color:var(--verde);font-weight:600">✓ Et surt millor la màquina pròpia</span> — ahorras <strong>${fmt(Math.abs(dif))}/año</strong> respecto a contratar.</div>`;
+  else if(dif>0) html+=`<div style="margin-bottom:8px"><span style="color:var(--azul);font-weight:600">→ Et surt millor contractar</span> — ahorras <strong>${fmt(dif)}/año</strong> respecto a la máquina propia.</div>`;
+  else html+=`<div style="margin-bottom:8px;color:var(--gris-texto)">Empat — ambdues opcions tenen el mateix cost.</div>`;
+  if(horas>0&&propia>0) html+=`<div style="color:var(--gris-texto);font-size:13px">Cost propi per hora: <strong>${fmt(propia/horas)}/h</strong></div>`;
+  if(horas>0&&contTot>0) html+=`<div style="color:var(--gris-texto);font-size:13px">Cost contractat per hora: <strong>${fmt(contTot/horas)}/h</strong></div>`;
   div.innerHTML=html;
 }
 
