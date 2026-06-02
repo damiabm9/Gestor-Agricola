@@ -139,7 +139,7 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showTab('resumen',this)">📊 Resum</button>
-    <button class="tab" onclick="showTab('registrar',this)">➕ Registrar</button>
+    <button class="tab" onclick="showTab('registrar',this)">🧾 Registre Factures</button>
     <button class="tab" onclick="showTab('treballs',this)">👷 Treballs</button>
     <button class="tab" onclick="showTab('movimientos',this)">📋 Moviments</button>
     <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
@@ -149,7 +149,22 @@
 
   <!-- RESUMEN -->
   <div id="tab-resumen" class="section visible">
+    <!-- Filtre any -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
+      <label style="font-size:12px;color:var(--gris-texto);font-weight:500">Any:</label>
+      <select id="res-any" onchange="renderResumen()" style="width:auto;padding:6px 12px;font-size:13px">
+        <option value="">Tots els anys</option>
+      </select>
+      <span id="res-periode" style="font-size:12px;color:var(--gris-texto)"></span>
+    </div>
+
+    <!-- KPIs globals -->
     <div class="kpi-grid" id="kpi-grid"></div>
+
+    <!-- Resum per àrea -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:1.25rem" id="area-cards"></div>
+
+    <!-- Últims moviments -->
     <div class="card">
       <div class="card-title">⏱ Últims moviments</div>
       <div id="resumen-list"></div>
@@ -159,7 +174,7 @@
   <!-- REGISTRAR -->
   <div id="tab-registrar" class="section">
     <div class="card">
-      <div class="card-title">➕ Nou moviment</div>
+      <div class="card-title">🧾 Nova factura</div>
       <div class="form-row g2">
         <div><label>Tipus</label>
           <select id="f-tipo" onchange="onTipoChange()">
@@ -205,7 +220,7 @@
       </div>
       <div><label>Notes (opcional)</label><input type="text" id="f-notas" placeholder="Observacions..."/></div>
       <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="addMovimiento()">✓ Desar a Sheets</button>
+        <button class="btn btn-primary" onclick="addMovimiento()">✓ Desar factura</button>
         <button class="btn" onclick="clearForm()">↺ Netejar</button>
       </div>
       <div id="form-msg"></div>
@@ -693,26 +708,68 @@ async function deleteMovimiento(id){
 }
 
 // ── RENDER RESUMEN ─────────────────────────────────────
+function populateAnyFilter(){
+  const anys = [...new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('res-any');
+  const cur = sel.value;
+  sel.innerHTML='<option value="">Tots els anys</option>'+anys.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+}
+
+function getMovFiltrats(){
+  const any = document.getElementById('res-any')?.value||'';
+  if(!any) return movimientos;
+  return movimientos.filter(m=>m.fecha&&m.fecha.startsWith(any));
+}
+
 function renderResumen(){
-  const ti=movimientos.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
-  const tg=movimientos.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
-  const res=ti-tg;
+  populateAnyFilter();
+  const any = document.getElementById('res-any')?.value||'';
+  const data = getMovFiltrats();
+  const periode = document.getElementById('res-periode');
+  if(periode) periode.textContent = any ? `· Mostrant dades de ${any}` : '· Tots els anys';
+
+  const ti = data.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+  const tg = data.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const res = ti-tg;
   document.getElementById('kpi-grid').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Total ingresos</div><div class="kpi-value pos">${fmt(ti)}</div></div>
-    <div class="kpi"><div class="kpi-label">Total gastos</div><div class="kpi-value neg">${fmt(tg)}</div></div>
-    <div class="kpi"><div class="kpi-label">Resultado neto</div><div class="kpi-value ${res>=0?'pos':'neg'}">${fmt(res)}</div></div>
-    <div class="kpi"><div class="kpi-label">Movimientos</div><div class="kpi-value" style="color:#333">${movimientos.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Total ingressos</div><div class="kpi-value pos">${fmt(ti)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total despeses</div><div class="kpi-value neg">${fmt(tg)}</div></div>
+    <div class="kpi"><div class="kpi-label">Resultat net</div><div class="kpi-value ${res>=0?'pos':'neg'}">${fmt(res)}</div></div>
+    <div class="kpi"><div class="kpi-label">Moviments</div><div class="kpi-value" style="color:#333">${data.length}</div></div>
   `;
-  const recientes=[...movimientos].sort((a,b)=>b.id-a.id).slice(0,6);
-  const list=document.getElementById('resumen-list');
-  if(!recientes.length){list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>';return;}
-  list.innerHTML='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Importe</th></tr></thead><tbody>'+
-    recientes.map(m=>`<tr>
+
+  // Cards per àrea
+  const areaCards = Object.entries(AREAS).map(([key,a])=>{
+    const ing = data.filter(m=>m.area===key&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+    const gas = data.filter(m=>m.area===key&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+    const marge = ing - gas;
+    const pct = ing>0 ? Math.round((marge/ing)*100) : (gas>0?-100:0);
+    const barW = Math.max(0,Math.min(100,Math.abs(pct)));
+    const barColor = marge>=0?'var(--verde-mid)':'var(--rojo)';
+    return `<div class="rent-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
+        <span style="font-size:20px">${a.icon}</span>
+        <span style="font-size:14px;font-weight:600">${a.label}</span>
+      </div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde);font-weight:600">${fmt(ing)}</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo);font-weight:600">${fmt(gas)}</span></div>
+      <div class="rent-stat" style="border:none"><span style="color:var(--gris-texto)">Marge</span><span style="font-weight:700;font-size:14px;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)} <span style="font-size:11px">(${pct}%)</span></span></div>
+      <div class="rent-bar-wrap"><div class="rent-bar" style="width:${barW}%;background:${barColor}"></div></div>
+    </div>`;
+  });
+  document.getElementById('area-cards').innerHTML = areaCards.join('');
+
+  // Últims moviments
+  const recents = [...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,6);
+  const list = document.getElementById('resumen-list');
+  if(!recents.length){ list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>'; return; }
+  list.innerHTML='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th></tr></thead><tbody>'+
+    recents.map(m=>`<tr>
       <td style="color:var(--gris-texto)">${m.fecha}</td>
-      <td>${m.concepto}${m.maquina?` <span style="font-size:11px;color:var(--gris-texto)">(${m.maquina}${m.horas?', '+m.horas+'h':''})</span>`:''}</td>
+      <td>${m.concepto}</td>
       <td><span class="badge badge-area">${AREAS[m.area]?.icon||''} ${AREAS[m.area]?.label||m.area}</span></td>
       <td><span class="badge badge-cat">${m.categoria||'—'}</span></td>
-      <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo}</span></td>
+      <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo==='ingreso'?'Ingrés':'Despesa'}</span></td>
       <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
     </tr>`).join('')+'</tbody></table>';
 }
