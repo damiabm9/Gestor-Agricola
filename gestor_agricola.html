@@ -331,18 +331,112 @@
 
   <!-- FLOTA -->
   <div id="tab-flota" class="section">
+
+    <!-- Fitxa màquina/apero -->
     <div class="card">
       <div class="card-title">🚜 Afegir màquina o apero</div>
       <div class="form-row g3">
-        <div><label>Tipus</label><select id="fl-tipo"><option value="maquina">Máquina</option><option value="apero">Apero</option></select></div>
+        <div><label>Tipus</label>
+          <select id="fl-tipo">
+            <option value="maquina">Màquina (tractor, collitadora...)</option>
+            <option value="apero">Apero (sembradora, subsolador...)</option>
+          </select>
+        </div>
         <div><label>Nom</label><input type="text" id="fl-nombre" placeholder="Ex: Tractor John Deere 6120R"/></div>
         <div><label>Any / ref. (opcional)</label><input type="text" id="fl-ref" placeholder="Ex: 2018 / H-1234-BC"/></div>
       </div>
+      <div class="form-row g3">
+        <div><label>Data de compra</label><input type="date" id="fl-dataCompra"/></div>
+        <div><label>Cost de compra (€)</label><input type="number" id="fl-cost" placeholder="0" oninput="calcFlotaAmort()"/></div>
+        <div><label>Anys amortització</label><input type="number" id="fl-amortAnys" placeholder="10" oninput="calcFlotaAmort()"/></div>
+      </div>
+      <div id="flota-amort-result" style="font-size:13px;margin-bottom:10px"></div>
       <button class="btn btn-primary" onclick="addFlota()">➕ Afegir a la flota</button>
       <div id="flota-msg"></div>
     </div>
-    <div class="card"><div class="card-title">🚗 Màquines</div><div id="flota-maquinas"></div></div>
-    <div class="card"><div class="card-title">🔧 Aperos</div><div id="flota-aperos"></div></div>
+
+    <!-- Llista màquines -->
+    <div class="card">
+      <div class="card-title">🚗 Màquines</div>
+      <div id="flota-maquinas"></div>
+    </div>
+
+    <!-- Llista aperos -->
+    <div class="card">
+      <div class="card-title">🔧 Aperos</div>
+      <div id="flota-aperos"></div>
+    </div>
+
+    <!-- Repostatges -->
+    <div class="card">
+      <div class="card-title">⛽ Registrar repostatge</div>
+      <div class="form-row g2">
+        <div><label>Data</label><input type="date" id="rep-data"/></div>
+        <div><label>Màquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
+      </div>
+      <div class="form-row g3">
+        <div><label>Litres</label><input type="number" id="rep-litres" placeholder="0" min="0" step="0.1" oninput="calcRepostatge()"/></div>
+        <div><label>Preu (€/litre)</label><input type="number" id="rep-preu" placeholder="0.00" min="0" step="0.001" oninput="calcRepostatge()"/></div>
+        <div><label>Total (€)</label><input type="number" id="rep-total" placeholder="0.00" readonly style="background:var(--gris-bg)"/></div>
+      </div>
+      <button class="btn btn-primary" onclick="addRepostatge()">✓ Desar repostatge</button>
+      <div id="rep-msg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>📋 Historial repostatges</span>
+        <button class="btn btn-sm" onclick="loadRepostatges()">↺ Recarregar</button>
+      </div>
+      <table class="mov-table">
+        <thead><tr><th>Data</th><th>Màquina</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
+        <tbody id="rep-list"><tr><td colspan="6"><div class="empty">Carregant...</div></td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Manteniments -->
+    <div class="card">
+      <div class="card-title">🔩 Registrar manteniment / avaria</div>
+      <div class="form-row g2">
+        <div><label>Data</label><input type="date" id="mant-data"/></div>
+        <div><label>Màquina</label><select id="mant-maquina"><option value="">— Selecciona —</option></select></div>
+      </div>
+      <div class="form-row g2">
+        <div><label>Tipus</label>
+          <select id="mant-tipus">
+            <option value="Manteniment preventiu">Manteniment preventiu</option>
+            <option value="Avaria">Avaria</option>
+            <option value="Revisió">Revisió</option>
+            <option value="Canvi d'oli">Canvi d'oli</option>
+            <option value="Altres">Altres</option>
+          </select>
+        </div>
+        <div><label>Estat</label>
+          <select id="mant-estat">
+            <option value="Resolt">Resolt</option>
+            <option value="Pendent">Pendent</option>
+            <option value="En reparació">En reparació</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px"><label>Descripció</label><input type="text" id="mant-desc" placeholder="Ex: Canvi filtres, reparació hidràulic..."/></div>
+      <div class="form-row g2">
+        <div><label>Cost (€)</label><input type="number" id="mant-cost" placeholder="0.00" min="0" step="0.01"/></div>
+        <div></div>
+      </div>
+      <button class="btn btn-primary" onclick="addManteniment()">✓ Desar manteniment</button>
+      <div id="mant-msg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>📋 Historial manteniments</span>
+        <button class="btn btn-sm" onclick="loadManteniments()">↺ Recarregar</button>
+      </div>
+      <table class="mov-table">
+        <thead><tr><th>Data</th><th>Màquina</th><th>Tipus</th><th>Descripció</th><th>Estat</th><th style="text-align:right">Cost</th><th></th></tr></thead>
+        <tbody id="mant-list"><tr><td colspan="7"><div class="empty">Carregant...</div></td></tr></tbody>
+      </table>
+    </div>
+
   </div>
 
   <!-- COMPARADOR -->
@@ -379,6 +473,8 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 const SHEET_MOV = 'Movimientos';
 const SHEET_FLOTA = 'Flota';
 const SHEET_TREBALLS = 'Treballs';
+const SHEET_REPOSTATGES = 'Repostatges';
+const SHEET_MANTENIMENTS = 'Manteniments';
 
 const CATS = {
   cultivos:   { gasto: ['Herbicides','Llavors','Fertilitzants','Fitosanitaris','Mà d\'obra','Altres'], ingreso: ['Venda collita','Subvencions','Altres'] },
@@ -444,6 +540,8 @@ async function ensureSheets(){
   if(!nombres.includes(SHEET_MOV)) toCreate.push({addSheet:{properties:{title:SHEET_MOV}}});
   if(!nombres.includes(SHEET_FLOTA)) toCreate.push({addSheet:{properties:{title:SHEET_FLOTA}}});
   if(!nombres.includes(SHEET_TREBALLS)) toCreate.push({addSheet:{properties:{title:SHEET_TREBALLS}}});
+  if(!nombres.includes(SHEET_REPOSTATGES)) toCreate.push({addSheet:{properties:{title:SHEET_REPOSTATGES}}});
+  if(!nombres.includes(SHEET_MANTENIMENTS)) toCreate.push({addSheet:{properties:{title:SHEET_MANTENIMENTS}}});
   if(toCreate.length){
     await sheetsReq(':batchUpdate','POST',{requests:toCreate});
     await sheetsReq('/values/'+SHEET_MOV+'!A1:K1+:append?valueInputOption=RAW','POST',{values:[['ID','Fecha','Área','Tipo','Categoría','Concepto','Importe','Máquina','Apero','Horas','Notas']]});
@@ -458,7 +556,7 @@ async function loadFromSheets(){
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
     const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:D');
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
-    flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||''}));
+    flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||''}));
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
   } catch(e){ setSyncing(false,'Error en carregar',true); }
@@ -492,7 +590,7 @@ function showTab(t, btn){
   if(t==='resumen') renderResumen();
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilidad();
-  if(t==='flota') renderFlota();
+  if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); }
   if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
 }
 
@@ -681,22 +779,46 @@ function renderRentabilidad(){
 }
 
 // ── FLOTA ──────────────────────────────────────────────
+function calcFlotaAmort(){
+  const cost = parseFloat(document.getElementById('fl-cost').value)||0;
+  const anys = parseFloat(document.getElementById('fl-amortAnys').value)||0;
+  const div = document.getElementById('flota-amort-result');
+  if(cost>0&&anys>0){
+    const anual = cost/anys;
+    div.innerHTML = `<span class="amort-badge">Amortització: ${fmt(anual)}/any · ${fmt(anual/12)}/mes</span>`;
+  } else div.textContent='';
+}
+
+function populateRepMantSelects(){
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  ['rep-maquina','mant-maquina'].forEach(id=>{
+    const sel = document.getElementById(id);
+    if(sel) sel.innerHTML='<option value="">— Selecciona —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  });
+}
+
 async function addFlota(){
-  const tipo=document.getElementById('fl-tipo').value;
-  const nombre=document.getElementById('fl-nombre').value.trim();
-  const ref=document.getElementById('fl-ref').value.trim();
-  const msg=document.getElementById('flota-msg');
-  if(!nombre){msg.className='msg-err';msg.textContent='Introdueix un nom.';return;}
-  const id=Date.now().toString();
+  const tipo = document.getElementById('fl-tipo').value;
+  const nombre = document.getElementById('fl-nombre').value.trim();
+  const ref = document.getElementById('fl-ref').value.trim();
+  const dataCompra = document.getElementById('fl-dataCompra').value;
+  const cost = document.getElementById('fl-cost').value;
+  const amortAnys = document.getElementById('fl-amortAnys').value;
+  const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0) ? (parseFloat(cost)/parseFloat(amortAnys)).toFixed(2) : '';
+  const msg = document.getElementById('flota-msg');
+  if(!nombre){ msg.className='msg-err'; msg.textContent='Introdueix un nom.'; return; }
+  const id = Date.now().toString();
   setSyncing(true,'Desant flota...');
   try {
-    await appendRow(SHEET_FLOTA,[id,tipo,nombre,ref]);
-    flota.push({id,tipo,nombre,ref});
+    await appendRow(SHEET_FLOTA,[id,tipo,nombre,ref,dataCompra,cost,amortAnys,amortAnual]);
+    flota.push({id,tipo,nombre,ref,dataCompra,cost,amortAnys,amortAnual});
     setSyncing(false,'Connectat a Google Sheets');
-    document.getElementById('fl-nombre').value='';document.getElementById('fl-ref').value='';
-    msg.className='msg-ok';msg.textContent='✓ Afegit.';setTimeout(()=>msg.textContent='',2000);
-    renderFlota();
-  } catch(e){setSyncing(false,'Error',true);msg.className='msg-err';msg.textContent='Error al guardar.';}
+    ['fl-nombre','fl-ref','fl-cost','fl-amortAnys'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('fl-dataCompra').value='';
+    document.getElementById('flota-amort-result').textContent='';
+    msg.className='msg-ok'; msg.textContent='✓ Afegit.'; setTimeout(()=>msg.textContent='',2000);
+    renderFlota(); populateRepMantSelects();
+  } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
 }
 
 async function deleteFlota(id){
@@ -708,20 +830,157 @@ async function deleteFlota(id){
     await deleteRow(SHEET_FLOTA,idx+1);
     flota.splice(idx,1);
     setSyncing(false,'Connectat a Google Sheets');
-    renderFlota();
-  } catch(e){setSyncing(false,'Error',true);}
+    renderFlota(); populateRepMantSelects();
+  } catch(e){ setSyncing(false,'Error',true); }
 }
 
 function renderFlota(){
-  ['maquinas','aperos'].forEach(tipo=>{
-    const items=flota.filter(f=>f.tipo===(tipo==='maquinas'?'maquina':'apero'));
-    const el=document.getElementById('flota-'+tipo);
-    if(!items.length){el.innerHTML='<div class="empty">Cap registrat encara.</div>';return;}
-    el.innerHTML=items.map(m=>`<div class="flota-item">
-      <div><div class="flota-nombre">${m.nombre}</div>${m.ref?`<div class="flota-ref">${m.ref}</div>`:''}</div>
-      <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕ Eliminar</button>
-    </div>`).join('');
+  ['maquinas','aperos'].forEach(tipus=>{
+    const items=flota.filter(f=>f.tipo===(tipus==='maquinas'?'maquina':'apero'));
+    const el=document.getElementById('flota-'+tipus);
+    if(!items.length){ el.innerHTML='<div class="empty">Cap registrat encara.</div>'; return; }
+    el.innerHTML='<div class="flota-list">'+items.map(m=>{
+      const amortAnual = parseFloat(m.amortAnual)||0;
+      const costCompra = parseFloat(m.cost)||0;
+      const dataCompra = m.dataCompra||'';
+      let amortInfo = '';
+      if(amortAnual>0){
+        const anyCompra = dataCompra ? new Date(dataCompra).getFullYear() : null;
+        const anyActual = new Date().getFullYear();
+        const anysPassats = anyCompra ? anyActual - anyCompra : 0;
+        const amortAcum = Math.min(anysPassats * amortAnual, costCompra);
+        const restant = Math.max(costCompra - amortAcum, 0);
+        amortInfo = `<div style="font-size:11px;color:var(--gris-texto);margin-top:4px">
+          Amort: ${fmt(amortAnual)}/any · Pendent: <strong style="color:${restant>0?'var(--naranja)':'var(--verde)'}">${fmt(restant)}</strong>
+        </div>`;
+      }
+      return `<div class="flota-item" style="flex-direction:column;align-items:flex-start">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+          <div>
+            <div class="flota-nombre">${m.nombre}</div>
+            ${m.ref?`<div class="flota-ref">${m.ref}${dataCompra?' · '+dataCompra:''}</div>`:''}
+            ${costCompra>0?`<div class="flota-ref">Cost compra: ${fmt(costCompra)}</div>`:''}
+            ${amortInfo}
+          </div>
+          <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('')+'</div>';
   });
+  populateRepMantSelects();
+}
+
+// Repostatges
+function calcRepostatge(){
+  const l = parseFloat(document.getElementById('rep-litres').value)||0;
+  const p = parseFloat(document.getElementById('rep-preu').value)||0;
+  document.getElementById('rep-total').value = (l*p).toFixed(2);
+}
+
+async function addRepostatge(){
+  const data = document.getElementById('rep-data').value;
+  const maquina = document.getElementById('rep-maquina').value;
+  const litres = document.getElementById('rep-litres').value;
+  const preu = document.getElementById('rep-preu').value;
+  const total = document.getElementById('rep-total').value;
+  const msg = document.getElementById('rep-msg');
+  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, màquina i litres.'; return; }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant...');
+  try {
+    await appendRow(SHEET_REPOSTATGES,[id,data,maquina,litres,preu,total]);
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat.'; setTimeout(()=>msg.textContent='',2500);
+    ['rep-litres','rep-preu','rep-total'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('rep-data').valueAsDate=new Date();
+    loadRepostatges();
+  } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
+}
+
+async function loadRepostatges(){
+  const tbody = document.getElementById('rep-list');
+  if(!tbody) return;
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:F');
+    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',litres:row[3]||'',preu:row[4]||'',total:row[5]||''}));
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Encara no hi ha repostatges registrats.</div></td></tr>'; return; }
+    tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
+      <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
+      <td><span class="badge badge-area">${r.maquina}</span></td>
+      <td style="text-align:right">${r.litres}L</td>
+      <td style="text-align:right">${r.preu}€/L</td>
+      <td style="text-align:right;font-weight:600;color:var(--rojo)">${r.total?fmt(parseFloat(r.total)):'-'}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteRepostatge('${r.id}')">✕</button></td>
+    </tr>`).join('');
+  } catch(e){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Error en carregar.</div></td></tr>'; }
+}
+
+async function deleteRepostatge(id){
+  if(!confirm('Vols eliminar aquest repostatge?')) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:A');
+    const rows = r.values||[];
+    const idx = rows.findIndex(row=>row[0]===id);
+    if(idx>=0) await deleteRow(SHEET_REPOSTATGES, idx+1);
+    setSyncing(false,'Connectat a Google Sheets');
+    loadRepostatges();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+// Manteniments
+async function addManteniment(){
+  const data = document.getElementById('mant-data').value;
+  const maquina = document.getElementById('mant-maquina').value;
+  const tipus = document.getElementById('mant-tipus').value;
+  const desc = document.getElementById('mant-desc').value.trim();
+  const cost = document.getElementById('mant-cost').value;
+  const estat = document.getElementById('mant-estat').value;
+  const msg = document.getElementById('mant-msg');
+  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, màquina i descripció.'; return; }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant...');
+  try {
+    await appendRow(SHEET_MANTENIMENTS,[id,data,maquina,tipus,desc,cost||'0',estat]);
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.className='msg-ok'; msg.textContent='✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',2500);
+    ['mant-desc','mant-cost'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('mant-data').valueAsDate=new Date();
+    loadManteniments();
+  } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
+}
+
+async function loadManteniments(){
+  const tbody = document.getElementById('mant-list');
+  if(!tbody) return;
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:G');
+    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'',desc:row[4]||'',cost:row[5]||'0',estat:row[6]||''}));
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha manteniments registrats.</div></td></tr>'; return; }
+    const estatColor = {Resolt:'badge-ing',Pendent:'badge-gas','En reparació':'badge-cat'};
+    tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
+      <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
+      <td><span class="badge badge-area">${r.maquina}</span></td>
+      <td><span class="badge badge-cat">${r.tipus}</span></td>
+      <td style="font-size:12px">${r.desc}</td>
+      <td><span class="badge ${estatColor[r.estat]||'badge-area'}">${r.estat}</span></td>
+      <td style="text-align:right;font-weight:600;color:var(--rojo)">${fmt(parseFloat(r.cost)||0)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteManteniment('${r.id}')">✕</button></td>
+    </tr>`).join('');
+  } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar.</div></td></tr>'; }
+}
+
+async function deleteManteniment(id){
+  if(!confirm('Vols eliminar aquest manteniment?')) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:A');
+    const rows = r.values||[];
+    const idx = rows.findIndex(row=>row[0]===id);
+    if(idx>=0) await deleteRow(SHEET_MANTENIMENTS, idx+1);
+    setSyncing(false,'Connectat a Google Sheets');
+    loadManteniments();
+  } catch(e){ setSyncing(false,'Error',true); }
 }
 
 // ── COMPARADOR ─────────────────────────────────────────
@@ -756,6 +1015,8 @@ function calcAmortLib(){
 
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
+document.getElementById('rep-data').valueAsDate=new Date();
+document.getElementById('mant-data').valueAsDate=new Date();
 
 // ── TREBALLS ───────────────────────────────────────────
 function onTipusFeinaChange(){
@@ -863,6 +1124,8 @@ async function addTreball(){
 function clearTreball(){
   ['t-hores','t-notes','t-varietat','t-dosi-sembra','t-preu-llavor','t-nitrogen-purins','t-dosi-fems','t-nitrogen-fems'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('t-data').valueAsDate=new Date();
+document.getElementById('rep-data').valueAsDate=new Date();
+document.getElementById('mant-data').valueAsDate=new Date();
   document.getElementById('t-qui').selectedIndex=0;
   document.getElementById('t-tipus').selectedIndex=0;
   document.getElementById('productes-wrap').innerHTML='';
