@@ -231,7 +231,7 @@
       </div>
       <div class="form-row g2">
         <div><label>Tipus de feina</label>
-          <select id="t-tipus">
+          <select id="t-tipus" onchange="onTipusFeinaChange()">
             <option value="Sembrar">🌱 Sembrar</option>
             <option value="Ensulfatar">🌿 Ensulfatar</option>
             <option value="Aplicar Purins">💧 Aplicar Purins</option>
@@ -247,7 +247,41 @@
         <div><label>Màquina utilitzada</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
         <div><label>Apero utilitzat</label><select id="t-apero"><option value="">— Cap —</option></select></div>
       </div>
-      <div style="margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
+      <div id="extra-sembrar" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌱 Detalls de la sembra</div>
+        <div class="form-row g2">
+          <div><label>Cultiu</label>
+            <select id="t-cultiu"><option>Blat</option><option>Ordi</option><option>Civada</option><option>Blat de moro</option><option>Girasol</option><option>Colza</option><option>Alfals</option><option>Farratge</option><option>Altres</option></select>
+          </div>
+          <div><label>Varietat</label><input type="text" id="t-varietat" placeholder="Ex: Nogal, Cometa..."/></div>
+        </div>
+        <div class="form-row g2">
+          <div><label>Dosi (kg/ha)</label><input type="number" id="t-dosi-sembra" placeholder="0" min="0" step="0.5"/></div>
+          <div><label>Preu llavor (€/kg)</label><input type="number" id="t-preu-llavor" placeholder="0.00" min="0" step="0.01"/></div>
+        </div>
+      </div>
+      <div id="extra-ensulfatar" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌿 Productes aplicats</div>
+        <div id="productes-wrap"></div>
+        <button class="btn btn-sm" onclick="addProducte()" style="margin-top:8px">+ Afegir producte</button>
+      </div>
+      <div id="extra-purins" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">💧 Detalls dels purins</div>
+        <div class="form-row g2">
+          <div><label>Dosi de Nitrogen (kg N/ha)</label><input type="number" id="t-nitrogen-purins" placeholder="0" min="0" step="0.5"/></div>
+          <div><label>Metres cúbics per hectàrea (m³/ha)</label><input type="number" id="t-m3-purins" placeholder="0" min="0" step="0.5"/></div>
+        </div>
+      </div>
+      <div id="extra-fems" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌾 Detalls dels fems</div>
+        <div class="form-row g2">
+          <div><label>Dosi (t/ha)</label><input type="number" id="t-dosi-fems" placeholder="0" min="0" step="0.5"/></div>
+          <div><label>Tipus de fem</label>
+            <select id="t-tipus-fems"><option>Fem de porc</option><option>Fem de vaca</option><option>Fem de pollastre</option><option>Compost</option><option>Altres</option></select>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px;margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="addTreball()">✓ Desar treball</button>
         <button class="btn" onclick="clearTreball()">↺ Netejar</button>
@@ -260,7 +294,7 @@
         <button class="btn btn-sm" onclick="loadTreballs()">↺ Recarregar</button>
       </div>
       <table class="mov-table">
-        <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Màquina</th><th>Apero</th><th style="text-align:right">Hores</th><th></th></tr></thead>
+        <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Detalls</th><th>Màquina</th><th style="text-align:right">Hores</th><th></th></tr></thead>
         <tbody id="treballs-list"><tr><td colspan="7"><div class="empty">Carregant...</div></td></tr></tbody>
       </table>
     </div>
@@ -723,11 +757,84 @@ document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 
 // ── TREBALLS ───────────────────────────────────────────
+function onTipusFeinaChange(){
+  const tipus = document.getElementById('t-tipus').value;
+  ['sembrar','ensulfatar','purins','fems'].forEach(t=>{
+    document.getElementById('extra-'+t).classList.add('hidden');
+  });
+  if(tipus==='Sembrar') document.getElementById('extra-sembrar').classList.remove('hidden');
+  if(tipus==='Ensulfatar'){
+    document.getElementById('extra-ensulfatar').classList.remove('hidden');
+    if(document.getElementById('productes-wrap').children.length===0) addProducte();
+  }
+  if(tipus==='Aplicar Purins') document.getElementById('extra-purins').classList.remove('hidden');
+  if(tipus==='Aplicar Fems') document.getElementById('extra-fems').classList.remove('hidden');
+}
+
+function addProducte(){
+  const wrap = document.getElementById('productes-wrap');
+  const idx = wrap.children.length;
+  const div = document.createElement('div');
+  div.style.cssText='background:#fff;border-radius:6px;padding:10px;margin-bottom:8px;border:1px solid var(--gris-borde)';
+  div.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:600;color:var(--gris-texto)">Producte ${idx+1}</span>
+      ${idx>0?'<button class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()">✕</button>':''}
+    </div>
+    <div class="form-row g2" style="margin-bottom:8px">
+      <div><label>Tipus</label>
+        <select class="prod-tipus">
+          <option>Herbicida</option><option>Fungicida</option><option>Insecticida</option><option>Fertilitzant foliar</option><option>Altres</option>
+        </select>
+      </div>
+      <div><label>Nom del producte</label><input type="text" class="prod-nom" placeholder="Ex: Roundup, Opus..."/></div>
+    </div>
+    <div class="form-row g2">
+      <div><label>Dosi (l/ha o kg/ha)</label><input type="number" class="prod-dosi" placeholder="0" min="0" step="0.01"/></div>
+      <div><label>Preu (€/l o €/kg)</label><input type="number" class="prod-preu" placeholder="0.00" min="0" step="0.01"/></div>
+    </div>`;
+  wrap.appendChild(div);
+}
+
+function getExtresData(){
+  const tipus = document.getElementById('t-tipus').value;
+  if(tipus==='Sembrar'){
+    const cultiu = document.getElementById('t-cultiu').value;
+    const varietat = document.getElementById('t-varietat').value;
+    const dosi = document.getElementById('t-dosi-sembra').value;
+    const preu = document.getElementById('t-preu-llavor').value;
+    return `Cultiu:${cultiu} Varietat:${varietat||'—'} Dosi:${dosi}kg/ha Preu:${preu}€/kg`;
+  }
+  if(tipus==='Ensulfatar'){
+    const wrap = document.getElementById('productes-wrap');
+    const productes = [];
+    for(const div of wrap.children){
+      const t = div.querySelector('.prod-tipus')?.value||'';
+      const n = div.querySelector('.prod-nom')?.value||'';
+      const d = div.querySelector('.prod-dosi')?.value||'';
+      const p = div.querySelector('.prod-preu')?.value||'';
+      if(n) productes.push(`${t}:${n}(${d}/${p}€)`);
+    }
+    return productes.join(' | ');
+  }
+  if(tipus==='Aplicar Purins'){
+    const n = document.getElementById('t-nitrogen-purins').value;
+    const m3 = document.getElementById('t-m3-purins').value;
+    return `N:${n}kgN/ha M³:${m3}m³/ha`;
+  }
+  if(tipus==='Aplicar Fems'){
+    const dosi = document.getElementById('t-dosi-fems').value;
+    const tf = document.getElementById('t-tipus-fems').value;
+    return `${tf} Dosi:${dosi}t/ha`;
+  }
+  return '';
+}
+
 function populateTreballSelects(){
   const maquines = flota.filter(f=>f.tipo==='maquina');
   const aperos_list = flota.filter(f=>f.tipo==='apero');
-  document.getElementById('t-maquina').innerHTML = '<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
-  document.getElementById('t-apero').innerHTML = '<option value="">— Cap —</option>'+aperos_list.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
+  document.getElementById('t-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  document.getElementById('t-apero').innerHTML='<option value="">— Cap —</option>'+aperos_list.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
 }
 
 async function addTreball(){
@@ -738,60 +845,46 @@ async function addTreball(){
   const maquina = document.getElementById('t-maquina').value;
   const apero = document.getElementById('t-apero').value;
   const notes = document.getElementById('t-notes').value.trim();
+  const extres = getExtresData();
   const msg = document.getElementById('treball-msg');
-  if(!data||hores<=0){
-    msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return;
-  }
+  if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant treball...');
   try {
-    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),notes]);
+    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),extres,notes]);
     setSyncing(false,'Connectat a Google Sheets');
     msg.className='msg-ok'; msg.textContent='✓ Treball desat correctament.';
     setTimeout(()=>msg.textContent='',3000);
-    clearTreball();
-    loadTreballs();
-  } catch(e){
-    setSyncing(false,'Error en desar',true);
-    msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexió.';
-  }
+    clearTreball(); loadTreballs();
+  } catch(e){ setSyncing(false,'Error en desar',true); msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexió.'; }
 }
 
 function clearTreball(){
-  document.getElementById('t-hores').value='';
-  document.getElementById('t-notes').value='';
+  ['t-hores','t-notes','t-varietat','t-dosi-sembra','t-preu-llavor','t-nitrogen-purins','t-m3-purins','t-dosi-fems'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('t-data').valueAsDate=new Date();
   document.getElementById('t-qui').selectedIndex=0;
   document.getElementById('t-tipus').selectedIndex=0;
-  document.getElementById('t-maquina').value='';
-  document.getElementById('t-apero').value='';
+  document.getElementById('productes-wrap').innerHTML='';
+  ['sembrar','ensulfatar','purins','fems'].forEach(t=>document.getElementById('extra-'+t).classList.add('hidden'));
 }
 
 async function loadTreballs(){
   const tbody = document.getElementById('treballs-list');
   if(!tbody) return;
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:H');
-    const treballs = (r.values||[]).map(row=>({
-      id:row[0]||'',data:row[1]||'',qui:row[2]||'',tipus:row[3]||'',
-      maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',notes:row[7]||''
-    }));
-    if(!treballs.length){
-      tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>';
-      return;
-    }
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:I');
+    const treballs = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',qui:row[2]||'',tipus:row[3]||'',maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',extres:row[7]||'',notes:row[8]||''}));
+    if(!treballs.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>'; return; }
     tbody.innerHTML=[...treballs].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(t=>`<tr>
       <td style="color:var(--gris-texto);white-space:nowrap">${t.data}</td>
       <td><span class="badge badge-area">${t.qui}</span></td>
       <td><span class="badge badge-cat">${t.tipus}</span></td>
-      <td style="font-size:12px;color:var(--gris-texto)">${t.maquina||'—'}</td>
-      <td style="font-size:12px;color:var(--gris-texto)">${t.apero||'—'}</td>
+      <td style="font-size:11px;color:var(--gris-texto);max-width:180px;word-break:break-word">${t.extres||'—'}</td>
+      <td style="font-size:12px;color:var(--gris-texto)">${t.maquina||'—'}${t.apero?' / '+t.apero:''}</td>
       <td style="text-align:right;font-weight:600">${t.hores}h</td>
       <td><button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button></td>
     </tr>`).join('');
-  } catch(e){
-    tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar els treballs.</div></td></tr>';
-  }
+  } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar els treballs.</div></td></tr>'; }
 }
 
 async function deleteTreball(id){
