@@ -251,13 +251,13 @@
         <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌱 Detalls de la sembra</div>
         <div class="form-row g2">
           <div><label>Cultiu</label>
-            <select id="t-cultiu"><option>Blat</option><option>Ordi</option><option>Civada</option><option>Blat de moro</option><option>Girasol</option><option>Colza</option><option>Alfals</option><option>Farratge</option><option>Altres</option></select>
+            <select id="t-cultiu"><option>Blat</option><option>Ordi</option><option>Veça i Civada</option><option>Colza</option><option>Triticale</option></select>
           </div>
           <div><label>Varietat</label><input type="text" id="t-varietat" placeholder="Ex: Nogal, Cometa..."/></div>
         </div>
         <div class="form-row g2">
           <div><label>Dosi (kg/ha)</label><input type="number" id="t-dosi-sembra" placeholder="0" min="0" step="0.5"/></div>
-          <div><label>Preu llavor (€/kg)</label><input type="number" id="t-preu-llavor" placeholder="0.00" min="0" step="0.01"/></div>
+          <div><label>Preu llavor (€/tona)</label><input type="number" id="t-preu-llavor" placeholder="0.00" min="0" step="0.01"/></div>
         </div>
       </div>
       <div id="extra-ensulfatar" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
@@ -269,13 +269,14 @@
         <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">💧 Detalls dels purins</div>
         <div class="form-row g2">
           <div><label>Dosi de Nitrogen (kg N/ha)</label><input type="number" id="t-nitrogen-purins" placeholder="0" min="0" step="0.5"/></div>
-          <div><label>Metres cúbics per hectàrea (m³/ha)</label><input type="number" id="t-m3-purins" placeholder="0" min="0" step="0.5"/></div>
+          <div></div>
         </div>
       </div>
       <div id="extra-fems" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
         <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌾 Detalls dels fems</div>
-        <div class="form-row g2">
+        <div class="form-row g3">
           <div><label>Dosi (t/ha)</label><input type="number" id="t-dosi-fems" placeholder="0" min="0" step="0.5"/></div>
+          <div><label>kg N/ha</label><input type="number" id="t-nitrogen-fems" placeholder="0" min="0" step="0.5"/></div>
           <div><label>Tipus de fem</label>
             <select id="t-tipus-fems"><option>Fem de porc</option><option>Fem de vaca</option><option>Fem de pollastre</option><option>Compost</option><option>Altres</option></select>
           </div>
@@ -803,7 +804,7 @@ function getExtresData(){
     const varietat = document.getElementById('t-varietat').value;
     const dosi = document.getElementById('t-dosi-sembra').value;
     const preu = document.getElementById('t-preu-llavor').value;
-    return `Cultiu:${cultiu} Varietat:${varietat||'—'} Dosi:${dosi}kg/ha Preu:${preu}€/kg`;
+    return `Cultiu:${cultiu} Varietat:${varietat||'—'} Dosi:${dosi}kg/ha Preu:${preu}€/t`;
   }
   if(tipus==='Ensulfatar'){
     const wrap = document.getElementById('productes-wrap');
@@ -819,13 +820,13 @@ function getExtresData(){
   }
   if(tipus==='Aplicar Purins'){
     const n = document.getElementById('t-nitrogen-purins').value;
-    const m3 = document.getElementById('t-m3-purins').value;
-    return `N:${n}kgN/ha M³:${m3}m³/ha`;
+    return `N:${n}kgN/ha`;
   }
   if(tipus==='Aplicar Fems'){
     const dosi = document.getElementById('t-dosi-fems').value;
+    const nf = document.getElementById('t-nitrogen-fems').value;
     const tf = document.getElementById('t-tipus-fems').value;
-    return `${tf} Dosi:${dosi}t/ha`;
+    return `${tf} Dosi:${dosi}t/ha N:${nf}kgN/ha`;
   }
   return '';
 }
@@ -860,7 +861,7 @@ async function addTreball(){
 }
 
 function clearTreball(){
-  ['t-hores','t-notes','t-varietat','t-dosi-sembra','t-preu-llavor','t-nitrogen-purins','t-m3-purins','t-dosi-fems'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['t-hores','t-notes','t-varietat','t-dosi-sembra','t-preu-llavor','t-nitrogen-purins','t-dosi-fems','t-nitrogen-fems'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('t-data').valueAsDate=new Date();
   document.getElementById('t-qui').selectedIndex=0;
   document.getElementById('t-tipus').selectedIndex=0;
