@@ -1,2 +1,2 @@
-# Gestor-Agr-cola
+# Gestor-Agrícola
 Gestor Agrícola d'Explotació
