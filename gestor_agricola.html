@@ -143,6 +143,7 @@
     <button class="tab" onclick="showTab('movimientos',this)">📋 Moviments</button>
     <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
+    <button class="tab" onclick="showTab('treballs',this)">👷 Treballs</button>
     <button class="tab" onclick="showTab('comparador',this)">🧮 Comparador</button>
   </div>
 
@@ -288,6 +289,7 @@ const SHEET_ID = '1pZIiwLBt66VI2J9h9CLikoHT2nM8LGpofIogCR9VS64';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 const SHEET_MOV = 'Movimientos';
 const SHEET_FLOTA = 'Flota';
+const SHEET_TREBALLS = 'Treballs';
 
 const CATS = {
   cultivos:   { gasto: ['Herbicides','Llavors','Fertilitzants','Fitosanitaris','Mà d\'obra','Altres'], ingreso: ['Venda collita','Subvencions','Altres'] },
@@ -352,6 +354,7 @@ async function ensureSheets(){
   const toCreate = [];
   if(!nombres.includes(SHEET_MOV)) toCreate.push({addSheet:{properties:{title:SHEET_MOV}}});
   if(!nombres.includes(SHEET_FLOTA)) toCreate.push({addSheet:{properties:{title:SHEET_FLOTA}}});
+  if(!nombres.includes(SHEET_TREBALLS)) toCreate.push({addSheet:{properties:{title:SHEET_TREBALLS}}});
   if(toCreate.length){
     await sheetsReq(':batchUpdate','POST',{requests:toCreate});
     await sheetsReq('/values/'+SHEET_MOV+'!A1:K1+:append?valueInputOption=RAW','POST',{values:[['ID','Fecha','Área','Tipo','Categoría','Concepto','Importe','Máquina','Apero','Horas','Notas']]});
@@ -401,6 +404,7 @@ function showTab(t, btn){
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilidad();
   if(t==='flota') renderFlota();
+  if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
 }
 
 // ── FORMULARIO ─────────────────────────────────────────
@@ -662,6 +666,83 @@ function calcAmortLib(){
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
+document.getElementById('t-data').valueAsDate=new Date();
+
+// ── TREBALLS ───────────────────────────────────────────
+function populateTreballSelects(){
+  const maquines = flota.filter(f=>f.tipus==='maquina'||f.tipo==='maquina');
+  const aperos = flota.filter(f=>f.tipus==='apero'||f.tipo==='apero');
+  document.getElementById('t-maquina').innerHTML = '<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre||m.nom}">${m.nombre||m.nom}</option>`).join('');
+  document.getElementById('t-apero').innerHTML = '<option value="">— Cap —</option>'+aperos.map(a=>`<option value="${a.nombre||a.nom}">${a.nombre||a.nom}</option>`).join('');
+}
+
+async function addTreball(){
+  const data = document.getElementById('t-data').value;
+  const qui = document.getElementById('t-qui').value;
+  const tipus = document.getElementById('t-tipus').value;
+  const hores = parseFloat(document.getElementById('t-hores').value)||0;
+  const maquina = document.getElementById('t-maquina').value;
+  const apero = document.getElementById('t-apero').value;
+  const notes = document.getElementById('t-notes').value.trim();
+  const msg = document.getElementById('treball-msg');
+
+  if(!data||!qui||!tipus||hores<=0){
+    msg.className='msg-err'; msg.textContent='Omple tots els camps obligatoris (data, qui, tipus i hores).'; return;
+  }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant treball...');
+  msg.className=''; msg.textContent='';
+  try {
+    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),notes]);
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.className='msg-ok'; msg.textContent='✓ Treball desat correctament.';
+    setTimeout(()=>msg.textContent='',3000);
+    clearTreball();
+    loadTreballs();
+  } catch(e){ setSyncing(false,'Error en desar',true); msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexió.'; }
+}
+
+function clearTreball(){
+  document.getElementById('t-hores').value='';
+  document.getElementById('t-notes').value='';
+  document.getElementById('t-data').valueAsDate=new Date();
+  document.getElementById('t-qui').value='Damià';
+  document.getElementById('t-tipus').value='Sembrar';
+  document.getElementById('t-maquina').value='';
+  document.getElementById('t-apero').value='';
+}
+
+async function loadTreballs(){
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:H');
+    const treballs = (r.values||[]).map(row=>({id:row[0],data:row[1],qui:row[2],tipus:row[3],maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',notes:row[7]||''}));
+    const tbody = document.getElementById('treballs-list');
+    if(!treballs.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>'; return; }
+    tbody.innerHTML = [...treballs].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(t=>`<tr>
+      <td style="color:var(--gris-texto);white-space:nowrap">${t.data}</td>
+      <td><span class="badge badge-area">${t.qui}</span></td>
+      <td><span class="badge badge-cat">${t.tipus}</span></td>
+      <td style="font-size:12px;color:var(--gris-texto)">${t.maquina||'—'}</td>
+      <td style="font-size:12px;color:var(--gris-texto)">${t.apero||'—'}</td>
+      <td style="text-align:right;font-weight:600">${t.hores}h</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button></td>
+    </tr>`).join('');
+  } catch(e){ console.error('Error carregant treballs',e); }
+}
+
+async function deleteTreball(id){
+  if(!confirm('Vols eliminar aquest treball?')) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:A');
+    const rows = r.values||[];
+    const idx = rows.findIndex(row=>row[0]===id);
+    if(idx>=0) await deleteRow(SHEET_TREBALLS, idx+1);
+    setSyncing(false,'Connectat a Google Sheets');
+    loadTreballs();
+  } catch(e){ setSyncing(false,'Error en eliminar',true); }
+}
+
 </script>
 </body>
 </html>
