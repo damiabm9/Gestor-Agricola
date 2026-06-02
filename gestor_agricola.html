@@ -149,7 +149,6 @@
 
   <!-- RESUMEN -->
   <div id="tab-resumen" class="section visible">
-    <!-- Filtre any -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
       <label style="font-size:12px;color:var(--gris-texto);font-weight:500">Any:</label>
       <select id="res-any" onchange="renderResumen()" style="width:auto;padding:6px 12px;font-size:13px">
@@ -161,8 +160,23 @@
     <!-- KPIs globals -->
     <div class="kpi-grid" id="kpi-grid"></div>
 
-    <!-- Resum per àrea -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:1.25rem" id="area-cards"></div>
+    <!-- Tabs activitat -->
+    <div style="display:flex;gap:4px;margin-bottom:1rem;background:var(--blanco);border-radius:var(--radio);padding:4px;box-shadow:var(--sombra)">
+      <button class="tab active" id="res-tab-total" onclick="showResArea('total',this)" style="flex:1">📊 Total</button>
+      <button class="tab" id="res-tab-cultivos" onclick="showResArea('cultivos',this)" style="flex:1">🌾 Cultius</button>
+      <button class="tab" id="res-tab-maquinaria" onclick="showResArea('maquinaria',this)" style="flex:1">🚜 Maquinària</button>
+      <button class="tab" id="res-tab-cerdos" onclick="showResArea('cerdos',this)" style="flex:1">🐷 Porcs</button>
+      <button class="tab" id="res-tab-pollos" onclick="showResArea('pollos',this)" style="flex:1">🐔 Pollastres</button>
+    </div>
+
+    <!-- Cards area -->
+    <div id="area-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:1.25rem"></div>
+
+    <!-- Detall activitat seleccionada -->
+    <div id="area-detall" class="card" style="display:none">
+      <div class="card-title" id="area-detall-title"></div>
+      <div id="area-detall-body"></div>
+    </div>
 
     <!-- Últims moviments -->
     <div class="card">
@@ -337,8 +351,25 @@
 
   <!-- RENTABILIDAD -->
   <div id="tab-rentabilidad" class="section">
+    <!-- Filtre àrea -->
+    <div style="display:flex;gap:4px;margin-bottom:1rem;background:var(--blanco);border-radius:var(--radio);padding:4px;box-shadow:var(--sombra);flex-wrap:wrap">
+      <button class="tab active" onclick="showRentArea('totes',this)" style="flex:1">Totes</button>
+      <button class="tab" onclick="showRentArea('cultivos',this)" style="flex:1">🌾 Cultius</button>
+      <button class="tab" onclick="showRentArea('maquinaria',this)" style="flex:1">🚜 Maquinària</button>
+      <button class="tab" onclick="showRentArea('cerdos',this)" style="flex:1">🐷 Porcs</button>
+      <button class="tab" onclick="showRentArea('pollos',this)" style="flex:1">🐔 Pollastres</button>
+    </div>
+
+    <!-- Filtre maquinaria -->
+    <div id="rent-maq-filter" class="hidden" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label style="font-size:12px;color:var(--gris-texto);font-weight:500">Filtrar per:</label>
+      <select id="rent-maq-sel" onchange="renderRentabilitat()" style="width:auto;padding:6px 12px;font-size:13px">
+        <option value="">Tota la maquinària</option>
+      </select>
+    </div>
+
     <div class="rent-grid" id="rent-grid"></div>
-    <div class="card">
+    <div class="card" style="margin-top:1rem">
       <div class="card-title">📂 Desglossament per categoria</div>
       <div id="cat-breakdown"></div>
     </div>
@@ -604,7 +635,7 @@ function showTab(t, btn){
   btn.classList.add('active');
   if(t==='resumen') renderResumen();
   if(t==='movimientos') renderMovimientos();
-  if(t==='rentabilidad') renderRentabilidad();
+  if(t==='rentabilidad') renderRentabilitat();
   if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); }
   if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
 }
@@ -708,9 +739,12 @@ async function deleteMovimiento(id){
 }
 
 // ── RENDER RESUMEN ─────────────────────────────────────
+let resAreaActiva = 'total';
+
 function populateAnyFilter(){
   const anys = [...new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean))].sort().reverse();
   const sel = document.getElementById('res-any');
+  if(!sel) return;
   const cur = sel.value;
   sel.innerHTML='<option value="">Tots els anys</option>'+anys.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
 }
@@ -721,48 +755,109 @@ function getMovFiltrats(){
   return movimientos.filter(m=>m.fecha&&m.fecha.startsWith(any));
 }
 
+function showResArea(area, btn){
+  resAreaActiva = area;
+  document.querySelectorAll('[id^="res-tab-"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderResAreaCards();
+  renderResAreaDetall();
+}
+
+function renderResAreaCards(){
+  const data = getMovFiltrats();
+  if(resAreaActiva === 'total'){
+    const cards = Object.entries(AREAS).map(([key,a])=>{
+      const ing = data.filter(m=>m.area===key&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+      const gas = data.filter(m=>m.area===key&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+      const marge = ing-gas;
+      const pct = ing>0?Math.round((marge/ing)*100):(gas>0?-100:0);
+      const barW = Math.max(0,Math.min(100,Math.abs(pct)));
+      return `<div class="rent-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
+          <span style="font-size:20px">${a.icon}</span>
+          <span style="font-size:14px;font-weight:600">${a.label}</span>
+        </div>
+        <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde);font-weight:600">${fmt(ing)}</span></div>
+        <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo);font-weight:600">${fmt(gas)}</span></div>
+        <div class="rent-stat" style="border:none"><span style="color:var(--gris-texto)">Marge</span><span style="font-weight:700;font-size:14px;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)} <span style="font-size:11px">(${pct}%)</span></span></div>
+        <div class="rent-bar-wrap"><div class="rent-bar" style="width:${barW}%;background:${marge>=0?'var(--verde-mid)':'var(--rojo)'}"></div></div>
+      </div>`;
+    });
+    document.getElementById('area-cards').innerHTML = cards.join('');
+    document.getElementById('area-detall').style.display='none';
+  } else {
+    const a = AREAS[resAreaActiva];
+    const ing = data.filter(m=>m.area===resAreaActiva&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+    const gas = data.filter(m=>m.area===resAreaActiva&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+    const marge = ing-gas;
+    const pct = ing>0?Math.round((marge/ing)*100):(gas>0?-100:0);
+    document.getElementById('area-cards').innerHTML = `
+      <div class="kpi"><div class="kpi-label">${a.icon} Ingressos</div><div class="kpi-value pos">${fmt(ing)}</div></div>
+      <div class="kpi"><div class="kpi-label">Despeses</div><div class="kpi-value neg">${fmt(gas)}</div></div>
+      <div class="kpi"><div class="kpi-label">Marge net</div><div class="kpi-value ${marge>=0?'pos':'neg'}">${fmt(marge)}</div></div>
+      <div class="kpi"><div class="kpi-label">Rendibilitat</div><div class="kpi-value ${pct>=0?'pos':'neg'}">${pct}%</div></div>
+    `;
+    renderResAreaDetall();
+  }
+}
+
+function renderResAreaDetall(){
+  const detall = document.getElementById('area-detall');
+  if(resAreaActiva==='total'){ detall.style.display='none'; return; }
+  const data = getMovFiltrats().filter(m=>m.area===resAreaActiva);
+  const a = AREAS[resAreaActiva];
+  detall.style.display='block';
+  document.getElementById('area-detall-title').innerHTML = `${a.icon} Moviments — ${a.label}`;
+  if(!data.length){ document.getElementById('area-detall-body').innerHTML='<div class="empty">Sense moviments per a aquest filtre.</div>'; return; }
+
+  // Desglose per categoria
+  const cats = [...new Set(data.map(m=>m.categoria).filter(Boolean))];
+  let html = '<div style="margin-bottom:1rem">';
+  cats.forEach(cat=>{
+    const total = data.filter(m=>m.categoria===cat).reduce((s,m)=>s+(m.tipo==='ingreso'?m.importe:-m.importe),0);
+    const color = total>=0?'var(--verde)':'var(--rojo)';
+    html+=`<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0">
+      <span><span class="badge badge-cat">${cat}</span></span>
+      <span style="font-weight:600;color:${color}">${fmt(Math.abs(total))}</span>
+    </div>`;
+  });
+  html+='</div>';
+
+  // Últims moviments d'aquesta àrea
+  const recents = [...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,8);
+  html+='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th></tr></thead><tbody>';
+  html+=recents.map(m=>`<tr>
+    <td style="color:var(--gris-texto)">${m.fecha}</td>
+    <td>${m.concepto}</td>
+    <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
+    <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo==='ingreso'?'Ingrés':'Despesa'}</span></td>
+    <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
+  </tr>`).join('');
+  html+='</tbody></table>';
+  document.getElementById('area-detall-body').innerHTML = html;
+}
+
 function renderResumen(){
   populateAnyFilter();
   const any = document.getElementById('res-any')?.value||'';
-  const data = getMovFiltrats();
   const periode = document.getElementById('res-periode');
-  if(periode) periode.textContent = any ? `· Mostrant dades de ${any}` : '· Tots els anys';
-
-  const ti = data.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
-  const tg = data.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
-  const res = ti-tg;
+  if(periode) periode.textContent = any?`· Mostrant dades de ${any}`:'· Tots els anys';
+  const data = getMovFiltrats();
+  const ti=data.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+  const tg=data.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const res=ti-tg;
   document.getElementById('kpi-grid').innerHTML=`
     <div class="kpi"><div class="kpi-label">Total ingressos</div><div class="kpi-value pos">${fmt(ti)}</div></div>
     <div class="kpi"><div class="kpi-label">Total despeses</div><div class="kpi-value neg">${fmt(tg)}</div></div>
     <div class="kpi"><div class="kpi-label">Resultat net</div><div class="kpi-value ${res>=0?'pos':'neg'}">${fmt(res)}</div></div>
     <div class="kpi"><div class="kpi-label">Moviments</div><div class="kpi-value" style="color:#333">${data.length}</div></div>
   `;
-
-  // Cards per àrea
-  const areaCards = Object.entries(AREAS).map(([key,a])=>{
-    const ing = data.filter(m=>m.area===key&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
-    const gas = data.filter(m=>m.area===key&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
-    const marge = ing - gas;
-    const pct = ing>0 ? Math.round((marge/ing)*100) : (gas>0?-100:0);
-    const barW = Math.max(0,Math.min(100,Math.abs(pct)));
-    const barColor = marge>=0?'var(--verde-mid)':'var(--rojo)';
-    return `<div class="rent-card">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
-        <span style="font-size:20px">${a.icon}</span>
-        <span style="font-size:14px;font-weight:600">${a.label}</span>
-      </div>
-      <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde);font-weight:600">${fmt(ing)}</span></div>
-      <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo);font-weight:600">${fmt(gas)}</span></div>
-      <div class="rent-stat" style="border:none"><span style="color:var(--gris-texto)">Marge</span><span style="font-weight:700;font-size:14px;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)} <span style="font-size:11px">(${pct}%)</span></span></div>
-      <div class="rent-bar-wrap"><div class="rent-bar" style="width:${barW}%;background:${barColor}"></div></div>
-    </div>`;
-  });
-  document.getElementById('area-cards').innerHTML = areaCards.join('');
+  renderResAreaCards();
 
   // Últims moviments
-  const recents = [...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,6);
-  const list = document.getElementById('resumen-list');
-  if(!recents.length){ list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>'; return; }
+  const recents=[...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,6);
+  const list=document.getElementById('resumen-list');
+  if(!recents.length){list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>';return;}
   list.innerHTML='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th></tr></thead><tbody>'+
     recents.map(m=>`<tr>
       <td style="color:var(--gris-texto)">${m.fecha}</td>
@@ -801,30 +896,74 @@ function renderMovimientos(){
 }
 
 // ── RENDER RENTABILIDAD ────────────────────────────────
-function renderRentabilidad(){
-  const totalIng=movimientos.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
-  document.getElementById('rent-grid').innerHTML=Object.entries(AREAS).map(([key,a])=>{
-    const ing=movimientos.filter(m=>m.area===key&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
-    const gas=movimientos.filter(m=>m.area===key&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
-    const res=ing-gas;
-    const pct=ing>0?Math.round((res/ing)*100):0;
-    const share=totalIng>0?Math.round((ing/totalIng)*100):0;
+let rentAreaActiva = 'totes';
+
+function showRentArea(area, btn){
+  rentAreaActiva = area;
+  document.querySelectorAll('#tab-rentabilidad .tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const maqFilter = document.getElementById('rent-maq-filter');
+  if(area==='maquinaria'){
+    maqFilter.classList.remove('hidden');
+    maqFilter.style.display='flex';
+    const maquines = [...new Set([
+      ...flota.filter(f=>f.tipo==='maquina').map(f=>f.nombre),
+      ...flota.filter(f=>f.tipo==='apero').map(f=>f.nombre)
+    ])];
+    document.getElementById('rent-maq-sel').innerHTML='<option value="">Tota la maquinària</option>'+
+      '<optgroup label="Màquines">'+flota.filter(f=>f.tipo==='maquina').map(f=>`<option value="${f.nombre}">${f.nombre}</option>`).join('')+'</optgroup>'+
+      '<optgroup label="Aperos">'+flota.filter(f=>f.tipo==='apero').map(f=>`<option value="${f.nombre}">${f.nombre}</option>`).join('')+'</optgroup>';
+  } else {
+    maqFilter.classList.add('hidden');
+  }
+  renderRentabilitat();
+}
+
+function renderRentabilitat(){
+  const maqSel = document.getElementById('rent-maq-sel')?.value||'';
+  let data = movimientos;
+
+  if(rentAreaActiva!=='totes') data = data.filter(m=>m.area===rentAreaActiva);
+
+  // Per maquinaria, filtrar per màquina/apero específica
+  if(rentAreaActiva==='maquinaria' && maqSel){
+    data = data.filter(m=>m.maquina===maqSel||m.apero===maqSel);
+  }
+
+  const areasAMostrar = rentAreaActiva==='totes' ? Object.keys(AREAS) : [rentAreaActiva];
+  const totalIng = data.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+
+  document.getElementById('rent-grid').innerHTML = areasAMostrar.map(key=>{
+    const a = AREAS[key];
+    const aData = rentAreaActiva==='totes' ? data.filter(m=>m.area===key) : data;
+    const ing = aData.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+    const gas = aData.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+    const res = ing-gas;
+    const pct = ing>0?Math.round((res/ing)*100):(gas>0?-100:0);
+    const share = totalIng>0?Math.round((ing/totalIng)*100):0;
     return `<div class="rent-card">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem"><span style="font-size:22px">${a.icon}</span><span style="font-size:14px;font-weight:600">${a.label}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+        <span style="font-size:22px">${a.icon}</span>
+        <span style="font-size:14px;font-weight:600">${a.label}${maqSel?' — '+maqSel:''}</span>
+      </div>
       <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde)">${fmt(ing)}</span></div>
       <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo)">${fmt(gas)}</span></div>
-      <div class="rent-stat"><span style="color:var(--gris-texto)">Margen</span><span style="${res>=0?'color:var(--verde)':'color:var(--rojo)'}">${pct}%</span></div>
-      <div class="rent-stat"><span style="color:var(--gris-texto)">% del negocio</span><span>${share}%</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Marge</span><span style="${res>=0?'color:var(--verde)':'color:var(--rojo)'}">${pct}%</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">% del negoci</span><span>${share}%</span></div>
       <div class="rent-bar-wrap"><div class="rent-bar" style="width:${Math.max(0,Math.min(100,Math.abs(pct)))}%;background:${res>=0?'var(--verde-mid)':'var(--rojo)'}"></div></div>
     </div>`;
   }).join('');
+
+  // Desglose categories
   let html='';
-  Object.entries(AREAS).forEach(([aKey,a])=>{
-    const cats=[...new Set(movimientos.filter(m=>m.area===aKey&&m.tipo==='gasto').map(m=>m.categoria))];
+  areasAMostrar.forEach(aKey=>{
+    const a=AREAS[aKey];
+    const aData = rentAreaActiva==='totes' ? data.filter(m=>m.area===aKey&&m.tipo==='gasto') : data.filter(m=>m.tipo==='gasto');
+    const cats=[...new Set(aData.map(m=>m.categoria))];
     if(!cats.length) return;
     html+=`<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:8px">${a.icon} ${a.label}</div>`;
     cats.forEach(cat=>{
-      const total=movimientos.filter(m=>m.area===aKey&&m.tipo==='gasto'&&m.categoria===cat).reduce((s,m)=>s+m.importe,0);
+      const total=aData.filter(m=>m.categoria===cat).reduce((s,m)=>s+m.importe,0);
       html+=`<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0">
         <span><span class="badge badge-cat" style="margin-right:6px">${cat}</span></span>
         <span style="color:var(--rojo);font-weight:600">${fmt(total)}</span>
@@ -834,6 +973,8 @@ function renderRentabilidad(){
   });
   document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra despeses per veure el desglossament.</div>';
 }
+
+function renderRentabilidad(){ renderRentabilitat(); }
 
 // ── FLOTA ──────────────────────────────────────────────
 function calcFlotaAmort(){
