@@ -143,7 +143,6 @@
     <button class="tab" onclick="showTab('movimientos',this)">📋 Moviments</button>
     <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
-    <button class="tab" onclick="showTab('treballs',this)">👷 Treballs</button>
     <button class="tab" onclick="showTab('comparador',this)">🧮 Comparador</button>
   </div>
 
@@ -209,6 +208,60 @@
         <button class="btn" onclick="clearForm()">↺ Netejar</button>
       </div>
       <div id="form-msg"></div>
+    </div>
+  </div>
+
+
+  <!-- TREBALLS -->
+  <div id="tab-treballs" class="section">
+    <div class="card">
+      <div class="card-title">👷 Registrar treball</div>
+      <div class="form-row g2">
+        <div><label>Data</label><input type="date" id="t-data"/></div>
+        <div><label>Qui ha fet la feina</label>
+          <select id="t-qui">
+            <option value="Damià">Damià</option>
+            <option value="Joan">Joan</option>
+            <option value="Roger">Roger</option>
+            <option value="Treballador">Treballador</option>
+            <option value="Empresa de Serveis">Empresa de Serveis</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row g2">
+        <div><label>Tipus de feina</label>
+          <select id="t-tipus">
+            <option value="Sembrar">🌱 Sembrar</option>
+            <option value="Ensulfatar">🌿 Ensulfatar</option>
+            <option value="Aplicar Purins">💧 Aplicar Purins</option>
+            <option value="Aplicar Fems">🌾 Aplicar Fems</option>
+            <option value="Treball de Sòl">⚙️ Treball de Sòl</option>
+            <option value="Segar">✂️ Segar</option>
+            <option value="Altres">Altres</option>
+          </select>
+        </div>
+        <div><label>Hores totals</label><input type="number" id="t-hores" placeholder="0" min="0" step="0.5"/></div>
+      </div>
+      <div class="form-row g2">
+        <div><label>Màquina utilitzada</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
+        <div><label>Apero utilitzat</label><select id="t-apero"><option value="">— Cap —</option></select></div>
+      </div>
+      <div style="margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="addTreball()">✓ Desar treball</button>
+        <button class="btn" onclick="clearTreball()">↺ Netejar</button>
+      </div>
+      <div id="treball-msg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>📋 Historial de treballs</span>
+        <button class="btn btn-sm" onclick="loadTreballs()">↺ Recarregar</button>
+      </div>
+      <table class="mov-table">
+        <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Màquina</th><th>Apero</th><th style="text-align:right">Hores</th><th></th></tr></thead>
+        <tbody id="treballs-list"><tr><td colspan="7"><div class="empty">Carregant...</div></td></tr></tbody>
+      </table>
     </div>
   </div>
 
@@ -670,10 +723,10 @@ document.getElementById('t-data').valueAsDate=new Date();
 
 // ── TREBALLS ───────────────────────────────────────────
 function populateTreballSelects(){
-  const maquines = flota.filter(f=>f.tipus==='maquina'||f.tipo==='maquina');
-  const aperos = flota.filter(f=>f.tipus==='apero'||f.tipo==='apero');
-  document.getElementById('t-maquina').innerHTML = '<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre||m.nom}">${m.nombre||m.nom}</option>`).join('');
-  document.getElementById('t-apero').innerHTML = '<option value="">— Cap —</option>'+aperos.map(a=>`<option value="${a.nombre||a.nom}">${a.nombre||a.nom}</option>`).join('');
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos_list = flota.filter(f=>f.tipo==='apero');
+  document.getElementById('t-maquina').innerHTML = '<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  document.getElementById('t-apero').innerHTML = '<option value="">— Cap —</option>'+aperos_list.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
 }
 
 async function addTreball(){
@@ -685,13 +738,11 @@ async function addTreball(){
   const apero = document.getElementById('t-apero').value;
   const notes = document.getElementById('t-notes').value.trim();
   const msg = document.getElementById('treball-msg');
-
-  if(!data||!qui||!tipus||hores<=0){
-    msg.className='msg-err'; msg.textContent='Omple tots els camps obligatoris (data, qui, tipus i hores).'; return;
+  if(!data||hores<=0){
+    msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return;
   }
   const id = Date.now().toString();
   setSyncing(true,'Desant treball...');
-  msg.className=''; msg.textContent='';
   try {
     await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),notes]);
     setSyncing(false,'Connectat a Google Sheets');
@@ -699,26 +750,36 @@ async function addTreball(){
     setTimeout(()=>msg.textContent='',3000);
     clearTreball();
     loadTreballs();
-  } catch(e){ setSyncing(false,'Error en desar',true); msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexió.'; }
+  } catch(e){
+    setSyncing(false,'Error en desar',true);
+    msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexió.';
+  }
 }
 
 function clearTreball(){
   document.getElementById('t-hores').value='';
   document.getElementById('t-notes').value='';
   document.getElementById('t-data').valueAsDate=new Date();
-  document.getElementById('t-qui').value='Damià';
-  document.getElementById('t-tipus').value='Sembrar';
+  document.getElementById('t-qui').selectedIndex=0;
+  document.getElementById('t-tipus').selectedIndex=0;
   document.getElementById('t-maquina').value='';
   document.getElementById('t-apero').value='';
 }
 
 async function loadTreballs(){
+  const tbody = document.getElementById('treballs-list');
+  if(!tbody) return;
   try {
     const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:H');
-    const treballs = (r.values||[]).map(row=>({id:row[0],data:row[1],qui:row[2],tipus:row[3],maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',notes:row[7]||''}));
-    const tbody = document.getElementById('treballs-list');
-    if(!treballs.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>'; return; }
-    tbody.innerHTML = [...treballs].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(t=>`<tr>
+    const treballs = (r.values||[]).map(row=>({
+      id:row[0]||'',data:row[1]||'',qui:row[2]||'',tipus:row[3]||'',
+      maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',notes:row[7]||''
+    }));
+    if(!treballs.length){
+      tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML=[...treballs].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(t=>`<tr>
       <td style="color:var(--gris-texto);white-space:nowrap">${t.data}</td>
       <td><span class="badge badge-area">${t.qui}</span></td>
       <td><span class="badge badge-cat">${t.tipus}</span></td>
@@ -727,7 +788,9 @@ async function loadTreballs(){
       <td style="text-align:right;font-weight:600">${t.hores}h</td>
       <td><button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button></td>
     </tr>`).join('');
-  } catch(e){ console.error('Error carregant treballs',e); }
+  } catch(e){
+    tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar els treballs.</div></td></tr>';
+  }
 }
 
 async function deleteTreball(id){
