@@ -534,6 +534,21 @@
       <div id="flota-aperos"></div>
     </div>
 
+    <!-- Fitxa per màquina -->
+    <div class="card">
+      <div class="card-title">📊 Fitxa de màquina / apero</div>
+      <div class="form-row g2" style="margin-bottom:1rem">
+        <div>
+          <label>Selecciona màquina o apero</label>
+          <select id="fitxa-sel" onchange="renderFitxaMaquina()">
+            <option value="">— Selecciona —</option>
+          </select>
+        </div>
+        <div id="fitxa-hores-total" style="display:flex;align-items:flex-end;font-size:13px;color:var(--gris-texto);padding-bottom:6px"></div>
+      </div>
+      <div id="fitxa-body"></div>
+    </div>
+
     <!-- Repostatges -->
     <div class="card">
       <div class="card-title">⛽ Registrar repostatge</div>
@@ -800,7 +815,7 @@ function showTab(t, btn){
   if(t==='resumen') renderResumen();
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
-  if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); }
+  if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); populateFitxaSel(); }
   if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
   if(t==='parcelles'){ initParcelMap(); renderFinquesList(); setTimeout(()=>{ if(parcMap) parcMap.invalidateSize(); },300); }
 }
@@ -1585,6 +1600,7 @@ function renderFlota(){
     }).join('')+'</div>';
   });
   populateRepMantSelects();
+  populateFitxaSel();
 }
 
 // Repostatges
@@ -2283,6 +2299,142 @@ function renderCompList(maqId){
 
 function getTotalComponentsAmort(maqId){
   return components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
+}
+
+
+// ── FITXA MÀQUINA ──────────────────────────────────────
+function populateFitxaSel(){
+  const sel = document.getElementById('fitxa-sel');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona —</option>' +
+    flota.map(f=>'<option value="'+f.id+'">'+(f.tipo==='maquina'?'🚜':'🔧')+' '+f.nombre+'</option>').join('');
+  if(cur) sel.value = cur;
+}
+
+async function renderFitxaMaquina(){
+  const maqId = document.getElementById('fitxa-sel').value;
+  const body = document.getElementById('fitxa-body');
+  const horesDiv = document.getElementById('fitxa-hores-total');
+  if(!maqId){ body.innerHTML=''; horesDiv.textContent=''; return; }
+
+  const maq = flota.find(f=>f.id===maqId);
+  if(!maq){ body.innerHTML=''; return; }
+
+  setSyncing(true,'Carregant fitxa...');
+
+  // Load all treballs for this machine
+  let horesApp = 0;
+  try {
+    const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:K');
+    const treballs = (rT.values||[]).filter(r=>(r[4]===maq.nombre||r[5]===maq.nombre));
+    horesApp = treballs.reduce((s,r)=>s+(parseFloat(r[6])||0),0);
+  } catch(e){}
+
+  const horesInicials = maq.horesInicials||0;
+  const horesTotal = horesInicials + horesApp;
+
+  horesDiv.innerHTML = '<div style="text-align:right"><div style="font-size:20px;font-weight:700;color:var(--verde)">'+horesTotal.toFixed(0)+'h</div><div style="font-size:11px">'+horesInicials+'h inicials + '+horesApp.toFixed(1)+'h app</div></div>';
+
+  // Get all costs for this machine
+  // 1. Repostatges
+  let costRepostatges = 0; let litresTot = 0;
+  let repoRows = [];
+  try {
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:G');
+    repoRows = (rR.values||[]).filter(r=>r[2]===maq.nombre);
+    costRepostatges = repoRows.reduce((s,r)=>s+(parseFloat(r[6])||parseFloat(r[5])||0),0);
+    litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[3])||0),0);
+  } catch(e){}
+
+  // 2. Manteniments + avaries
+  let costMant = 0;
+  let mantRows = [];
+  try {
+    const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:K');
+    mantRows = (rM.values||[]).filter(r=>r[2]===maq.nombre);
+    costMant = mantRows.reduce((s,r)=>s+(parseFloat(r[5])||0),0);
+  } catch(e){}
+
+  // 3. Despeses de maquinaria assignades a aquesta maquina (factures)
+  const despesesMov = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(m.maquina===maq.nombre||m.apero===maq.nombre)&&m.notas!=='Auto-generat');
+  const costMov = despesesMov.reduce((s,m)=>s+m.importe,0);
+
+  // 4. Amortitzacio maquina
+  const amortMaq = parseFloat(maq.amortAnual)||0;
+
+  // 5. Components amortitzables
+  const compsArr = components.filter(c=>c.maquinaId===maqId);
+  const amortComp = compsArr.reduce((s,c)=>s+c.amortAnual,0);
+
+  // 6. Ma d obra
+  const MO_HORA = 20;
+  const costMO = horesApp * MO_HORA;
+
+  // Totals
+  const costDespesesReals = costRepostatges + costMant + costMov;
+  const costAmortAnual = amortMaq + amortComp;
+  const costTotal = costDespesesReals + costAmortAnual + costMO;
+  const costHora = horesTotal > 0 ? costTotal / horesTotal : 0;
+
+  setSyncing(false,'Connectat a Google Sheets');
+
+  // Build HTML
+  let html = '';
+
+  // KPIs
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem">';
+  html += '<div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">'+fmt(costDespesesReals)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Amortitzacio anual</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costAmortAnual)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Ma d obra</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costMO)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Cost total</div><div class="kpi-value neg">'+fmt(costTotal)+'</div></div>';
+  html += '<div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white;font-size:18px">'+fmt(costHora)+'</div></div>';
+  html += '</div>';
+
+  // Desglose amortitzacio
+  if(amortMaq > 0 || compsArr.length > 0){
+    html += '<div style="margin-bottom:1rem;padding:10px;background:var(--amarillo-claro);border-radius:var(--radio);border:1px solid #ffe08a">';
+    html += '<div style="font-size:12px;font-weight:600;color:#7a5800;margin-bottom:6px">📉 Amortitzacions</div>';
+    if(amortMaq>0) html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>Maquina ('+maq.nombre+')</span><span>'+fmt(amortMaq)+'/any</span></div>';
+    compsArr.forEach(c=>{
+      html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>'+c.component+'</span><span>'+fmt(c.amortAnual)+'/any</span></div>';
+    });
+    html += '<div style="font-size:12px;font-weight:600;display:flex;justify-content:space-between;padding:4px 0"><span>Total amortitzacio</span><span>'+fmt(costAmortAnual)+'/any</span></div>';
+    html += '</div>';
+  }
+
+  // Repostatges
+  if(repoRows.length > 0){
+    html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">⛽ Repostatges ('+litresTot.toFixed(0)+'L — '+fmt(costRepostatges)+')</div>';
+    html += '<table class="mov-table"><thead><tr><th>Data</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">Total</th></tr></thead><tbody>';
+    [...repoRows].sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).forEach(r=>{
+      html += '<tr><td>'+r[1]+'</td><td>'+r[3]+'</td><td style="text-align:right">'+(r[3]||0)+'L</td><td style="text-align:right;color:var(--rojo)">'+fmt(parseFloat(r[6])||parseFloat(r[5])||0)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Manteniments
+  if(mantRows.length > 0){
+    html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">🔩 Manteniments i avaries ('+fmt(costMant)+')</div>';
+    html += '<table class="mov-table"><thead><tr><th>Data</th><th>Tipus</th><th>Descripcio</th><th>Fet per</th><th style="text-align:right">Cost</th></tr></thead><tbody>';
+    const estatColor = {'Resolt':'badge-ing','Pendent':'badge-gas','En reparacio':'badge-cat'};
+    [...mantRows].sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).forEach(r=>{
+      html += '<tr><td>'+r[1]+'</td><td><span class="badge badge-cat">'+r[3]+'</span></td><td>'+r[4]+'</td><td style="font-size:11px">'+((r[7]==='Nosaltres')?r[8]+(r[9]?', '+r[9]+'h':''):(r[10]||'Extern'))+'</td><td style="text-align:right;color:var(--rojo);font-weight:600">'+fmt(parseFloat(r[5])||0)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Altres despeses (factures)
+  if(despesesMov.length > 0){
+    html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">🧾 Altres despeses ('+fmt(costMov)+')</div>';
+    html += '<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Categoria</th><th style="text-align:right">Import</th></tr></thead><tbody>';
+    [...despesesMov].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).forEach(m=>{
+      html += '<tr><td>'+m.fecha+'</td><td>'+m.concepto+'</td><td><span class="badge badge-cat">'+m.categoria+'</span></td><td style="text-align:right;color:var(--rojo);font-weight:600">'+fmt(m.importe)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  body.innerHTML = html;
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
@@ -3423,6 +3575,142 @@ function renderCompList(maqId){
 
 function getTotalComponentsAmort(maqId){
   return components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
+}
+
+
+// ── FITXA MÀQUINA ──────────────────────────────────────
+function populateFitxaSel(){
+  const sel = document.getElementById('fitxa-sel');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona —</option>' +
+    flota.map(f=>'<option value="'+f.id+'">'+(f.tipo==='maquina'?'🚜':'🔧')+' '+f.nombre+'</option>').join('');
+  if(cur) sel.value = cur;
+}
+
+async function renderFitxaMaquina(){
+  const maqId = document.getElementById('fitxa-sel').value;
+  const body = document.getElementById('fitxa-body');
+  const horesDiv = document.getElementById('fitxa-hores-total');
+  if(!maqId){ body.innerHTML=''; horesDiv.textContent=''; return; }
+
+  const maq = flota.find(f=>f.id===maqId);
+  if(!maq){ body.innerHTML=''; return; }
+
+  setSyncing(true,'Carregant fitxa...');
+
+  // Load all treballs for this machine
+  let horesApp = 0;
+  try {
+    const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:K');
+    const treballs = (rT.values||[]).filter(r=>(r[4]===maq.nombre||r[5]===maq.nombre));
+    horesApp = treballs.reduce((s,r)=>s+(parseFloat(r[6])||0),0);
+  } catch(e){}
+
+  const horesInicials = maq.horesInicials||0;
+  const horesTotal = horesInicials + horesApp;
+
+  horesDiv.innerHTML = '<div style="text-align:right"><div style="font-size:20px;font-weight:700;color:var(--verde)">'+horesTotal.toFixed(0)+'h</div><div style="font-size:11px">'+horesInicials+'h inicials + '+horesApp.toFixed(1)+'h app</div></div>';
+
+  // Get all costs for this machine
+  // 1. Repostatges
+  let costRepostatges = 0; let litresTot = 0;
+  let repoRows = [];
+  try {
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:G');
+    repoRows = (rR.values||[]).filter(r=>r[2]===maq.nombre);
+    costRepostatges = repoRows.reduce((s,r)=>s+(parseFloat(r[6])||parseFloat(r[5])||0),0);
+    litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[3])||0),0);
+  } catch(e){}
+
+  // 2. Manteniments + avaries
+  let costMant = 0;
+  let mantRows = [];
+  try {
+    const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:K');
+    mantRows = (rM.values||[]).filter(r=>r[2]===maq.nombre);
+    costMant = mantRows.reduce((s,r)=>s+(parseFloat(r[5])||0),0);
+  } catch(e){}
+
+  // 3. Despeses de maquinaria assignades a aquesta maquina (factures)
+  const despesesMov = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(m.maquina===maq.nombre||m.apero===maq.nombre)&&m.notas!=='Auto-generat');
+  const costMov = despesesMov.reduce((s,m)=>s+m.importe,0);
+
+  // 4. Amortitzacio maquina
+  const amortMaq = parseFloat(maq.amortAnual)||0;
+
+  // 5. Components amortitzables
+  const compsArr = components.filter(c=>c.maquinaId===maqId);
+  const amortComp = compsArr.reduce((s,c)=>s+c.amortAnual,0);
+
+  // 6. Ma d obra
+  const MO_HORA = 20;
+  const costMO = horesApp * MO_HORA;
+
+  // Totals
+  const costDespesesReals = costRepostatges + costMant + costMov;
+  const costAmortAnual = amortMaq + amortComp;
+  const costTotal = costDespesesReals + costAmortAnual + costMO;
+  const costHora = horesTotal > 0 ? costTotal / horesTotal : 0;
+
+  setSyncing(false,'Connectat a Google Sheets');
+
+  // Build HTML
+  let html = '';
+
+  // KPIs
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem">';
+  html += '<div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">'+fmt(costDespesesReals)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Amortitzacio anual</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costAmortAnual)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Ma d obra</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costMO)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Cost total</div><div class="kpi-value neg">'+fmt(costTotal)+'</div></div>';
+  html += '<div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white;font-size:18px">'+fmt(costHora)+'</div></div>';
+  html += '</div>';
+
+  // Desglose amortitzacio
+  if(amortMaq > 0 || compsArr.length > 0){
+    html += '<div style="margin-bottom:1rem;padding:10px;background:var(--amarillo-claro);border-radius:var(--radio);border:1px solid #ffe08a">';
+    html += '<div style="font-size:12px;font-weight:600;color:#7a5800;margin-bottom:6px">📉 Amortitzacions</div>';
+    if(amortMaq>0) html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>Maquina ('+maq.nombre+')</span><span>'+fmt(amortMaq)+'/any</span></div>';
+    compsArr.forEach(c=>{
+      html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>'+c.component+'</span><span>'+fmt(c.amortAnual)+'/any</span></div>';
+    });
+    html += '<div style="font-size:12px;font-weight:600;display:flex;justify-content:space-between;padding:4px 0"><span>Total amortitzacio</span><span>'+fmt(costAmortAnual)+'/any</span></div>';
+    html += '</div>';
+  }
+
+  // Repostatges
+  if(repoRows.length > 0){
+    html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">⛽ Repostatges ('+litresTot.toFixed(0)+'L — '+fmt(costRepostatges)+')</div>';
+    html += '<table class="mov-table"><thead><tr><th>Data</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">Total</th></tr></thead><tbody>';
+    [...repoRows].sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).forEach(r=>{
+      html += '<tr><td>'+r[1]+'</td><td>'+r[3]+'</td><td style="text-align:right">'+(r[3]||0)+'L</td><td style="text-align:right;color:var(--rojo)">'+fmt(parseFloat(r[6])||parseFloat(r[5])||0)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Manteniments
+  if(mantRows.length > 0){
+    html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">🔩 Manteniments i avaries ('+fmt(costMant)+')</div>';
+    html += '<table class="mov-table"><thead><tr><th>Data</th><th>Tipus</th><th>Descripcio</th><th>Fet per</th><th style="text-align:right">Cost</th></tr></thead><tbody>';
+    const estatColor = {'Resolt':'badge-ing','Pendent':'badge-gas','En reparacio':'badge-cat'};
+    [...mantRows].sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).forEach(r=>{
+      html += '<tr><td>'+r[1]+'</td><td><span class="badge badge-cat">'+r[3]+'</span></td><td>'+r[4]+'</td><td style="font-size:11px">'+((r[7]==='Nosaltres')?r[8]+(r[9]?', '+r[9]+'h':''):(r[10]||'Extern'))+'</td><td style="text-align:right;color:var(--rojo);font-weight:600">'+fmt(parseFloat(r[5])||0)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Altres despeses (factures)
+  if(despesesMov.length > 0){
+    html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">🧾 Altres despeses ('+fmt(costMov)+')</div>';
+    html += '<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Categoria</th><th style="text-align:right">Import</th></tr></thead><tbody>';
+    [...despesesMov].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).forEach(m=>{
+      html += '<tr><td>'+m.fecha+'</td><td>'+m.concepto+'</td><td><span class="badge badge-cat">'+m.categoria+'</span></td><td style="text-align:right;color:var(--rojo);font-weight:600">'+fmt(m.importe)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  body.innerHTML = html;
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
