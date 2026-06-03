@@ -351,12 +351,12 @@
       </div>
       <div class="form-row g2">
         <div><label>Tipus de feina</label>
-          <select id="t-tipus" onchange="onTipusFeinaChange()">
+          <select id="t-tipus">
             <option value="Sembrar">🌱 Sembrar</option>
             <option value="Ensulfatar">🌿 Ensulfatar</option>
             <option value="Aplicar Purins">💧 Aplicar Purins</option>
             <option value="Aplicar Fems">🌾 Aplicar Fems</option>
-            <option value="Treball de Sòl">⚙️ Treball de Sòl</option>
+            <option value="Treball de Sol">⚙️ Treball de Sòl</option>
             <option value="Segar">✂️ Segar</option>
             <option value="Altres">Altres</option>
           </select>
@@ -364,49 +364,17 @@
         <div><label>Hores totals</label><input type="number" id="t-hores" placeholder="0" min="0" step="0.5"/></div>
       </div>
       <div class="form-row g2">
-        <div><label>Màquina utilitzada</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
+        <div><label>Maquina utilitzada</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
         <div><label>Apero utilitzat</label><select id="t-apero"><option value="">— Cap —</option></select></div>
       </div>
-      <div id="extra-sembrar" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌱 Detalls de la sembra</div>
-        <div class="form-row g2">
-          <div><label>Cultiu</label>
-            <select id="t-cultiu"><option>Blat</option><option>Ordi</option><option>Veça i Civada</option><option>Colza</option><option>Triticale</option></select>
-          </div>
-          <div><label>Varietat</label><input type="text" id="t-varietat" placeholder="Ex: Nogal, Cometa..."/></div>
-        </div>
-        <div class="form-row g2">
-          <div><label>Dosi (kg/ha)</label><input type="number" id="t-dosi-sembra" placeholder="0" min="0" step="0.5"/></div>
-          <div><label>Preu llavor (€/tona)</label><input type="number" id="t-preu-llavor" placeholder="0.00" min="0" step="0.01"/></div>
-        </div>
-      </div>
-      <div id="extra-ensulfatar" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌿 Productes aplicats</div>
-        <div id="productes-wrap"></div>
-        <button class="btn btn-sm" onclick="addProducte()" style="margin-top:8px">+ Afegir producte</button>
-      </div>
-      <div id="extra-purins" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">💧 Detalls dels purins</div>
-        <div class="form-row g2">
-          <div><label>Dosi de Nitrogen (kg N/ha)</label><input type="number" id="t-nitrogen-purins" placeholder="0" min="0" step="0.5"/></div>
-          <div></div>
-        </div>
-      </div>
-      <div id="extra-fems" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px">🌾 Detalls dels fems</div>
-        <div class="form-row g3">
-          <div><label>Dosi (t/ha)</label><input type="number" id="t-dosi-fems" placeholder="0" min="0" step="0.5"/></div>
-          <div><label>kg N/ha</label><input type="number" id="t-nitrogen-fems" placeholder="0" min="0" step="0.5"/></div>
-          <div><label>Tipus de fem</label>
-            <select id="t-tipus-fems"><option>Fem de porc</option><option>Fem de vaca</option><option>Fem de pollastre</option><option>Compost</option><option>Altres</option></select>
-          </div>
-        </div>
-      </div>
+
+      <!-- Seleccio parcelles -->
       <div style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">Parcelles treballades <span id="t-parc-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🗺️ Parcel·les treballades <span id="t-parc-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
         <div id="t-parc-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px"></div>
-        <button class="btn btn-sm" type="button" onclick="obrirSelectorParcelles()">+ Seleccionar parcelles al mapa</button>
+        <button class="btn btn-sm" type="button" onclick="obrirSelectorParcelles()">+ Seleccionar parcel·les</button>
       </div>
+
       <div style="margin-top:10px;margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="addTreball()">✓ Desar treball</button>
@@ -417,65 +385,20 @@
     <div class="card">
       <div class="card-title" style="justify-content:space-between;display:flex">
         <span>📋 Historial de treballs</span>
-        <button class="btn btn-sm" onclick="loadTreballs()">↺ Recarregar</button>
+        <div style="display:flex;gap:6px">
+          <select id="t-fil-maquina" onchange="loadTreballs()" style="font-size:12px;padding:4px 8px">
+            <option value="">Totes les maquines</option>
+          </select>
+          <button class="btn btn-sm" onclick="loadTreballs()">↺ Recarregar</button>
+        </div>
       </div>
+      <!-- Resum hores per maquina -->
+      <div id="t-hores-resum" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
       <table class="mov-table">
-        <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Detalls</th><th>Màquina</th><th style="text-align:right">Hores</th><th></th></tr></thead>
+        <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Maquina / Apero</th><th>Parcel·les</th><th style="text-align:right">Hores</th><th></th></tr></thead>
         <tbody id="treballs-list"><tr><td colspan="7"><div class="empty">Carregant...</div></td></tr></tbody>
       </table>
     </div>
-  </div>
-
-  <!-- PARCELLES -->
-  <div id="tab-parcelles" class="section">
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:1rem 1.25rem;border-bottom:1px solid #f0f0f0">
-        <div class="card-title" style="margin-bottom:.5rem">🗺️ Parcel·les — Pinós <span id="parc-ha-total" style="font-size:12px;color:var(--gris-texto);font-weight:400"></span></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="text" id="parc-cerca" placeholder="Buscar per nom..." oninput="filtrarParcelles()" style="width:180px;padding:6px 10px;font-size:12px"/>
-          <span id="parc-count" style="font-size:12px;color:var(--gris-texto)">140 parcelles</span>
-        </div>
-      </div>
-      <div id="parc-map" style="height:480px;width:100%"></div>
-    </div>
-    <div class="card" style="margin-top:1rem">
-      <div class="card-title">Llista de parcelles</div>
-      <div style="max-height:320px;overflow-y:auto">
-        <table class="mov-table">
-          <thead><tr><th>Nom</th><th style="text-align:right">Ha</th></tr></thead>
-          <tbody id="parc-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Finques -->
-    <div class="card" style="margin-top:1rem">
-      <div class="card-title" style="justify-content:space-between;display:flex">
-        <span>🏡 Finques (grups de parcel·les)</span>
-        <button class="btn btn-sm btn-primary" onclick="mostrarFormFinca()">+ Crear finca</button>
-      </div>
-
-      <!-- Form crear finca -->
-      <div id="finca-form" class="hidden" style="margin-bottom:1rem;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div class="form-row g2" style="margin-bottom:8px">
-          <div><label>Nom de la finca</label><input type="text" id="finca-nom" placeholder="Ex: Finca de Baix, Camps del Riu..."/></div>
-          <div style="display:flex;align-items:flex-end">
-            <span id="finca-ha-preview" style="font-size:13px;color:var(--verde);font-weight:500"></span>
-          </div>
-        </div>
-        <div style="font-size:12px;color:var(--gris-texto);margin-bottom:8px;font-weight:500">Selecciona les parcel·les al mapa o a la llista de baix:</div>
-        <div id="finca-parc-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:24px"></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="guardarFinca()">✓ Guardar finca</button>
-          <button class="btn btn-sm" onclick="cancelarFinca()">Cancel·lar</button>
-        </div>
-        <div id="finca-msg" style="font-size:12px;margin-top:6px"></div>
-      </div>
-
-      <!-- Llista finques -->
-      <div id="finques-list"></div>
-    </div>
-
   </div>
 
   <!-- MOVIMIENTOS -->
@@ -1530,14 +1453,1349 @@ function renderFlota(){
         </div>`;
       }
       return `<div class="flota-item" style="flex-direction:column;align-items:flex-start">
-        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
-          <div>
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center;gap:8px">
+          <div style="flex:1">
             <div class="flota-nombre">${m.nombre}</div>
             ${m.ref?`<div class="flota-ref">${m.ref}${dataCompra?' · '+dataCompra:''}</div>`:''}
             ${costCompra>0?`<div class="flota-ref">Cost compra: ${fmt(costCompra)}</div>`:''}
             ${amortInfo}
           </div>
-          <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕</button>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-sm" onclick="editarFlota('${m.id}')" style="color:var(--azul);border-color:var(--azul)">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕</button>
+          </div>
+        </div>
+        <div id="edit-flota-${m.id}" class="hidden" style="margin-top:10px;width:100%;padding:10px;background:var(--blanco);border-radius:var(--radio-sm);border:1px solid var(--gris-borde)">
+          <div class="form-row g3" style="margin-bottom:8px">
+            <div><label>Data de compra</label><input type="date" id="ef-data-${m.id}" value="${m.dataCompra||''}"/></div>
+            <div><label>Cost de compra (€)</label><input type="number" id="ef-cost-${m.id}" value="${m.cost||''}" placeholder="0" oninput="calcEditAmort('${m.id}')"/></div>
+            <div><label>Anys amortitzacio</label><input type="number" id="ef-anys-${m.id}" value="${m.amortAnys||''}" placeholder="10" oninput="calcEditAmort('${m.id}')"/></div>
+          </div>
+          <div id="ef-amort-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-primary" onclick="desarEditFlota('${m.id}')">✓ Desar</button>
+            <button class="btn btn-sm" onclick="editarFlota('${m.id}')">Cancel·lar</button>
+          </div>
+          <div id="ef-msg-${m.id}" style="font-size:12px;margin-top:4px"></div>
+        </div>
+      </div>`;
+    }).join('')+'</div>';
+  });
+  populateRepMantSelects();
+}
+
+// Repostatges
+function calcRepostatge(){
+  const l = parseFloat(document.getElementById('rep-litres').value)||0;
+  const p = parseFloat(document.getElementById('rep-preu').value)||0;
+  document.getElementById('rep-total').value = (l*p).toFixed(2);
+}
+
+async function addRepostatge(){
+  const data = document.getElementById('rep-data').value;
+  const maquina = document.getElementById('rep-maquina').value;
+  const tipus_rep = document.getElementById('rep-tipus').value;
+  const litres = document.getElementById('rep-litres').value;
+  const preu = document.getElementById('rep-preu').value;
+  const total = document.getElementById('rep-total').value;
+  const msg = document.getElementById('rep-msg');
+  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, màquina i litres.'; return; }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant...');
+  try {
+    await appendRow(SHEET_REPOSTATGES,[id,data,maquina,tipus_rep,litres,preu,total]);
+    // Crear despesa automàtica a Maquinària
+    const idDespesa = (Date.now()+1).toString();
+    const totalNum = parseFloat(total)||0;
+    if(totalNum>0){
+      await appendRow(SHEET_MOV,[idDespesa,data,'maquinaria','gasto','Dièsel / combustible',`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,totalNum.toFixed(2),maquina,'','','','Auto-generat des de repostatge']);
+      movimientos.push({id:idDespesa,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Dièsel / combustible',concepto:`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,importe:totalNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
+    }
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat i comptabilitzat a Maquinària.'; setTimeout(()=>msg.textContent='',3000);
+    ['rep-litres','rep-preu','rep-total'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('rep-data').valueAsDate=new Date();
+    loadRepostatges();
+  } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
+}
+
+async function loadRepostatges(){
+  const tbody = document.getElementById('rep-list');
+  if(!tbody) return;
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:F');
+    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'Dièsel',litres:row[4]||'',preu:row[5]||'',total:row[6]||''}));
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Encara no hi ha repostatges registrats.</div></td></tr>'; return; }
+    tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
+      <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
+      <td><span class="badge badge-area">${r.maquina}</span></td>
+      <td><span class="badge ${r.tipus==='AdBlue'?'badge-cat':'badge-gas'}">${r.tipus||'Dièsel'}</span></td>
+      <td style="text-align:right">${r.litres}L</td>
+      <td style="text-align:right">${r.preu}€/L</td>
+      <td style="text-align:right;font-weight:600;color:var(--rojo)">${r.total?fmt(parseFloat(r.total)):'-'}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteRepostatge('${r.id}')">✕</button></td>
+    </tr>`).join('');
+  } catch(e){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Error en carregar.</div></td></tr>'; }
+}
+
+async function deleteRepostatge(id){
+  if(!confirm('Vols eliminar aquest repostatge?')) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:A');
+    const rows = r.values||[];
+    const idx = rows.findIndex(row=>row[0]===id);
+    if(idx>=0) await deleteRow(SHEET_REPOSTATGES, idx+1);
+    setSyncing(false,'Connectat a Google Sheets');
+    loadRepostatges();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+// Manteniments
+function onMantFetPerChange(){
+  const fetPer = document.getElementById('mant-fet-per').value;
+  const nosaltresFields = document.getElementById('mant-hores-wrap');
+  const quinWrap = document.getElementById('mant-qui-wrap');
+  const mecanicWrap = document.getElementById('mant-mecanic-wrap');
+  if(fetPer==='Nosaltres'){
+    nosaltresFields.classList.remove('hidden');
+    quinWrap.classList.remove('hidden');
+    mecanicWrap.classList.add('hidden');
+  } else {
+    nosaltresFields.classList.add('hidden');
+    quinWrap.classList.add('hidden');
+    mecanicWrap.classList.remove('hidden');
+  }
+}
+
+async function addManteniment(){
+  const data = document.getElementById('mant-data').value;
+  const maquina = document.getElementById('mant-maquina').value;
+  const tipus = document.getElementById('mant-tipus').value;
+  const desc = document.getElementById('mant-desc').value.trim();
+  const estat = document.getElementById('mant-estat').value;
+  const fetPer = document.getElementById('mant-fet-per').value;
+  const msg = document.getElementById('mant-msg');
+  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, element i descripció.'; return; }
+
+  let cost = '0', qui = '', hores = '', mecanic = '';
+  if(fetPer==='Nosaltres'){
+    qui = document.getElementById('mant-qui').value;
+    hores = document.getElementById('mant-hores').value||'0';
+    cost = document.getElementById('mant-cost').value||'0';
+  } else {
+    mecanic = document.getElementById('mant-mecanic').value;
+    cost = document.getElementById('mant-cost-ext').value||'0';
+  }
+
+  const id = Date.now().toString();
+  setSyncing(true,'Desant...');
+  try {
+    await appendRow(SHEET_MANTENIMENTS,[id,data,maquina,tipus,desc,cost,estat,fetPer,qui,hores,mecanic]);
+    const costNum = parseFloat(cost)||0;
+    if(costNum>0){
+      const idDespesa2 = (Date.now()+2).toString();
+      const concepte = fetPer==='Nosaltres' ? `${tipus}: ${desc} (${maquina} — ${qui})` : `${tipus}: ${desc} (${maquina} — ${mecanic||'Mecànic extern'})`;
+      await appendRow(SHEET_MOV,[idDespesa2,data,'maquinaria','gasto','Reparacions',concepte,costNum.toFixed(2),maquina,'','','','Auto-generat des de manteniment']);
+      movimientos.push({id:idDespesa2,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Reparacions',concepto:concepte,importe:costNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
+    }
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.className='msg-ok'; msg.textContent=costNum>0?'✓ Manteniment desat i comptabilitzat a Maquinària.':'✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',3000);
+    ['mant-desc','mant-hores','mant-cost','mant-cost-ext','mant-mecanic'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    document.getElementById('mant-data').valueAsDate=new Date();
+    loadManteniments();
+  } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
+}
+
+async function loadManteniments(){
+  const tbody = document.getElementById('mant-list');
+  if(!tbody) return;
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:G');
+    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'',desc:row[4]||'',cost:row[5]||'0',estat:row[6]||'',fetPer:row[7]||'',qui:row[8]||'',hores:row[9]||'',mecanic:row[10]||''}));
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha manteniments registrats.</div></td></tr>'; return; }
+    const estatColor = {Resolt:'badge-ing',Pendent:'badge-gas','En reparació':'badge-cat'};
+    tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
+      <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
+      <td><span class="badge badge-area">${r.maquina}</span></td>
+      <td><span class="badge badge-cat">${r.tipus}</span></td>
+      <td style="font-size:12px">${r.desc}</td>
+      <td style="font-size:12px;color:var(--gris-texto)">${r.fetPer==='Nosaltres'?(r.qui+(r.hores?', '+r.hores+'h':'')):(r.mecanic||'Mecànic extern')}</td>
+      <td><span class="badge ${estatColor[r.estat]||'badge-area'}">${r.estat}</span></td>
+      <td style="text-align:right;font-weight:600;color:var(--rojo)">${fmt(parseFloat(r.cost)||0)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteManteniment('${r.id}')">✕</button></td>
+    </tr>`).join('');
+  } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar.</div></td></tr>'; }
+}
+
+async function deleteManteniment(id){
+  if(!confirm('Vols eliminar aquest manteniment?')) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:A');
+    const rows = r.values||[];
+    const idx = rows.findIndex(row=>row[0]===id);
+    if(idx>=0) await deleteRow(SHEET_MANTENIMENTS, idx+1);
+    setSyncing(false,'Connectat a Google Sheets');
+    loadManteniments();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+// ── COMPARADOR ─────────────────────────────────────────
+function calcComparador(){
+  const propia=parseFloat(document.getElementById('c-propia').value)||0;
+  const contratado=parseFloat(document.getElementById('c-contratado').value)||0;
+  const horas=parseFloat(document.getElementById('c-horas').value)||0;
+  const horaExt=parseFloat(document.getElementById('c-hora-ext').value)||0;
+  const div=document.getElementById('comparador-result');
+  const contTot=horaExt>0&&horas>0?horas*horaExt:contratado;
+  if(!propia&&!contTot){div.innerHTML='';return;}
+  const dif=propia-contTot;
+  let html='';
+  if(dif<0) html+=`<div style="margin-bottom:8px"><span style="color:var(--verde);font-weight:600">✓ Te sale mejor la máquina propia</span> — ahorras <strong>${fmt(Math.abs(dif))}/año</strong> respecto a contratar.</div>`;
+  else if(dif>0) html+=`<div style="margin-bottom:8px"><span style="color:var(--azul);font-weight:600">→ Te sale mejor contratar</span> — ahorras <strong>${fmt(dif)}/año</strong> respecto a la máquina propia.</div>`;
+  else html+=`<div style="margin-bottom:8px;color:var(--gris-texto)">Empate — ambas opciones tienen el mismo coste.</div>`;
+  if(horas>0&&propia>0) html+=`<div style="color:var(--gris-texto);font-size:13px">Coste propio por hora: <strong>${fmt(propia/horas)}/h</strong></div>`;
+  if(horas>0&&contTot>0) html+=`<div style="color:var(--gris-texto);font-size:13px">Coste contratado por hora: <strong>${fmt(contTot/horas)}/h</strong></div>`;
+  div.innerHTML=html;
+}
+
+function calcAmortLib(){
+  const coste=parseFloat(document.getElementById('ca-coste').value)||0;
+  const years=parseFloat(document.getElementById('ca-years').value)||0;
+  const nombre=document.getElementById('ca-nombre').value||'el elemento';
+  const div=document.getElementById('amort-lib-result');
+  if(coste>0&&years>0){
+    const anual=coste/years;
+    div.innerHTML=`<div class="amort-badge">${nombre}: ${fmt(anual)}/año · ${fmt(anual/12)}/mes · ${fmt(anual/52)}/semana</div>`;
+  } else div.textContent='';
+}
+
+
+let PARC_DATA = null;
+async function loadParcData(){
+  if(PARC_DATA) return PARC_DATA;
+  try {
+    const r = await fetch('https://damiabm9.github.io/Gestor-Agricola/parcelles.geojson');
+    PARC_DATA = await r.json();
+  } catch(e) {
+    console.error('Error carregant parcelles:', e);
+  }
+  return PARC_DATA;
+};
+let parcMap=null,parcLayer=null,parcAllLayers={};
+let treballParcelles=[];
+let vendaParcelles=[]; // parcel·les seleccionades per venda de cereal
+
+async function initParcelMap(){
+  if(parcMap) return;
+  await loadParcData();
+  if(!PARC_DATA){document.getElementById("parc-map").innerHTML="<div class='empty'>Error carregant les parcel·les.</div>";return;}
+  setTimeout(()=>{
+    parcMap=L.map('parc-map').setView([41.825,1.578],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap',maxZoom:19}).addTo(parcMap);
+    parcLayer=L.geoJSON(PARC_DATA,{
+      style:()=>({color:'#2d6a4f',weight:1.5,fillColor:'#52b788',fillOpacity:0.35}),
+      onEachFeature:(feat,layer)=>{
+        const p=feat.properties;
+        layer.bindTooltip(p.nom,{permanent:false,direction:'center'});
+        layer.bindPopup('<strong>'+p.nom+'</strong><br>'+p.ha+' ha');
+        layer.on('click',()=>toggleParcelLayer(p,layer));
+        parcAllLayers[p.id]=layer;
+      }
+    }).addTo(parcMap);
+    parcMap.fitBounds(parcLayer.getBounds(),{padding:[10,10]});
+    renderParcList(PARC_DATA.features);
+    const tot=PARC_DATA.features.reduce((s,f)=>s+f.properties.ha,0);
+    document.getElementById('parc-ha-total').textContent='Total: '+tot.toFixed(2)+' ha';
+  },100);
+}
+
+function styleParcel(selected){
+  if(selected) return {color:'#e76f51',weight:3,fillColor:'#e76f51',fillOpacity:0.55};
+  return {color:'#2d6a4f',weight:1.5,fillColor:'#52b788',fillOpacity:0.35};
+}
+
+function toggleParcelLayer(p,layer){
+  const mode=window._parcMode||'treball';
+  if(mode==='finca'){
+    const idx=fincaParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){fincaParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{fincaParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle({color:'#1a73e8',weight:3,fillColor:'#1a73e8',fillOpacity:0.5});}
+    updateFincaChips();
+  } else if(mode==='gasto'){
+    const idx=gastoParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){gastoParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{gastoParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle({color:'var(--rojo)',weight:3,fillColor:'var(--rojo)',fillOpacity:0.45});}
+    updateGastoChips();
+  } else if(mode==='venda'){
+    const idx=vendaParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){vendaParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{vendaParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle(styleParcel(true));}
+    updateVendaChips();
+  } else {
+    const idx=treballParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){treballParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{treballParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle(styleParcel(true));}
+    updateTreballParcChips();
+  }
+}
+
+function updateTreballParcChips(){
+  const wrap=document.getElementById('t-parc-selected');
+  const haSpan=document.getElementById('t-parc-ha');
+  if(!wrap) return;
+  const totalHa=treballParcelles.reduce((s,p)=>s+p.ha,0);
+  haSpan.textContent=treballParcelles.length>0?'('+treballParcelles.length+' parc. / '+totalHa.toFixed(2)+' ha)':'';
+  const chipHtml=treballParcelles.map(p=>'<span data-rmid="'+p.id+'" style="display:inline-flex;align-items:center;gap:4px;background:var(--verde-claro);color:var(--verde);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha) <button data-rmid="'+p.id+'" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:14px;padding:0">x</button></span>').join('');wrap.innerHTML=chipHtml;if(!wrap._rl){wrap.addEventListener('click',function(e){var btn=e.target.closest('[data-rmid]');if(btn&&e.target.tagName==='BUTTON'){removeParcelTreball(btn.getAttribute('data-rmid'));}});wrap._rl=true;}
+}
+
+function removeParcelTreball(id){
+  treballParcelles=treballParcelles.filter(p=>p.id!==id);
+  if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));
+  updateTreballParcChips();
+}
+
+function onVendaModeChange(){
+  const mode = document.getElementById('f-venda-mode').value;
+  const fincaWrap = document.getElementById('f-venda-finca-wrap');
+  const parcBtn = document.getElementById('f-venda-parc-btn');
+  vendaParcelles = [];
+  updateVendaChips();
+  if(mode==='finca'){
+    fincaWrap.classList.remove('hidden');
+    parcBtn.classList.add('hidden');
+    // populate finca selector
+    populateVendaFincaSel();
+  } else {
+    fincaWrap.classList.add('hidden');
+    parcBtn.classList.remove('hidden');
+  }
+}
+
+function populateVendaFincaSel(){
+  const sel = document.getElementById('f-venda-finca');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
+    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+}
+
+function onVendaFincaChange(){
+  const fincaId = document.getElementById('f-venda-finca').value;
+  vendaParcelles = [];
+  if(!fincaId){ updateVendaChips(); return; }
+  const finca = finques.find(f=>f.id===fincaId);
+  if(!finca||!PARC_DATA) return;
+  // Add all parcelles of this finca
+  finca.parcellesIds.forEach(pid=>{
+    const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+    if(feat) vendaParcelles.push({id:feat.properties.id, nom:feat.properties.nom, ha:feat.properties.ha});
+  });
+  updateVendaChips();
+}
+
+function updateVendaChips(){
+  const wrap=document.getElementById('f-venda-selected');
+  const haSpan=document.getElementById('f-venda-ha');
+  if(!wrap) return;
+  const totalHa=vendaParcelles.reduce((s,p)=>s+p.ha,0);
+  haSpan.textContent=vendaParcelles.length>0?'('+vendaParcelles.length+' parc. / '+totalHa.toFixed(2)+' ha)':'';
+  wrap.innerHTML=vendaParcelles.map(p=>'<span data-vrmid="'+p.id+'" style="display:inline-flex;align-items:center;gap:4px;background:var(--verde-claro);color:var(--verde);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha) <button data-vrmid="'+p.id+'" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:14px;padding:0">x</button></span>').join('');
+  if(!wrap._rl){wrap.addEventListener('click',function(e){var btn=e.target.closest('[data-vrmid]');if(btn&&e.target.tagName==='BUTTON'){removeVendaParcel(btn.getAttribute('data-vrmid'));}});wrap._rl=true;}
+}
+
+function removeVendaParcel(id){
+  vendaParcelles=vendaParcelles.filter(p=>p.id!==id);
+  updateVendaChips();
+}
+
+function obrirSelectorParcellesVenda(){
+  // Switch to map, mark mode as venda
+  window._parcMode='venda';
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+}
+
+function obrirSelectorParcelles(){
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+}
+
+function filtrarParcelles(){
+  if(!PARC_DATA) return;
+  const q=document.getElementById('parc-cerca').value.toLowerCase();
+  const filtered=PARC_DATA.features.filter(f=>f.properties.nom.toLowerCase().includes(q));
+  document.getElementById('parc-count').textContent=filtered.length+' parcelles';
+  renderParcList(filtered);
+  if(parcLayer){
+    parcLayer.eachLayer(layer=>{
+      const nom=(layer.feature&&layer.feature.properties?layer.feature.properties.nom:'').toLowerCase();
+      const sel=treballParcelles.some(p=>p.id===(layer.feature&&layer.feature.properties?layer.feature.properties.id:''));
+      if(!q||nom.includes(q)) layer.setStyle(styleParcel(sel));
+      else layer.setStyle({color:'#2d6a4f',weight:1,fillColor:'#52b788',fillOpacity:0.05,opacity:0.2});
+    });
+  }
+}
+
+function renderParcList(features){
+  const sorted=[...features].sort((a,b)=>a.properties.nom.localeCompare(b.properties.nom,'ca'));
+  const tbody=document.getElementById('parc-tbody');
+  if(!tbody._hasListener){tbody.addEventListener('click',e=>{const tr=e.target.closest('tr[data-pid]');if(tr) toggleParcelFromList(tr.dataset.pid);});tbody._hasListener=true;}
+  tbody.innerHTML=sorted.map(f=>{
+    const p=f.properties;
+    const sel=treballParcelles.some(x=>x.id===p.id);
+    return '<tr class="parc-tr '+(sel?'parc-sel-row':'')+' " data-pid="'+p.id+'" style="cursor:pointer"><td>'+p.nom+'</td><td style="text-align:right">'+p.ha+'</td></tr>';
+  }).join('');
+}
+
+function toggleParcelFromList(id){
+  if(!PARC_DATA) return;
+  const feat=PARC_DATA.features.find(f=>f.properties.id===id);
+  if(!feat) return;
+  const p=feat.properties;
+  const mode=window._parcMode||'treball';
+  if(mode==='gasto'){
+    const idx=gastoParcelles.findIndex(x=>x.id===id);
+    if(idx>=0){gastoParcelles.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
+    else{gastoParcelles.push({id:p.id,nom:p.nom,ha:p.ha});if(parcAllLayers[id]) parcAllLayers[id].setStyle({color:'var(--rojo)',weight:3,fillColor:'var(--rojo)',fillOpacity:0.45});}
+    updateGastoChips();
+    return;
+  }
+  if(mode==='finca'){
+    const idx=fincaParcelles.findIndex(x=>x.id===id);
+    if(idx>=0){fincaParcelles.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
+    else{fincaParcelles.push({id:p.id,nom:p.nom,ha:p.ha});if(parcAllLayers[id]) parcAllLayers[id].setStyle({color:'#1a73e8',weight:3,fillColor:'#1a73e8',fillOpacity:0.5});}
+    updateFincaChips();
+    return;
+  }
+  const arr=mode==='venda'?vendaParcelles:treballParcelles;
+  const idx=arr.findIndex(x=>x.id===id);
+  if(idx>=0){arr.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
+  else{arr.push({id:p.id,nom:p.nom,ha:p.ha});if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(true));}
+  if(mode==='venda') updateVendaChips(); else updateTreballParcChips();
+  const q=document.getElementById('parc-cerca')&&document.getElementById('parc-cerca').value.toLowerCase();
+  renderParcList(q?PARC_DATA.features.filter(f=>f.properties.nom.toLowerCase().includes(q)):PARC_DATA.features);
+}
+
+
+// ── FINQUES ─────────────────────────────────────────────
+let fincaMode = false; // true when creating a finca
+let fincaParcelles = []; // parcelles selected for current finca
+
+function mostrarFormFinca(){
+  fincaMode = true;
+  fincaParcelles = [];
+  window._parcMode = 'finca';
+  document.getElementById('finca-form').classList.remove('hidden');
+  document.getElementById('finca-nom').value = '';
+  document.getElementById('finca-parc-chips').innerHTML = '';
+  document.getElementById('finca-ha-preview').textContent = '';
+  document.getElementById('finca-msg').textContent = '';
+  renderParcList(PARC_DATA ? PARC_DATA.features : []);
+}
+
+function cancelarFinca(){
+  fincaMode = false;
+  fincaParcelles = [];
+  window._parcMode = 'treball';
+  document.getElementById('finca-form').classList.add('hidden');
+  // reset map
+  Object.values(parcAllLayers).forEach(l=>{try{l.setStyle(styleParcel(false));}catch(e){}});
+  renderParcList(PARC_DATA ? PARC_DATA.features : []);
+}
+
+function updateFincaChips(){
+  const wrap = document.getElementById('finca-parc-chips');
+  if(!wrap) return;
+  const totalHa = fincaParcelles.reduce((s,p)=>s+p.ha,0);
+  const preview = document.getElementById('finca-ha-preview');
+  if(preview) preview.textContent = fincaParcelles.length > 0 ? fincaParcelles.length+' parcel·les / '+totalHa.toFixed(2)+' ha' : '';
+  wrap.innerHTML = fincaParcelles.map(p=>'<span data-frmid="'+p.id+'" style="display:inline-flex;align-items:center;gap:4px;background:var(--azul-claro);color:var(--azul);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha) <button data-frmid="'+p.id+'" style="background:none;border:none;cursor:pointer;color:var(--azul);font-size:14px;padding:0">x</button></span>').join('');
+  if(!wrap._rl){wrap.addEventListener('click',function(e){var btn=e.target.closest('[data-frmid]');if(btn&&e.target.tagName==='BUTTON'){removeFincaParcel(btn.getAttribute('data-frmid'));}});wrap._rl=true;}
+}
+
+function removeFincaParcel(id){
+  fincaParcelles = fincaParcelles.filter(p=>p.id!==id);
+  if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));
+  updateFincaChips();
+  renderParcList(PARC_DATA ? PARC_DATA.features : []);
+}
+
+async function guardarFinca(){
+  const nom = document.getElementById('finca-nom').value.trim();
+  const msg = document.getElementById('finca-msg');
+  if(!nom){ msg.style.color='var(--rojo)'; msg.textContent='Posa un nom a la finca.'; return; }
+  if(fincaParcelles.length===0){ msg.style.color='var(--rojo)'; msg.textContent='Selecciona almenys una parcel·la.'; return; }
+  const id = Date.now().toString();
+  const ids = fincaParcelles.map(p=>p.id).join(',');
+  const ha = fincaParcelles.reduce((s,p)=>s+p.ha,0).toFixed(2);
+  setSyncing(true,'Desant finca...');
+  try {
+    await appendRow(SHEET_FINQUES,[id,nom,ids,ha]);
+    finques.push({id,nom,parcellesIds:fincaParcelles.map(p=>p.id),ha:parseFloat(ha)});
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.style.color='var(--verde)'; msg.textContent='Finca guardada!';
+    setTimeout(()=>{ cancelarFinca(); renderFinquesList(); updateFincaSelectors(); },1000);
+  } catch(e){ setSyncing(false,'Error',true); msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; }
+}
+
+async function eliminarFinca(id){
+  if(!confirm('Eliminar aquesta finca?')) return;
+  const idx = finques.findIndex(f=>f.id===id);
+  if(idx<0) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:A');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx>=0) await deleteRow(SHEET_FINQUES, rowIdx+1);
+    finques.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
+    renderFinquesList(); updateFincaSelectors();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+function renderFinquesList(){
+  const el = document.getElementById('finques-list');
+  if(!el) return;
+  if(!finques.length){ el.innerHTML='<div class="empty">Encara no hi ha finques creades.</div>'; return; }
+  if(!el._rl){el.addEventListener('click',function(e){var btn=e.target.closest('[data-fid]');if(btn&&e.target.tagName==='BUTTON') eliminarFinca(btn.getAttribute('data-fid'));});el._rl=true;}
+  el.innerHTML = '<div class="flota-list">'+finques.map(f=>{
+    // Get parcel names
+    const noms = f.parcellesIds.map(pid=>{
+      if(!PARC_DATA) return pid;
+      const feat = PARC_DATA.features.find(x=>x.properties.id===pid);
+      return feat ? feat.properties.nom : pid;
+    }).join(', ');
+    return '<div class="flota-item" style="flex-direction:column;align-items:flex-start">' +
+      '<div style="display:flex;justify-content:space-between;width:100%;align-items:center">' +
+        '<div><div class="flota-nombre">🏡 '+f.nom+'</div>' +
+          '<div class="flota-ref">'+f.ha+' ha — '+noms+'</div></div>' +
+        '<button class="btn btn-sm btn-danger" data-fid="'+f.id+'" style="margin-left:8px">✕</button>' +
+      '</div></div>';
+  }).join('')+'</div>';
+}
+
+function updateFincaSelectors(){
+  // Update any dropdowns that list finques (for future use in treballs/factures)
+  const opts = '<option value="">— Parcel·les individuals —</option>' +
+    finques.map(f=>'<option value="finca_'+f.id+'">🏡 '+f.nom+' ('+f.ha+'ha)</option>').join('');
+  ['t-finca-sel','f-finca-sel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.innerHTML=opts; }
+  });
+}
+
+
+function editarFlota(id){
+  const wrap = document.getElementById('edit-flota-'+id);
+  if(wrap) wrap.classList.toggle('hidden');
+}
+
+function calcEditAmort(id){
+  const cost = parseFloat(document.getElementById('ef-cost-'+id)?.value)||0;
+  const anys = parseFloat(document.getElementById('ef-anys-'+id)?.value)||0;
+  const div = document.getElementById('ef-amort-'+id);
+  if(div && cost>0 && anys>0){
+    div.innerHTML = '<span class="amort-badge">Quota: '+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes</span>';
+  } else if(div) div.textContent='';
+}
+
+async function desarEditFlota(id){
+  const dataCompra = document.getElementById('ef-data-'+id)?.value||'';
+  const cost = document.getElementById('ef-cost-'+id)?.value||'';
+  const amortAnys = document.getElementById('ef-anys-'+id)?.value||'';
+  const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0)?(parseFloat(cost)/parseFloat(amortAnys)).toFixed(2):'';
+  const msg = document.getElementById('ef-msg-'+id);
+  
+  // Find row index in sheet
+  setSyncing(true,'Actualitzant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:H');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx<0){ setSyncing(false,'Error',true); return; }
+    
+    // Update the row
+    const floatItem = flota.find(f=>f.id===id);
+    if(floatItem){
+      floatItem.dataCompra=dataCompra; floatItem.cost=cost;
+      floatItem.amortAnys=amortAnys; floatItem.amortAnual=amortAnual;
+    }
+    const row = rows[rowIdx];
+    while(row.length<8) row.push('');
+    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual;
+    
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':H'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    setSyncing(false,'Connectat a Google Sheets');
+    if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
+    setTimeout(()=>{ renderFlota(); },800);
+  } catch(e){ setSyncing(false,'Error',true); if(msg){ msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; } }
+}
+
+function calcLlavorCost(){
+  const kg = parseFloat(document.getElementById('f-llavor-kg')?.value)||0;
+  const preu = parseFloat(document.getElementById('f-llavor-preu')?.value)||0;
+  const total = kg * preu / 1000; // preu per tona = /1000 per kg
+  const el = document.getElementById('f-llavor-total');
+  if(el) el.value = total>0?total.toFixed(2):'';
+  // Auto-fill importe
+  if(total>0) document.getElementById('f-importe').value = total.toFixed(2);
+}
+
+let gastoParcelles = [];
+
+function populateCultiuGastoSel(){
+  const sel = document.getElementById('f-gasto-finca');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
+    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+}
+
+function onGastoModeChange(){
+  const mode = document.getElementById('f-gasto-mode').value;
+  const fincaWrap = document.getElementById('f-gasto-finca-wrap');
+  const parcBtn = document.getElementById('f-gasto-parc-btn');
+  gastoParcelles = [];
+  updateGastoChips();
+  if(mode==='finca'){
+    fincaWrap.classList.remove('hidden');
+    parcBtn.classList.add('hidden');
+  } else {
+    fincaWrap.classList.add('hidden');
+    parcBtn.classList.remove('hidden');
+  }
+}
+
+function onGastoFincaChange(){
+  const fincaId = document.getElementById('f-gasto-finca').value;
+  gastoParcelles = [];
+  if(!fincaId){ updateGastoChips(); return; }
+  const finca = finques.find(f=>f.id===fincaId);
+  if(!finca||!PARC_DATA) return;
+  finca.parcellesIds.forEach(pid=>{
+    const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+    if(feat) gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+  });
+  updateGastoChips();
+}
+
+function updateGastoChips(){
+  const wrap = document.getElementById('f-gasto-selected');
+  const haSpan = document.getElementById('f-gasto-ha');
+  if(!wrap) return;
+  const totalHa = gastoParcelles.reduce((s,p)=>s+p.ha,0);
+  if(haSpan) haSpan.textContent = gastoParcelles.length>0?'('+gastoParcelles.length+' parc. / '+totalHa.toFixed(2)+' ha)':'';
+  wrap.innerHTML = gastoParcelles.map(p=>'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--rojo-claro);color:var(--rojo);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha)</span>').join('');
+}
+
+function obrirSelectorParcellesGasto(){
+  window._parcMode = 'gasto';
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+}
+
+document.getElementById('f-fecha').valueAsDate=new Date();
+document.getElementById('t-data').valueAsDate=new Date();
+// Init treballs form to show correct fields
+onTipusFeinaChange();
+document.getElementById('rep-data').valueAsDate=new Date();
+document.getElementById('mant-data').valueAsDate=new Date();
+
+// ── TREBALLS ───────────────────────────────────────────
+function populateTreballSelects(){
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos_list = flota.filter(f=>f.tipo==='apero');
+  document.getElementById('t-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  document.getElementById('t-apero').innerHTML='<option value="">— Cap —</option>'+aperos_list.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
+  // Filter selector
+  const fil = document.getElementById('t-fil-maquina');
+  if(fil){
+    const cur = fil.value;
+    fil.innerHTML='<option value="">Totes les maquines</option>'+
+      maquines.map(m=>`<option value="${m.nombre}"${m.nombre===cur?' selected':''}>${m.nombre}</option>`).join('')+
+      aperos_list.map(a=>`<option value="${a.nombre}"${a.nombre===cur?' selected':''}>${a.nombre}</option>`).join('');
+  }
+}
+
+async function addTreball(){
+  const data = document.getElementById('t-data').value;
+  const qui = document.getElementById('t-qui').value;
+  const tipus = document.getElementById('t-tipus').value;
+  const hores = parseFloat(document.getElementById('t-hores').value)||0;
+  const maquina = document.getElementById('t-maquina').value;
+  const apero = document.getElementById('t-apero').value;
+  const notes = document.getElementById('t-notes').value.trim();
+  const msg = document.getElementById('treball-msg');
+  if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
+
+  const parcHaTot = treballParcelles.reduce((s,p)=>s+p.ha,0);
+  const parcNoms = treballParcelles.map(p=>p.nom).join(', ');
+  const parcHa = parcHaTot;
+  // Distribute hours proportionally by ha
+  const horesDistrib = treballParcelles.map(p=>({
+    id:p.id, nom:p.nom, ha:p.ha,
+    hores: parcHaTot>0 ? Math.round((p.ha/parcHaTot)*hores*100)/100 : 0
+  }));
+  const parcDetail = horesDistrib.map(p=>p.nom+':'+p.hores+'h('+p.ha+'ha)').join('|');
+
+  const id = Date.now().toString();
+  setSyncing(true,'Desant treball...');
+  try {
+    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),'',notes,parcNoms,parcHa.toFixed(2),parcDetail]);
+    setSyncing(false,'Connectat a Google Sheets');
+    msg.className='msg-ok'; msg.textContent='✓ Treball desat correctament.';
+    setTimeout(()=>msg.textContent='',3000);
+    clearTreball(); loadTreballs();
+  } catch(e){ setSyncing(false,'Error en desar',true); msg.className='msg-err'; msg.textContent='Error en desar. Comprova la connexio.'; }
+}
+
+function clearTreball(){
+  ['t-hores','t-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('t-data').valueAsDate=new Date();
+  document.getElementById('t-qui').selectedIndex=0;
+  document.getElementById('t-tipus').selectedIndex=0;
+  document.getElementById('t-maquina').value='';
+  document.getElementById('t-apero').value='';
+  treballParcelles=[];
+  if(typeof updateTreballParcChips==='function') updateTreballParcChips();
+}
+
+async function loadTreballs(){
+  const tbody = document.getElementById('treballs-list');
+  const filMaq = document.getElementById('t-fil-maquina')?.value||'';
+  if(!tbody) return;
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:L');
+    let treballs = (r.values||[]).map(row=>({
+      id:row[0]||'',data:row[1]||'',qui:row[2]||'',tipus:row[3]||'',
+      maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',
+      notes:row[8]||'',parcNoms:row[9]||'',parcHa:row[10]||'',parcDetail:row[11]||''
+    }));
+
+    // Filter by machine if selected
+    if(filMaq) treballs = treballs.filter(t=>t.maquina===filMaq||t.apero===filMaq);
+
+    // Hores resum per maquina
+    const allTreballs = (r.values||[]).map(row=>({maquina:row[4]||'',apero:row[5]||'',hores:parseFloat(row[6])||0,data:row[1]||''}));
+    const anyActual = String(new Date().getFullYear());
+    const horesMap = {};
+    allTreballs.filter(t=>t.data.startsWith(anyActual)).forEach(t=>{
+      if(t.maquina){ horesMap[t.maquina]=(horesMap[t.maquina]||0)+t.hores; }
+      if(t.apero){ horesMap[t.apero]=(horesMap[t.apero]||0)+t.hores; }
+    });
+    const resumEl = document.getElementById('t-hores-resum');
+    if(resumEl){
+      resumEl.innerHTML = Object.entries(horesMap).length ?
+        Object.entries(horesMap).sort((a,b)=>b[1]-a[1]).map(([nom,h])=>
+          `<span class="badge badge-area" style="padding:4px 10px;font-size:12px">🚜 ${nom}: <strong>${h.toFixed(1)}h</strong></span>`
+        ).join('') :
+        '<span style="font-size:12px;color:var(--gris-texto)">Sense treballs aquest any encara.</span>';
+    }
+
+    if(!treballs.length){
+      tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML=[...treballs].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(t=>`<tr>
+      <td style="color:var(--gris-texto);white-space:nowrap">${t.data}</td>
+      <td><span class="badge badge-area">${t.qui}</span></td>
+      <td><span class="badge badge-cat">${t.tipus}</span></td>
+      <td style="font-size:12px;color:var(--gris-texto)">${t.maquina||'—'}${t.apero?' / '+t.apero:''}</td>
+      <td style="font-size:11px;color:var(--gris-texto);max-width:160px;word-break:break-word">${t.parcNoms||'—'}${t.parcHa?' ('+t.parcHa+'ha)':''}</td>
+      <td style="text-align:right;font-weight:600">${t.hores}h</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button></td>
+    </tr>`).join('');
+  } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar els treballs.</div></td></tr>'; }
+}
+
+async function deleteTreball(id){
+  if(!confirm('Vols eliminar aquest treball?')) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:A');
+    const rows = r.values||[];
+    const idx = rows.findIndex(row=>row[0]===id);
+    if(idx>=0) await deleteRow(SHEET_TREBALLS, idx+1);
+    setSyncing(false,'Connectat a Google Sheets');
+    loadTreballs();
+  } catch(e){ setSyncing(false,'Error en eliminar',true); }
+}
+
+// ── RENDER RESUMEN ─────────────────────────────────────
+let resAreaActiva = 'total';
+
+function populateAnyFilter(){
+  const anys = [...new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('res-any');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML='<option value="">Tots els anys</option>'+anys.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+}
+
+function getMovFiltrats(){
+  const any = document.getElementById('res-any')?.value||'';
+  if(!any) return movimientos;
+  return movimientos.filter(m=>m.fecha&&m.fecha.startsWith(any));
+}
+
+function showResArea(area, btn){
+  resAreaActiva = area;
+  document.querySelectorAll('[id^="res-tab-"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderResAreaCards();
+  renderResAreaDetall();
+}
+
+function renderResAreaCards(){
+  const data = getMovFiltrats();
+  if(resAreaActiva === 'total'){
+    const cards = Object.entries(AREAS).map(([key,a])=>{
+      const ing = data.filter(m=>m.area===key&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+      const gas = data.filter(m=>m.area===key&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+      const marge = ing-gas;
+      const pct = ing>0?Math.round((marge/ing)*100):(gas>0?-100:0);
+      const barW = Math.max(0,Math.min(100,Math.abs(pct)));
+      return `<div class="rent-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem">
+          <span style="font-size:20px">${a.icon}</span>
+          <span style="font-size:14px;font-weight:600">${a.label}</span>
+        </div>
+        <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde);font-weight:600">${fmt(ing)}</span></div>
+        <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo);font-weight:600">${fmt(gas)}</span></div>
+        <div class="rent-stat" style="border:none"><span style="color:var(--gris-texto)">Marge</span><span style="font-weight:700;font-size:14px;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)} <span style="font-size:11px">(${pct}%)</span></span></div>
+        <div class="rent-bar-wrap"><div class="rent-bar" style="width:${barW}%;background:${marge>=0?'var(--verde-mid)':'var(--rojo)'}"></div></div>
+      </div>`;
+    });
+    document.getElementById('area-cards').innerHTML = cards.join('');
+    document.getElementById('area-detall').style.display='none';
+  } else {
+    const a = AREAS[resAreaActiva];
+    const ing = data.filter(m=>m.area===resAreaActiva&&m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+    const gas = data.filter(m=>m.area===resAreaActiva&&m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+    const marge = ing-gas;
+    const pct = ing>0?Math.round((marge/ing)*100):(gas>0?-100:0);
+    document.getElementById('area-cards').innerHTML = `
+      <div class="kpi"><div class="kpi-label">${a.icon} Ingressos</div><div class="kpi-value pos">${fmt(ing)}</div></div>
+      <div class="kpi"><div class="kpi-label">Despeses</div><div class="kpi-value neg">${fmt(gas)}</div></div>
+      <div class="kpi"><div class="kpi-label">Marge net</div><div class="kpi-value ${marge>=0?'pos':'neg'}">${fmt(marge)}</div></div>
+      <div class="kpi"><div class="kpi-label">Rendibilitat</div><div class="kpi-value ${pct>=0?'pos':'neg'}">${pct}%</div></div>
+    `;
+    renderResAreaDetall();
+  }
+}
+
+function renderResAreaDetall(){
+  const detall = document.getElementById('area-detall');
+  if(resAreaActiva==='total'){ detall.style.display='none'; return; }
+  const data = getMovFiltrats().filter(m=>m.area===resAreaActiva);
+  const a = AREAS[resAreaActiva];
+  detall.style.display='block';
+  document.getElementById('area-detall-title').innerHTML = `${a.icon} Moviments — ${a.label}`;
+  if(!data.length){ document.getElementById('area-detall-body').innerHTML='<div class="empty">Sense moviments per a aquest filtre.</div>'; return; }
+
+  // Desglose per categoria
+  const cats = [...new Set(data.map(m=>m.categoria).filter(Boolean))];
+  let html = '<div style="margin-bottom:1rem">';
+  cats.forEach(cat=>{
+    const total = data.filter(m=>m.categoria===cat).reduce((s,m)=>s+(m.tipo==='ingreso'?m.importe:-m.importe),0);
+    const color = total>=0?'var(--verde)':'var(--rojo)';
+    html+=`<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0">
+      <span><span class="badge badge-cat">${cat}</span></span>
+      <span style="font-weight:600;color:${color}">${fmt(Math.abs(total))}</span>
+    </div>`;
+  });
+  html+='</div>';
+
+  // Últims moviments d'aquesta àrea
+  const recents = [...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,8);
+  html+='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th></tr></thead><tbody>';
+  html+=recents.map(m=>`<tr>
+    <td style="color:var(--gris-texto)">${m.fecha}</td>
+    <td>${m.concepto}</td>
+    <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
+    <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo==='ingreso'?'Ingrés':'Despesa'}</span></td>
+    <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
+  </tr>`).join('');
+  html+='</tbody></table>';
+  document.getElementById('area-detall-body').innerHTML = html;
+}
+
+function renderResumen(){
+  populateAnyFilter();
+  const any = document.getElementById('res-any')?.value||'';
+  const periode = document.getElementById('res-periode');
+  if(periode) periode.textContent = any?`· Mostrant dades de ${any}`:'· Tots els anys';
+  const data = getMovFiltrats();
+  const ti=data.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+  const tg=data.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+  const res=ti-tg;
+  document.getElementById('kpi-grid').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total ingressos</div><div class="kpi-value pos">${fmt(ti)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total despeses</div><div class="kpi-value neg">${fmt(tg)}</div></div>
+    <div class="kpi"><div class="kpi-label">Resultat net</div><div class="kpi-value ${res>=0?'pos':'neg'}">${fmt(res)}</div></div>
+    <div class="kpi"><div class="kpi-label">Moviments</div><div class="kpi-value" style="color:#333">${data.length}</div></div>
+  `;
+  renderResAreaCards();
+
+  // Últims moviments
+  const recents=[...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,6);
+  const list=document.getElementById('resumen-list');
+  if(!recents.length){list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>';return;}
+  list.innerHTML='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th></tr></thead><tbody>'+
+    recents.map(m=>`<tr>
+      <td style="color:var(--gris-texto)">${m.fecha}</td>
+      <td>${m.concepto}</td>
+      <td><span class="badge badge-area">${AREAS[m.area]?.icon||''} ${AREAS[m.area]?.label||m.area}</span></td>
+      <td><span class="badge badge-cat">${m.categoria||'—'}</span></td>
+      <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo==='ingreso'?'Ingrés':'Despesa'}</span></td>
+      <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
+    </tr>`).join('')+'</tbody></table>';
+}
+
+// ── RENDER MOVIMIENTOS ─────────────────────────────────
+function renderMovimientos(){
+  const area=document.getElementById('fil-area').value;
+  const tipo=document.getElementById('fil-tipo').value;
+  const cat=document.getElementById('fil-cat').value;
+  const allCats=[...new Set(movimientos.map(m=>m.categoria).filter(Boolean))];
+  const filCat=document.getElementById('fil-cat');
+  const cur=filCat.value;
+  filCat.innerHTML='<option value="">Totes</option>'+allCats.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  let data=[...movimientos].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  if(area) data=data.filter(m=>m.area===area);
+  if(tipo) data=data.filter(m=>m.tipo===tipo);
+  if(cat) data=data.filter(m=>m.categoria===cat);
+  const tbody=document.getElementById('mov-list');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hay movimientos con este filtro.</div></td></tr>';return;}
+  tbody.innerHTML=data.map(m=>`<tr>
+    <td style="color:var(--gris-texto);white-space:nowrap">${m.fecha}</td>
+    <td>${m.concepto}${m.maquina?` <span style="font-size:11px;color:var(--gris-texto)">(${m.maquina}${m.horas?', '+m.horas+'h':''})</span>`:''}</td>
+    <td><span class="badge badge-area">${AREAS[m.area]?.icon||''} ${AREAS[m.area]?.label||m.area}</span></td>
+    <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
+    <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo}</span></td>
+    <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
+    <td><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
+  </tr>`).join('');
+}
+
+// ── RENDER RENTABILIDAD ────────────────────────────────
+let rentAreaActiva = 'totes';
+
+function showRentArea(area, btn){
+  rentAreaActiva = area;
+  document.querySelectorAll('#tab-rentabilidad .tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const maqFilter = document.getElementById('rent-maq-filter');
+  if(area==='maquinaria'){
+    maqFilter.classList.remove('hidden');
+    maqFilter.style.display='flex';
+    const maquines = [...new Set([
+      ...flota.filter(f=>f.tipo==='maquina').map(f=>f.nombre),
+      ...flota.filter(f=>f.tipo==='apero').map(f=>f.nombre)
+    ])];
+    document.getElementById('rent-maq-sel').innerHTML='<option value="">Tota la maquinària</option>'+
+      '<optgroup label="Màquines">'+flota.filter(f=>f.tipo==='maquina').map(f=>`<option value="${f.nombre}">${f.nombre}</option>`).join('')+'</optgroup>'+
+      '<optgroup label="Aperos">'+flota.filter(f=>f.tipo==='apero').map(f=>`<option value="${f.nombre}">${f.nombre}</option>`).join('')+'</optgroup>';
+  } else {
+    maqFilter.classList.add('hidden');
+  }
+  renderRentabilitat();
+}
+
+function renderRentabilitat(){
+  const maqSel = document.getElementById('rent-maq-sel')?.value||'';
+  let data = movimientos;
+
+  if(rentAreaActiva!=='totes') data = data.filter(m=>m.area===rentAreaActiva);
+
+  // Per maquinaria, filtrar per màquina/apero específica
+  if(rentAreaActiva==='maquinaria' && maqSel){
+    data = data.filter(m=>m.maquina===maqSel||m.apero===maqSel);
+  }
+
+  const areasAMostrar = rentAreaActiva==='totes' ? Object.keys(AREAS) : [rentAreaActiva];
+  const totalIng = data.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+
+  document.getElementById('rent-grid').innerHTML = areasAMostrar.map(key=>{
+    const a = AREAS[key];
+    const aData = rentAreaActiva==='totes' ? data.filter(m=>m.area===key) : data;
+    const ing = aData.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+    const gas = aData.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
+    const res = ing-gas;
+    const pct = ing>0?Math.round((res/ing)*100):(gas>0?-100:0);
+    const share = totalIng>0?Math.round((ing/totalIng)*100):0;
+    return `<div class="rent-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+        <span style="font-size:22px">${a.icon}</span>
+        <span style="font-size:14px;font-weight:600">${a.label}${maqSel?' — '+maqSel:''}</span>
+      </div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Ingressos</span><span style="color:var(--verde)">${fmt(ing)}</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Despeses</span><span style="color:var(--rojo)">${fmt(gas)}</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">Marge</span><span style="${res>=0?'color:var(--verde)':'color:var(--rojo)'}">${pct}%</span></div>
+      <div class="rent-stat"><span style="color:var(--gris-texto)">% del negoci</span><span>${share}%</span></div>
+      <div class="rent-bar-wrap"><div class="rent-bar" style="width:${Math.max(0,Math.min(100,Math.abs(pct)))}%;background:${res>=0?'var(--verde-mid)':'var(--rojo)'}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Desglose categories
+  let html='';
+  areasAMostrar.forEach(aKey=>{
+    const a=AREAS[aKey];
+    const aData = rentAreaActiva==='totes' ? data.filter(m=>m.area===aKey&&m.tipo==='gasto') : data.filter(m=>m.tipo==='gasto');
+    const cats=[...new Set(aData.map(m=>m.categoria))];
+    if(!cats.length) return;
+    html+=`<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:8px">${a.icon} ${a.label}</div>`;
+    cats.forEach(cat=>{
+      const total=aData.filter(m=>m.categoria===cat).reduce((s,m)=>s+m.importe,0);
+      html+=`<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0">
+        <span><span class="badge badge-cat" style="margin-right:6px">${cat}</span></span>
+        <span style="color:var(--rojo);font-weight:600">${fmt(total)}</span>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra despeses per veure el desglossament.</div>';
+  renderAmortitzacions();
+  renderParcRendibilitat();
+}
+
+async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:I');
+    const treballs = (r.values||[]).map(row=>({data:row[1]||'',maquina:row[4]||'',apero:row[5]||'',hores:parseFloat(row[6])||0}));
+    const anyActual = String(new Date().getFullYear());
+    const treballsAny = treballs.filter(t=>t.data.startsWith(anyActual));
+    
+    let totalHores = 0;
+    if(maqSel){
+      totalHores = treballsAny.filter(t=>t.maquina===maqSel||t.apero===maqSel).reduce((s,t)=>s+t.hores,0);
+    } else {
+      totalHores = treballsAny.reduce((s,t)=>s+t.hores,0);
+    }
+    
+    const MO_HORA = 20;
+    const costMO = totalHores * MO_HORA;
+    const costTotal = despesesReals + totalAmortAnual + costMO;
+    const costHora = totalHores>0 ? costTotal/totalHores : 0;
+    
+    const div = document.getElementById('rent-amort-body');
+    if(!div) return;
+    
+    const existingTable = div.querySelector('table');
+    const kpiGrid = div.querySelector('[style*="grid"]');
+    
+    const costHoraHtml = `<div style="margin-top:1rem;padding:1rem;background:var(--amarillo-claro);border:1px solid #ffe08a;border-radius:var(--radio)">
+      <div style="font-size:13px;font-weight:600;color:#7a5800;margin-bottom:10px">💶 Anàlisi de cost per hora — ${anyActual}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+        <div class="kpi"><div class="kpi-label">Hores treballades</div><div class="kpi-value" style="color:#333">${totalHores.toFixed(1)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
+        <div class="kpi"><div class="kpi-label">Mà d'obra (${MO_HORA}€/h)</div><div class="kpi-value" style="color:var(--naranja)">${fmt(costMO)}</div></div>
+        <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+        <div class="kpi"><div class="kpi-label">Cost total any</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
+        <div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white">${costHora>0?fmt(costHora):'-'}</div></div>
+      </div>
+      <div style="font-size:11px;color:#7a5800;margin-top:8px">Cost/hora = (Despeses reals + Mà d'obra + Amortització) ÷ Hores treballades l'any</div>
+    </div>`;
+    
+    div.insertAdjacentHTML('beforeend', costHoraHtml);
+  } catch(e){ console.error('Error renderCostHora', e); }
+}
+
+function renderParcRendibilitat(){
+  // Build per-parcel data from moviments (vendaDetail) and treballs
+  const parcData={};
+  
+  // Income: parse vendaDetail from moviments
+  movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='ingreso').forEach(m=>{
+    const notas=m.notas||'';
+    // Parse vendaDetail from col 10 (extres field used for venda)
+    const detail=m.vendaDetail||'';
+    if(detail){
+      detail.split('|').forEach(chunk=>{
+        const match=chunk.match(/^(.+):([0-9.]+)EUR\(([0-9.]+)ha\)$/);
+        if(match){
+          const nom=match[1]; const imp=parseFloat(match[2])||0;
+          if(!parcData[nom]) parcData[nom]={nom,ing:0,gas:0,hores:0,ha:parseFloat(match[3])||0};
+          parcData[nom].ing+=imp;
+        }
+      });
+    }
+  });
+
+  // Update ha from PARC_DATA if available
+  if(PARC_DATA){
+    PARC_DATA.features.forEach(f=>{
+      const nom=f.properties.nom;
+      if(parcData[nom]) parcData[nom].ha=f.properties.ha;
+    });
+  }
+
+  const list=Object.values(parcData);
+  let card=document.getElementById('rent-parcelles-card');
+  if(!card){
+    card=document.createElement('div');
+    card.id='rent-parcelles-card';
+    card.className='card';
+    card.style.marginTop='1rem';
+    document.getElementById('tab-rentabilidad').appendChild(card);
+  }
+  if(rentAreaActiva!=='cultivos'&&rentAreaActiva!=='totes'){card.style.display='none';return;}
+  card.style.display='block';
+  
+  if(!list.length){
+    card.innerHTML='<div class="card-title">🌾 Rendibilitat per parcel·la</div><div class="empty">Encara no hi ha vendes assignades a parcel·les. Quan registris una factura de venda de cereal seleccionant parcel·les, apareixeran aqui.</div>';
+    return;
+  }
+  
+  let html='<div class="card-title">🌾 Rendibilitat per parcel·la</div>';
+  html+='<table class="mov-table"><thead><tr><th>Parcel·la</th><th style="text-align:right">Ha</th><th style="text-align:right">Ingressos</th><th style="text-align:right">€/ha</th></tr></thead><tbody>';
+  list.sort((a,b)=>b.ing-a.ing).forEach(p=>{
+    const perHa=p.ha>0?Math.round(p.ing/p.ha):0;
+    html+=`<tr>
+      <td><span class="badge badge-area">🌾 ${p.nom}</span></td>
+      <td style="text-align:right">${p.ha}</td>
+      <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(p.ing)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--verde)">${fmt(perHa)}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  card.innerHTML=html;
+}
+
+function renderFincaBreakdown(){
+  if(rentAreaActiva!=='cultivos') return;
+  // Find or create finca card
+  let fincaCard = document.getElementById('rent-finca-card');
+  if(!fincaCard){
+    const rentabilitat = document.getElementById('tab-rentabilidad');
+    fincaCard = document.createElement('div');
+    fincaCard.id = 'rent-finca-card';
+    fincaCard.className = 'card';
+    fincaCard.style.marginTop = '1rem';
+    rentabilitat.appendChild(fincaCard);
+  }
+  
+  // Extract finca from notas field (format: "... | Finca:X Kg:Y")
+  const cultData = movimientos.filter(m=>m.area==='cultivos');
+  const finques = {};
+  cultData.forEach(m=>{
+    const notas = m.notas||'';
+    const fincaMatch = notas.match(/Finca:([^|\s]+)/);
+    const kgMatch = notas.match(/Kg:(\d+)/);
+    if(fincaMatch&&fincaMatch[1]&&fincaMatch[1]!==''){
+      const finca = fincaMatch[1];
+      if(!finques[finca]) finques[finca]={ing:0,gas:0,kg:0};
+      if(m.tipo==='ingreso') finques[finca].ing+=m.importe;
+      else finques[finca].gas+=m.importe;
+      if(kgMatch) finques[finca].kg+=parseInt(kgMatch[1])||0;
+    }
+  });
+  
+  const finquesList = Object.entries(finques);
+  if(!finquesList.length){
+    fincaCard.innerHTML='<div class="card-title">🌾 Rendibilitat per finca</div><div class="empty">Encara no hi ha factures amb finca assignada.</div>';
+    return;
+  }
+  
+  let html='<div class="card-title">🌾 Rendibilitat per finca</div>';
+  html+='<table class="mov-table"><thead><tr><th>Finca</th><th style="text-align:right">Ingressos</th><th style="text-align:right">Despeses</th><th style="text-align:right">Marge</th><th style="text-align:right">Kg venuts</th></tr></thead><tbody>';
+  finquesList.forEach(([finca,d])=>{
+    const marge=d.ing-d.gas;
+    html+=`<tr>
+      <td><span class="badge badge-area">🌾 ${finca}</span></td>
+      <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(d.ing)}</td>
+      <td style="text-align:right;color:var(--rojo);font-weight:600">${fmt(d.gas)}</td>
+      <td style="text-align:right;font-weight:700;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)}</td>
+      <td style="text-align:right">${d.kg>0?d.kg.toLocaleString('es-ES')+' kg':'—'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  fincaCard.innerHTML=html;
+}
+
+function renderRentabilidad(){ renderRentabilitat(); }
+
+function renderAmortitzacions(){
+  const card = document.getElementById('rent-amort-card');
+  const body = document.getElementById('rent-amort-body');
+  if(!card||!body) return;
+
+  // Only show when maquinaria is selected or all
+  if(rentAreaActiva!=='totes'&&rentAreaActiva!=='maquinaria'){
+    card.style.display='none';
+    renderFincaBreakdown();
+    return;
+  }
+  card.style.display='block';
+
+  const anyActual = new Date().getFullYear();
+  const maqAmbAmort = flota.filter(f=>parseFloat(f.amortAnual)>0);
+
+  if(!maqAmbAmort.length){
+    body.innerHTML="<div class='empty'>Afegeix maquines amb data de compra i anys d'amortitzacio per veure aquest apartat.</div>";
+    return;
+  }
+
+  // Filter by selected machine if applicable
+  const maqSel = document.getElementById('rent-maq-sel')?.value||'';
+
+  let totalAmortAnual = 0;
+  let totalDespesesReals = 0;
+  let html = '<table class="mov-table"><thead><tr><th>Màquina</th><th style="text-align:right">Cost compra</th><th style="text-align:right">Quota anual</th><th style="text-align:right">Anys restants</th><th style="text-align:right">Pendent amort.</th></tr></thead><tbody>';
+
+  maqAmbAmort.forEach(m=>{
+    if(maqSel && m.nombre!==maqSel) return;
+    const cost = parseFloat(m.cost)||0;
+    const amortAnual = parseFloat(m.amortAnual)||0;
+    const amortAnys = parseFloat(m.amortAnys)||0;
+    const anyCompra = m.dataCompra ? new Date(m.dataCompra).getFullYear() : anyActual;
+    const anysPassats = anyActual - anyCompra;
+    const amortAcum = Math.min(anysPassats * amortAnual, cost);
+    const restant = Math.max(cost - amortAcum, 0);
+    const anysRestants = Math.max(amortAnys - anysPassats, 0);
+    totalAmortAnual += amortAnual;
+
+    html+=`<tr>
+      <td><span class="badge badge-area">🚜 ${m.nombre}</span></td>
+      <td style="text-align:right">${fmt(cost)}</td>
+      <td style="text-align:right;font-weight:600;color:var(--naranja)">${fmt(amortAnual)}/any</td>
+      <td style="text-align:right">${anysRestants} any${anysRestants!==1?'s':''}</td>
+      <td style="text-align:right;color:${restant>0?'var(--rojo)':'var(--verde)'};font-weight:600">${fmt(restant)}</td>
+    </tr>`;
+  });
+
+  html+='</tbody></table>';
+
+  // Summary box
+  const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
+  const costTotal = despesesReals + totalAmortAnual;
+
+  // Hores totals de l'any de cada màquina (des de treballs)
+  const anyActualStr = String(anyActual);
+  // Hores des de treballs registrats
+  let totalHoresTreballs = 0;
+  // We need to load treballs - use a simpler approach with stored data
+  // Calculate cost/hour
+  const MO_HORA = 20; // €/hora mà d'obra
+  
+  // Get hores from treballs sheet if available - for now calculate from what we know
+  // Total hours worked this year on maquinaria from treballs
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem">
+    <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Cost total (real + amort.)</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
+  </div>`;
+  
+  // Cost per hora - need treballs data
+  renderCostHora(maqSel, despesesReals, totalAmortAnual);
+
+  body.innerHTML = html;
+}
+
+// ── FLOTA ──────────────────────────────────────────────
+function calcFlotaAmort(){
+  const cost = parseFloat(document.getElementById('fl-cost').value)||0;
+  const anys = parseFloat(document.getElementById('fl-amortAnys').value)||0;
+  const div = document.getElementById('flota-amort-result');
+  if(cost>0&&anys>0){
+    const anual = cost/anys;
+    div.innerHTML = `<span class="amort-badge">Amortització: ${fmt(anual)}/any · ${fmt(anual/12)}/mes</span>`;
+  } else div.textContent='';
+}
+
+function populateRepMantSelects(){
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos = flota.filter(f=>f.tipo==='apero');
+  // Repostatge: només màquines
+  const repSel = document.getElementById('rep-maquina');
+  if(repSel) repSel.innerHTML='<option value="">— Selecciona —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  // Manteniment: màquines + aperos
+  const mantSel = document.getElementById('mant-maquina');
+  if(mantSel) mantSel.innerHTML='<option value="">— Selecciona —</option>'+
+    (maquines.length?'<optgroup label="Màquines">'+maquines.map(m=>`<option value="${m.nombre}">🚜 ${m.nombre}</option>`).join('')+'</optgroup>':'')+
+    (aperos.length?'<optgroup label="Aperos">'+aperos.map(a=>`<option value="${a.nombre}">🔧 ${a.nombre}</option>`).join('')+'</optgroup>':'');
+}
+
+async function addFlota(){
+  const tipo = document.getElementById('fl-tipo').value;
+  const nombre = document.getElementById('fl-nombre').value.trim();
+  const ref = document.getElementById('fl-ref').value.trim();
+  const dataCompra = document.getElementById('fl-dataCompra').value;
+  const cost = document.getElementById('fl-cost').value;
+  const amortAnys = document.getElementById('fl-amortAnys').value;
+  const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0) ? (parseFloat(cost)/parseFloat(amortAnys)).toFixed(2) : '';
+  const msg = document.getElementById('flota-msg');
+  if(!nombre){ msg.className='msg-err'; msg.textContent='Introdueix un nom.'; return; }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant flota...');
+  try {
+    await appendRow(SHEET_FLOTA,[id,tipo,nombre,ref,dataCompra,cost,amortAnys,amortAnual]);
+    flota.push({id,tipo,nombre,ref,dataCompra,cost,amortAnys,amortAnual});
+    setSyncing(false,'Connectat a Google Sheets');
+    ['fl-nombre','fl-ref','fl-cost','fl-amortAnys'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('fl-dataCompra').value='';
+    document.getElementById('flota-amort-result').textContent='';
+    msg.className='msg-ok'; msg.textContent='✓ Afegit.'; setTimeout(()=>msg.textContent='',2000);
+    renderFlota(); populateRepMantSelects();
+  } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
+}
+
+async function deleteFlota(id){
+  if(!confirm('Vols eliminar aquest element de la flota?')) return;
+  const idx=flota.findIndex(f=>f.id===id);
+  if(idx<0) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    await deleteRow(SHEET_FLOTA,idx+1);
+    flota.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
+    renderFlota(); populateRepMantSelects();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+function renderFlota(){
+  ['maquinas','aperos'].forEach(tipus=>{
+    const items=flota.filter(f=>f.tipo===(tipus==='maquinas'?'maquina':'apero'));
+    const el=document.getElementById('flota-'+tipus);
+    if(!items.length){ el.innerHTML='<div class="empty">Cap registrat encara.</div>'; return; }
+    el.innerHTML='<div class="flota-list">'+items.map(m=>{
+      const amortAnual = parseFloat(m.amortAnual)||0;
+      const costCompra = parseFloat(m.cost)||0;
+      const dataCompra = m.dataCompra||'';
+      let amortInfo = '';
+      if(amortAnual>0){
+        const anyCompra = dataCompra ? new Date(dataCompra).getFullYear() : null;
+        const anyActual = new Date().getFullYear();
+        const anysPassats = anyCompra ? anyActual - anyCompra : 0;
+        const amortAcum = Math.min(anysPassats * amortAnual, costCompra);
+        const restant = Math.max(costCompra - amortAcum, 0);
+        amortInfo = `<div style="font-size:11px;color:var(--gris-texto);margin-top:4px">
+          Amort: ${fmt(amortAnual)}/any · Pendent: <strong style="color:${restant>0?'var(--naranja)':'var(--verde)'}">${fmt(restant)}</strong>
+        </div>`;
+      }
+      return `<div class="flota-item" style="flex-direction:column;align-items:flex-start">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center;gap:8px">
+          <div style="flex:1">
+            <div class="flota-nombre">${m.nombre}</div>
+            ${m.ref?`<div class="flota-ref">${m.ref}${dataCompra?' · '+dataCompra:''}</div>`:''}
+            ${costCompra>0?`<div class="flota-ref">Cost compra: ${fmt(costCompra)}</div>`:''}
+            ${amortInfo}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-sm" onclick="editarFlota('${m.id}')" style="color:var(--azul);border-color:var(--azul)">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕</button>
+          </div>
+        </div>
+        <div id="edit-flota-${m.id}" class="hidden" style="margin-top:10px;width:100%;padding:10px;background:var(--blanco);border-radius:var(--radio-sm);border:1px solid var(--gris-borde)">
+          <div class="form-row g3" style="margin-bottom:8px">
+            <div><label>Data de compra</label><input type="date" id="ef-data-${m.id}" value="${m.dataCompra||''}"/></div>
+            <div><label>Cost de compra (€)</label><input type="number" id="ef-cost-${m.id}" value="${m.cost||''}" placeholder="0" oninput="calcEditAmort('${m.id}')"/></div>
+            <div><label>Anys amortitzacio</label><input type="number" id="ef-anys-${m.id}" value="${m.amortAnys||''}" placeholder="10" oninput="calcEditAmort('${m.id}')"/></div>
+          </div>
+          <div id="ef-amort-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-primary" onclick="desarEditFlota('${m.id}')">✓ Desar</button>
+            <button class="btn btn-sm" onclick="editarFlota('${m.id}')">Cancel·lar</button>
+          </div>
+          <div id="ef-msg-${m.id}" style="font-size:12px;margin-top:4px"></div>
         </div>
       </div>`;
     }).join('')+'</div>';
