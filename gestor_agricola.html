@@ -229,6 +229,28 @@
         </div>
         <div id="amort-result"></div>
       </div>
+      <!-- Cultius ingres: selector parcelles venda -->
+      <div id="f-finca-wrap" class="hidden" style="margin-top:10px">
+        <div class="form-row g2" style="margin-bottom:8px">
+          <div><label>Quilograms venuts (kg)</label><input type="number" id="f-kg" placeholder="0" min="0" step="1"/></div>
+          <div></div>
+        </div>
+        <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🌾 Parcel·les de la venda <span id="f-venda-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+          <div id="f-venda-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px"></div>
+          <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesVenda()">+ Seleccionar parcel·les al mapa</button>
+        </div>
+      </div>
+
+      <!-- Maquinaria ingres: treballs a tercers -->
+      <div id="f-tercers-wrap" class="hidden" style="margin-top:10px">
+        <div class="form-row g3">
+          <div><label>Maquina utilitzada</label><select id="f-tercers-maquina"><option value="">- Cap -</option></select></div>
+          <div><label>Apero utilitzat</label><select id="f-tercers-apero"><option value="">- Cap -</option></select></div>
+          <div><label>Hores facturades</label><input type="number" id="f-tercers-hores" placeholder="0" min="0" step="0.5"/></div>
+        </div>
+      </div>
+
       <hr>
       <div class="form-row g3">
         <div><label>Concepte / descripció</label><input type="text" id="f-concepto" placeholder="Ex: Compra herbicida Roundup"/></div>
