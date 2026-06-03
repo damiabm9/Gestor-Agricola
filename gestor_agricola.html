@@ -646,6 +646,53 @@
       </table>
     </div>
 
+        <!-- Fitxa per màquina -->
+    <div class="card">
+      <div class="card-title">📊 Fitxa de màquina / apero</div>
+      <div class="form-row g2" style="margin-bottom:1rem">
+        <div>
+          <label>Selecciona màquina o apero</label>
+          <select id="fitxa-sel" onchange="renderFitxaMaquina()">
+            <option value="">— Selecciona —</option>
+          </select>
+        </div>
+        <div id="fitxa-hores-total" style="display:flex;align-items:flex-end;font-size:13px;color:var(--gris-texto);padding-bottom:6px"></div>
+      </div>
+      <div id="fitxa-body"></div>
+    </div>
+
+    <!-- Repostatges -->
+    <div class="card">
+      <div class="card-title">⛽ Registrar repostatge</div>
+      <div class="form-row g3">
+        <div><label>Data</label><input type="date" id="rep-data"/></div>
+        <div><label>Màquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
+        <div><label>Tipus</label>
+          <select id="rep-tipus">
+            <option value="Dièsel">⛽ Dièsel</option>
+            <option value="AdBlue">🟦 AdBlue</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row g3">
+        <div><label>Litres</label><input type="number" id="rep-litres" placeholder="0" min="0" step="0.1" oninput="calcRepostatge()"/></div>
+        <div><label>Preu (€/litre)</label><input type="number" id="rep-preu" placeholder="0.00" min="0" step="0.001" oninput="calcRepostatge()"/></div>
+        <div><label>Total (€)</label><input type="number" id="rep-total" placeholder="0.00" readonly style="background:var(--gris-bg)"/></div>
+      </div>
+      <button class="btn btn-primary" onclick="addRepostatge()">✓ Desar repostatge</button>
+      <div id="rep-msg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>📋 Historial repostatges</span>
+        <button class="btn btn-sm" onclick="loadRepostatges()">↺ Recarregar</button>
+      </div>
+      <table class="mov-table">
+        <thead><tr><th>Data</th><th>Màquina</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
+        <tbody id="rep-list"><tr><td colspan="6"><div class="empty">Carregant...</div></td></tr></tbody>
+      </table>
+    </div>
+
     <!-- Manteniments -->
     <div class="card">
       <div class="card-title">🔩 Registrar manteniment / avaria</div>
@@ -755,8 +802,8 @@ const SHEET_MANTENIMENTS = 'Manteniments';
 const CATS = {
   cultivos:   { gasto: ['Herbicides','Llavors','Fertilitzants','Fitosanitaris','Mà d\'obra','Altres'], ingreso: ['Venda collita','Subvencions','Altres'] },
   maquinaria: { gasto: ['Reparacions','Compra / amortització apero','Assegurances','Altres'], ingreso: ['Treballs a tercers','Lloguer maquinària','Altres'] },
-  cerdos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Reparacions','Medicaments / veterinari','Pinso / alimentació','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] },
-  pollos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Jaç','Reparacions','Medicaments / veterinari','Pinso / alimentació','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] }
+  cerdos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Reparacions','Medicaments / veterinari','Pinso / alimentació','Lloguer / Hipoteca','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] },
+  pollos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Jaç','Reparacions','Medicaments / veterinari','Pinso / alimentació','Lloguer / Hipoteca','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] }
 };
 const AREAS = { cultivos:{label:'Cultius',icon:'🌾'}, maquinaria:{label:'Maquinària',icon:'🚜'}, cerdos:{label:'Porcs',icon:'🐷'}, pollos:{label:'Pollastres',icon:'🐔'} };
 
@@ -887,7 +934,7 @@ function showTab(t, btn){
   if(t==='resumen') renderResumen();
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
-  if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); populateFitxaSel(); renderEquipList(); }
+  if(t==='flota'){ renderFlota(); loadRepostatges(); populateFitxaSel(); renderEquipList(); }
   if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
   if(t==='parcelles'){ initParcelMap(); renderFinquesList(); setTimeout(()=>{ if(parcMap) parcMap.invalidateSize(); },300); }
 }
