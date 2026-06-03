@@ -2241,7 +2241,21 @@ function renderFinquesList(){
   const el = document.getElementById('finques-list');
   if(!el) return;
   if(!finques.length){ el.innerHTML='<div class="empty">Encara no hi ha finques creades.</div>'; return; }
-  if(!el._rl){el.addEventListener('click',function(e){var btn=e.target.closest('[data-fid]');if(btn&&e.target.tagName==='BUTTON') eliminarFinca(btn.getAttribute('data-fid'));});el._rl=true;}
+  if(!el._rl){
+    el.addEventListener('click',function(e){
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const fid = btn.dataset.fid;
+      const fedit = btn.dataset.fedit;
+      const fsave = btn.dataset.fsave;
+      const fclose = btn.dataset.fclose;
+      if(fid) eliminarFinca(fid);
+      if(fedit){ document.getElementById('edit-finca-'+fedit)?.classList.toggle('hidden'); }
+      if(fsave) desarEditFinca(fsave);
+      if(fclose){ document.getElementById('edit-finca-'+fclose)?.classList.add('hidden'); }
+    });
+    el._rl=true;
+  }
   el.innerHTML = '<div class="flota-list">'+finques.map(f=>{
     // Get parcel names
     const noms = f.parcellesIds.map(pid=>{
@@ -2249,13 +2263,28 @@ function renderFinquesList(){
       const feat = PARC_DATA.features.find(x=>x.properties.id===pid);
       return feat ? feat.properties.nom : pid;
     }).join(', ');
-    const arrInfo = f.arrendament>0 ? ' · Arrendament: '+fmt(f.arrendament)+'/any' : '';
-    return '<div class="flota-item" style="flex-direction:column;align-items:flex-start">' +
+    const arrInfo = f.arrendament>0 ? ' · Arrendament: '+fmt(f.arrendament)+'/any' : ' · Sense arrendament';
+    return '<div class="flota-item" style="flex-direction:column;align-items:flex-start;gap:0">' +
       '<div style="display:flex;justify-content:space-between;width:100%;align-items:center">' +
         '<div><div class="flota-nombre">🏡 '+f.nom+'</div>' +
-          '<div class="flota-ref">'+f.ha+' ha — '+noms+arrInfo+'</div></div>' +
-        '<button class="btn btn-sm btn-danger" data-fid="'+f.id+'" style="margin-left:8px">✕</button>' +
-      '</div></div>';
+          '<div class="flota-ref">'+f.ha+' ha — '+noms+'<span style="color:'+(f.arrendament>0?'var(--rojo)':'var(--gris-texto)')+'">' +arrInfo+'</span></div></div>' +
+        '<div style="display:flex;gap:6px">' +
+          '<button class="btn btn-sm" data-fedit="'+f.id+'" style="color:var(--azul);border-color:var(--azul)">✏️</button>' +
+          '<button class="btn btn-sm btn-danger" data-fid="'+f.id+'">✕</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="edit-finca-'+f.id+'" class="hidden" style="margin-top:8px;width:100%;padding:10px;background:var(--blanco);border-radius:var(--radio-sm);border:1px solid var(--gris-borde)">' +
+        '<div class="form-row g2" style="margin-bottom:8px">' +
+          '<div><label>Nom</label><input type="text" id="ef-finca-nom-'+f.id+'" value="'+f.nom+'"/></div>' +
+          '<div><label>Arrendament anual (€)</label><input type="number" id="ef-finca-arr-'+f.id+'" value="'+(f.arrendament||0)+'" placeholder="0" min="0" step="0.01"/></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px">' +
+          '<button class="btn btn-sm btn-primary" data-fsave="'+f.id+'">✓ Desar</button>' +
+          '<button class="btn btn-sm" data-fclose="'+f.id+'">Cancel·lar</button>' +
+        '</div>' +
+        '<div id="ef-finca-msg-'+f.id+'" style="font-size:12px;margin-top:4px"></div>' +
+      '</div>' +
+    '</div>';
   }).join('')+'</div>';
 }
 
@@ -2713,6 +2742,38 @@ function onTrebFincaChange(){
     });
   });
   updateTreballParcChips();
+}
+
+
+async function desarEditFinca(id){
+  const nom = document.getElementById('ef-finca-nom-'+id)?.value.trim();
+  const arr = parseFloat(document.getElementById('ef-finca-arr-'+id)?.value)||0;
+  const msg = document.getElementById('ef-finca-msg-'+id);
+  if(!nom){ if(msg){msg.style.color='var(--rojo)';msg.textContent='El nom no pot estar buit.';} return; }
+  
+  // Find row in sheet
+  setSyncing(true,'Actualitzant finca...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:E');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx<0){ setSyncing(false,'Error',true); return; }
+    
+    const row = rows[rowIdx];
+    while(row.length<5) row.push('');
+    row[1] = nom;
+    row[4] = arr.toFixed(2);
+    
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A'+(rowIdx+2)+':E'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    
+    // Update local
+    const finca = finques.find(f=>f.id===id);
+    if(finca){ finca.nom=nom; finca.arrendament=arr; }
+    
+    setSyncing(false,'Connectat a Google Sheets');
+    if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
+    setTimeout(()=>{ document.getElementById('edit-finca-'+id)?.classList.add('hidden'); renderFinquesList(); },800);
+  } catch(e){ setSyncing(false,'Error',true); if(msg){ msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; } }
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
@@ -4128,6 +4189,38 @@ function onTrebFincaChange(){
     });
   });
   updateTreballParcChips();
+}
+
+
+async function desarEditFinca(id){
+  const nom = document.getElementById('ef-finca-nom-'+id)?.value.trim();
+  const arr = parseFloat(document.getElementById('ef-finca-arr-'+id)?.value)||0;
+  const msg = document.getElementById('ef-finca-msg-'+id);
+  if(!nom){ if(msg){msg.style.color='var(--rojo)';msg.textContent='El nom no pot estar buit.';} return; }
+  
+  // Find row in sheet
+  setSyncing(true,'Actualitzant finca...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:E');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx<0){ setSyncing(false,'Error',true); return; }
+    
+    const row = rows[rowIdx];
+    while(row.length<5) row.push('');
+    row[1] = nom;
+    row[4] = arr.toFixed(2);
+    
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A'+(rowIdx+2)+':E'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    
+    // Update local
+    const finca = finques.find(f=>f.id===id);
+    if(finca){ finca.nom=nom; finca.arrendament=arr; }
+    
+    setSyncing(false,'Connectat a Google Sheets');
+    if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
+    setTimeout(()=>{ document.getElementById('edit-finca-'+id)?.classList.add('hidden'); renderFinquesList(); },800);
+  } catch(e){ setSyncing(false,'Error',true); if(msg){ msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; } }
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
