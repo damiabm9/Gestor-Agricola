@@ -626,7 +626,7 @@
   </div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <script>
 const CLIENT_ID = '826467492165-jis8n655430lc0cibhi276t43p4hk6jc.apps.googleusercontent.com';
 const SHEET_ID = '1pZIiwLBt66VI2J9h9CLikoHT2nM8LGpofIogCR9VS64';
@@ -656,6 +656,7 @@ function fmt(n){ return Number(n).toLocaleString('es-ES',{minimumFractionDigits:
 
 // ── AUTH ──────────────────────────────────────────────
 function signIn(){
+  if(!window.google||!window.google.accounts){alert("Carregant Google... torna a intentar-ho en uns segons.");return;}
   const client = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
@@ -1880,6 +1881,7 @@ function renderFinquesList(){
   const el = document.getElementById('finques-list');
   if(!el) return;
   if(!finques.length){ el.innerHTML='<div class="empty">Encara no hi ha finques creades.</div>'; return; }
+  if(!el._rl){el.addEventListener('click',function(e){var btn=e.target.closest('[data-fid]');if(btn&&e.target.tagName==='BUTTON') eliminarFinca(btn.getAttribute('data-fid'));});el._rl=true;}
   el.innerHTML = '<div class="flota-list">'+finques.map(f=>{
     // Get parcel names
     const noms = f.parcellesIds.map(pid=>{
@@ -1891,7 +1893,7 @@ function renderFinquesList(){
       '<div style="display:flex;justify-content:space-between;width:100%;align-items:center">' +
         '<div><div class="flota-nombre">🏡 '+f.nom+'</div>' +
           '<div class="flota-ref">'+f.ha+' ha — '+noms+'</div></div>' +
-        '<button class="btn btn-sm btn-danger" onclick="eliminarFinca(''+f.id+'')">✕</button>' +
+        '<button class="btn btn-sm btn-danger" data-fid="'+f.id+'" style="margin-left:8px">✕</button>' +
       '</div></div>';
   }).join('')+'</div>';
 }
