@@ -1581,7 +1581,7 @@ function updateTreballParcChips(){
   if(!wrap) return;
   const totalHa=treballParcelles.reduce((s,p)=>s+p.ha,0);
   haSpan.textContent=treballParcelles.length>0?'('+treballParcelles.length+' parc. / '+totalHa.toFixed(2)+' ha)':'';
-  wrap.innerHTML=treballParcelles.map(p=>'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--verde-claro);color:var(--verde);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha) <button onclick="removeParcelTreball(''+p.id+'')" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:14px;padding:0">x</button></span>').join('');
+  const chipHtml=treballParcelles.map(p=>'<span data-rmid="'+p.id+'" style="display:inline-flex;align-items:center;gap:4px;background:var(--verde-claro);color:var(--verde);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha) <button data-rmid="'+p.id+'" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:14px;padding:0">x</button></span>').join('');wrap.innerHTML=chipHtml;if(!wrap._rl){wrap.addEventListener('click',function(e){var btn=e.target.closest('[data-rmid]');if(btn&&e.target.tagName==='BUTTON'){removeParcelTreball(btn.getAttribute('data-rmid'));}});wrap._rl=true;}
 }
 
 function removeParcelTreball(id){
