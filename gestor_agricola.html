@@ -2220,7 +2220,7 @@ async function deleteTreball(id){
 }
 
 // ── RENDER RESUMEN ─────────────────────────────────────
-let resAreaActiva = 'total';
+resAreaActiva = 'total';
 
 function populateAnyFilter(){
   const anys = [...new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean))].sort().reverse();
@@ -2377,7 +2377,7 @@ function renderMovimientos(){
 }
 
 // ── RENDER RENTABILIDAD ────────────────────────────────
-let rentAreaActiva = 'totes';
+rentAreaActiva = 'totes';
 
 function showRentArea(area, btn){
   rentAreaActiva = area;
