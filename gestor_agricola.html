@@ -2991,7 +2991,7 @@ function calcAmortLib(){
 }
 
 
-let PARC_DATA = null;
+PARC_DATA = null;
 async function loadParcData(){
   if(PARC_DATA) return PARC_DATA;
   try {
@@ -3002,9 +3002,9 @@ async function loadParcData(){
   }
   return PARC_DATA;
 };
-let parcMap=null,parcLayer=null,parcAllLayers={};
-let treballParcelles=[];
-let vendaParcelles=[]; // parcel·les seleccionades per venda de cereal
+parcMap=null,parcLayer=null,parcAllLayers={};
+treballParcelles=[];
+vendaParcelles=[]; // parcel·les seleccionades per venda de cereal
 
 async function initParcelMap(){
   if(parcMap) return;
@@ -3196,8 +3196,8 @@ function toggleParcelFromList(id){
 
 
 // ── FINQUES ─────────────────────────────────────────────
-let fincaMode = false; // true when creating a finca
-let fincaParcelles = []; // parcelles selected for current finca
+fincaMode = false; // true when creating a finca
+fincaParcelles = []; // parcelles selected for current finca
 
 function mostrarFormFinca(){
   fincaMode = true;
@@ -3360,7 +3360,7 @@ function calcLlavorCost(){
   if(total>0) document.getElementById('f-importe').value = total.toFixed(2);
 }
 
-let gastoParcelles = [];
+gastoParcelles = [];
 
 function populateCultiuGastoSel(){
   const sel = document.getElementById('f-gasto-finca');
