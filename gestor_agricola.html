@@ -260,6 +260,54 @@
         </div>
       </div>
 
+      <!-- Cultius gasto: assignar a finca/parcella + llavor -->
+      <div id="f-cultiu-gasto-wrap" class="hidden" style="margin-top:10px">
+        <div id="f-llavor-wrap" class="hidden" style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde);margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🌱 Detalls de la llavor</div>
+          <div class="form-row g3">
+            <div><label>Kg de llavor</label><input type="number" id="f-llavor-kg" placeholder="0" min="0" step="1" oninput="calcLlavorCost()"/></div>
+            <div><label>Preu (€/tona)</label><input type="number" id="f-llavor-preu" placeholder="0" min="0" step="0.01" oninput="calcLlavorCost()"/></div>
+            <div><label>Total calculat</label><input type="number" id="f-llavor-total" readonly style="background:var(--gris-bg)"/></div>
+          </div>
+        </div>
+        <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">📍 Assignar a finca o parcel·les <span id="f-gasto-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+          <div class="form-row g2" style="margin-bottom:8px">
+            <div>
+              <label>Mode de seleccio</label>
+              <select id="f-gasto-mode" onchange="onGastoModeChange()">
+                <option value="finca">Per finca</option>
+                <option value="parcelles">Per parcel·les individuals</option>
+              </select>
+            </div>
+            <div id="f-gasto-finca-wrap">
+              <label>Finca</label>
+              <select id="f-gasto-finca" onchange="onGastoFincaChange()">
+                <option value="">— Selecciona finca —</option>
+              </select>
+            </div>
+          </div>
+          <div id="f-gasto-parc-btn" class="hidden">
+            <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesGasto()">+ Seleccionar parcel·les al mapa</button>
+          </div>
+          <div id="f-gasto-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:20px"></div>
+        </div>
+      </div>
+
+      <!-- Pollastres: Nau A o B -->
+      <div id="f-nau-wrap" class="hidden" style="margin-top:10px">
+        <div class="form-row g2">
+          <div><label>Nau</label>
+            <select id="f-nau">
+              <option value="Nau A">Nau A</option>
+              <option value="Nau B">Nau B</option>
+              <option value="Ambdues naus">Ambdues naus</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+      </div>
+
       <!-- Maquinaria ingres: treballs a tercers -->
       <div id="f-tercers-wrap" class="hidden" style="margin-top:10px">
         <div class="form-row g3">
@@ -794,10 +842,18 @@ function onAreaChange(){
   document.getElementById('f-finca-wrap').classList.add('hidden');
   document.getElementById('f-tercers-wrap').classList.add('hidden');
   // Cultius ingrés -> sempre mostra finca (totes les categories d'ingrés de cultius)
+  // Pollastres: Nau A/B selector
+  const nauWrap = document.getElementById('f-nau-wrap');
+  if(nauWrap) nauWrap.classList.toggle('hidden', area!=='pollos');
   if(area==='cultivos'&&tipo==='ingreso'){
     document.getElementById('f-finca-wrap').classList.remove('hidden');
+    document.getElementById('f-cultiu-gasto-wrap').classList.add('hidden');
     populateVendaFincaSel();
     onVendaModeChange();
+  } else if(area==='cultivos'&&tipo==='gasto'){
+    document.getElementById('f-cultiu-gasto-wrap').classList.remove('hidden');
+    document.getElementById('f-llavor-wrap').classList.toggle('hidden', cat!=='Llavors');
+    populateCultiuGastoSel();
   }
   // Maquinaria ingrés -> comprova categoria després de populateCat
   if(area==='maquinaria'&&tipo==='ingreso'){
@@ -827,12 +883,21 @@ function onCatChange(){
   document.getElementById('f-amort-wrap').classList.add('hidden');
   document.getElementById('f-tercers-wrap').classList.add('hidden');
   // Cultius ingrés -> sempre finca visible
+  // Pollastres: Nau A/B selector
+  const nauWrap = document.getElementById('f-nau-wrap');
+  if(nauWrap) nauWrap.classList.toggle('hidden', area!=='pollos');
   if(area==='cultivos'&&tipo==='ingreso'){
     document.getElementById('f-finca-wrap').classList.remove('hidden');
+    document.getElementById('f-cultiu-gasto-wrap').classList.add('hidden');
     populateVendaFincaSel();
     onVendaModeChange();
+  } else if(area==='cultivos'&&tipo==='gasto'){
+    document.getElementById('f-finca-wrap').classList.add('hidden');
+    document.getElementById('f-cultiu-gasto-wrap').classList.remove('hidden');
+    populateCultiuGastoSel();
   } else {
     document.getElementById('f-finca-wrap').classList.add('hidden');
+    document.getElementById('f-cultiu-gasto-wrap').classList.add('hidden');
   }
   if(area==='maquinaria'&&tipo==='ingreso'&&cat==='Treballs a tercers') showTercersWrap();
   if(area==='maquinaria'&&tipo==='gasto'){
@@ -892,7 +957,7 @@ async function addMovimiento(){
 }
 
 function clearForm(){
-  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-kg','f-tercers-hores'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''}); vendaParcelles=[]; if(typeof updateVendaChips==='function') updateVendaChips();
+  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-kg','f-tercers-hores','f-llavor-kg','f-llavor-preu','f-llavor-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''}); vendaParcelles=[]; gastoParcelles=[]; if(typeof updateVendaChips==='function'){updateVendaChips();updateGastoChips();}
   document.getElementById('f-tipo').value='ingreso';
   document.getElementById('f-area').value='cultivos';
   document.getElementById('amort-result').textContent='';
@@ -1719,6 +1784,11 @@ function toggleParcelLayer(p,layer){
     if(idx>=0){fincaParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
     else{fincaParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle({color:'#1a73e8',weight:3,fillColor:'#1a73e8',fillOpacity:0.5});}
     updateFincaChips();
+  } else if(mode==='gasto'){
+    const idx=gastoParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){gastoParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{gastoParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle({color:'var(--rojo)',weight:3,fillColor:'var(--rojo)',fillOpacity:0.45});}
+    updateGastoChips();
   } else if(mode==='venda'){
     const idx=vendaParcelles.findIndex(x=>x.id===p.id);
     if(idx>=0){vendaParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
@@ -1843,6 +1913,13 @@ function toggleParcelFromList(id){
   if(!feat) return;
   const p=feat.properties;
   const mode=window._parcMode||'treball';
+  if(mode==='gasto'){
+    const idx=gastoParcelles.findIndex(x=>x.id===id);
+    if(idx>=0){gastoParcelles.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
+    else{gastoParcelles.push({id:p.id,nom:p.nom,ha:p.ha});if(parcAllLayers[id]) parcAllLayers[id].setStyle({color:'var(--rojo)',weight:3,fillColor:'var(--rojo)',fillOpacity:0.45});}
+    updateGastoChips();
+    return;
+  }
   if(mode==='finca'){
     const idx=fincaParcelles.findIndex(x=>x.id===id);
     if(idx>=0){fincaParcelles.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
@@ -1966,6 +2043,114 @@ function updateFincaSelectors(){
     const el=document.getElementById(id);
     if(el){ el.innerHTML=opts; }
   });
+}
+
+
+function editarFlota(id){
+  const wrap = document.getElementById('edit-flota-'+id);
+  if(wrap) wrap.classList.toggle('hidden');
+}
+
+function calcEditAmort(id){
+  const cost = parseFloat(document.getElementById('ef-cost-'+id)?.value)||0;
+  const anys = parseFloat(document.getElementById('ef-anys-'+id)?.value)||0;
+  const div = document.getElementById('ef-amort-'+id);
+  if(div && cost>0 && anys>0){
+    div.innerHTML = '<span class="amort-badge">Quota: '+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes</span>';
+  } else if(div) div.textContent='';
+}
+
+async function desarEditFlota(id){
+  const dataCompra = document.getElementById('ef-data-'+id)?.value||'';
+  const cost = document.getElementById('ef-cost-'+id)?.value||'';
+  const amortAnys = document.getElementById('ef-anys-'+id)?.value||'';
+  const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0)?(parseFloat(cost)/parseFloat(amortAnys)).toFixed(2):'';
+  const msg = document.getElementById('ef-msg-'+id);
+  
+  // Find row index in sheet
+  setSyncing(true,'Actualitzant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:H');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx<0){ setSyncing(false,'Error',true); return; }
+    
+    // Update the row
+    const floatItem = flota.find(f=>f.id===id);
+    if(floatItem){
+      floatItem.dataCompra=dataCompra; floatItem.cost=cost;
+      floatItem.amortAnys=amortAnys; floatItem.amortAnual=amortAnual;
+    }
+    const row = rows[rowIdx];
+    while(row.length<8) row.push('');
+    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual;
+    
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':H'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    setSyncing(false,'Connectat a Google Sheets');
+    if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
+    setTimeout(()=>{ renderFlota(); },800);
+  } catch(e){ setSyncing(false,'Error',true); if(msg){ msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; } }
+}
+
+function calcLlavorCost(){
+  const kg = parseFloat(document.getElementById('f-llavor-kg')?.value)||0;
+  const preu = parseFloat(document.getElementById('f-llavor-preu')?.value)||0;
+  const total = kg * preu / 1000; // preu per tona = /1000 per kg
+  const el = document.getElementById('f-llavor-total');
+  if(el) el.value = total>0?total.toFixed(2):'';
+  // Auto-fill importe
+  if(total>0) document.getElementById('f-importe').value = total.toFixed(2);
+}
+
+let gastoParcelles = [];
+
+function populateCultiuGastoSel(){
+  const sel = document.getElementById('f-gasto-finca');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
+    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+}
+
+function onGastoModeChange(){
+  const mode = document.getElementById('f-gasto-mode').value;
+  const fincaWrap = document.getElementById('f-gasto-finca-wrap');
+  const parcBtn = document.getElementById('f-gasto-parc-btn');
+  gastoParcelles = [];
+  updateGastoChips();
+  if(mode==='finca'){
+    fincaWrap.classList.remove('hidden');
+    parcBtn.classList.add('hidden');
+  } else {
+    fincaWrap.classList.add('hidden');
+    parcBtn.classList.remove('hidden');
+  }
+}
+
+function onGastoFincaChange(){
+  const fincaId = document.getElementById('f-gasto-finca').value;
+  gastoParcelles = [];
+  if(!fincaId){ updateGastoChips(); return; }
+  const finca = finques.find(f=>f.id===fincaId);
+  if(!finca||!PARC_DATA) return;
+  finca.parcellesIds.forEach(pid=>{
+    const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+    if(feat) gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+  });
+  updateGastoChips();
+}
+
+function updateGastoChips(){
+  const wrap = document.getElementById('f-gasto-selected');
+  const haSpan = document.getElementById('f-gasto-ha');
+  if(!wrap) return;
+  const totalHa = gastoParcelles.reduce((s,p)=>s+p.ha,0);
+  if(haSpan) haSpan.textContent = gastoParcelles.length>0?'('+gastoParcelles.length+' parc. / '+totalHa.toFixed(2)+' ha)':'';
+  wrap.innerHTML = gastoParcelles.map(p=>'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--rojo-claro);color:var(--rojo);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha)</span>').join('');
+}
+
+function obrirSelectorParcellesGasto(){
+  window._parcMode = 'gasto';
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
