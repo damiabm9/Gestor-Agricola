@@ -229,16 +229,34 @@
         </div>
         <div id="amort-result"></div>
       </div>
-      <!-- Cultius ingres: selector parcelles venda -->
+      <!-- Cultius ingres: selector parcelles/finca venda -->
       <div id="f-finca-wrap" class="hidden" style="margin-top:10px">
         <div class="form-row g2" style="margin-bottom:8px">
           <div><label>Quilograms venuts (kg)</label><input type="number" id="f-kg" placeholder="0" min="0" step="1"/></div>
           <div></div>
         </div>
         <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🌾 Parcel·les de la venda <span id="f-venda-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
-          <div id="f-venda-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px"></div>
-          <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesVenda()">+ Seleccionar parcel·les al mapa</button>
+          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🌾 On adjudiques la venda?</div>
+          <div class="form-row g2" style="margin-bottom:10px">
+            <div>
+              <label>Mode de seleccio</label>
+              <select id="f-venda-mode" onchange="onVendaModeChange()">
+                <option value="finca">Per finca</option>
+                <option value="parcelles">Per parcel·les individuals</option>
+              </select>
+            </div>
+            <div id="f-venda-finca-wrap">
+              <label>Finca</label>
+              <select id="f-venda-finca" onchange="onVendaFincaChange()">
+                <option value="">— Selecciona finca —</option>
+              </select>
+            </div>
+          </div>
+          <div id="f-venda-parc-btn" class="hidden">
+            <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesVenda()">+ Seleccionar parcel·les al mapa</button>
+          </div>
+          <div id="f-venda-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:24px"></div>
+          <span id="f-venda-ha" style="font-size:12px;color:var(--gris-texto);margin-top:4px;display:block"></span>
         </div>
       </div>
 
@@ -778,6 +796,8 @@ function onAreaChange(){
   // Cultius ingrés -> sempre mostra finca (totes les categories d'ingrés de cultius)
   if(area==='cultivos'&&tipo==='ingreso'){
     document.getElementById('f-finca-wrap').classList.remove('hidden');
+    populateVendaFincaSel();
+    onVendaModeChange();
   }
   // Maquinaria ingrés -> comprova categoria després de populateCat
   if(area==='maquinaria'&&tipo==='ingreso'){
@@ -809,6 +829,8 @@ function onCatChange(){
   // Cultius ingrés -> sempre finca visible
   if(area==='cultivos'&&tipo==='ingreso'){
     document.getElementById('f-finca-wrap').classList.remove('hidden');
+    populateVendaFincaSel();
+    onVendaModeChange();
   } else {
     document.getElementById('f-finca-wrap').classList.add('hidden');
   }
@@ -1723,6 +1745,44 @@ function removeParcelTreball(id){
   treballParcelles=treballParcelles.filter(p=>p.id!==id);
   if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));
   updateTreballParcChips();
+}
+
+function onVendaModeChange(){
+  const mode = document.getElementById('f-venda-mode').value;
+  const fincaWrap = document.getElementById('f-venda-finca-wrap');
+  const parcBtn = document.getElementById('f-venda-parc-btn');
+  vendaParcelles = [];
+  updateVendaChips();
+  if(mode==='finca'){
+    fincaWrap.classList.remove('hidden');
+    parcBtn.classList.add('hidden');
+    // populate finca selector
+    populateVendaFincaSel();
+  } else {
+    fincaWrap.classList.add('hidden');
+    parcBtn.classList.remove('hidden');
+  }
+}
+
+function populateVendaFincaSel(){
+  const sel = document.getElementById('f-venda-finca');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
+    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+}
+
+function onVendaFincaChange(){
+  const fincaId = document.getElementById('f-venda-finca').value;
+  vendaParcelles = [];
+  if(!fincaId){ updateVendaChips(); return; }
+  const finca = finques.find(f=>f.id===fincaId);
+  if(!finca||!PARC_DATA) return;
+  // Add all parcelles of this finca
+  finca.parcellesIds.forEach(pid=>{
+    const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+    if(feat) vendaParcelles.push({id:feat.properties.id, nom:feat.properties.nom, ha:feat.properties.ha});
+  });
+  updateVendaChips();
 }
 
 function updateVendaChips(){
