@@ -811,7 +811,7 @@ async function addMovimiento(){
 }
 
 function clearForm(){
-  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-finca','f-kg','f-tercers-hores'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-kg','f-tercers-hores'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''}); vendaParcelles=[]; if(typeof updateVendaChips==='function') updateVendaChips();
   document.getElementById('f-tipo').value='ingreso';
   document.getElementById('f-area').value='cultivos';
   document.getElementById('amort-result').textContent='';
@@ -1066,6 +1066,7 @@ function renderRentabilitat(){
   });
   document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra despeses per veure el desglossament.</div>';
   renderAmortitzacions();
+  renderParcRendibilitat();
 }
 
 async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
@@ -1108,6 +1109,67 @@ async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
     
     div.insertAdjacentHTML('beforeend', costHoraHtml);
   } catch(e){ console.error('Error renderCostHora', e); }
+}
+
+function renderParcRendibilitat(){
+  // Build per-parcel data from moviments (vendaDetail) and treballs
+  const parcData={};
+  
+  // Income: parse vendaDetail from moviments
+  movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='ingreso').forEach(m=>{
+    const notas=m.notas||'';
+    // Parse vendaDetail from col 10 (extres field used for venda)
+    const detail=m.vendaDetail||'';
+    if(detail){
+      detail.split('|').forEach(chunk=>{
+        const match=chunk.match(/^(.+):([0-9.]+)EUR\(([0-9.]+)ha\)$/);
+        if(match){
+          const nom=match[1]; const imp=parseFloat(match[2])||0;
+          if(!parcData[nom]) parcData[nom]={nom,ing:0,gas:0,hores:0,ha:parseFloat(match[3])||0};
+          parcData[nom].ing+=imp;
+        }
+      });
+    }
+  });
+
+  // Update ha from PARC_DATA if available
+  if(PARC_DATA){
+    PARC_DATA.features.forEach(f=>{
+      const nom=f.properties.nom;
+      if(parcData[nom]) parcData[nom].ha=f.properties.ha;
+    });
+  }
+
+  const list=Object.values(parcData);
+  let card=document.getElementById('rent-parcelles-card');
+  if(!card){
+    card=document.createElement('div');
+    card.id='rent-parcelles-card';
+    card.className='card';
+    card.style.marginTop='1rem';
+    document.getElementById('tab-rentabilidad').appendChild(card);
+  }
+  if(rentAreaActiva!=='cultivos'&&rentAreaActiva!=='totes'){card.style.display='none';return;}
+  card.style.display='block';
+  
+  if(!list.length){
+    card.innerHTML='<div class="card-title">🌾 Rendibilitat per parcel·la</div><div class="empty">Encara no hi ha vendes assignades a parcel·les. Quan registris una factura de venda de cereal seleccionant parcel·les, apareixeran aqui.</div>';
+    return;
+  }
+  
+  let html='<div class="card-title">🌾 Rendibilitat per parcel·la</div>';
+  html+='<table class="mov-table"><thead><tr><th>Parcel·la</th><th style="text-align:right">Ha</th><th style="text-align:right">Ingressos</th><th style="text-align:right">€/ha</th></tr></thead><tbody>';
+  list.sort((a,b)=>b.ing-a.ing).forEach(p=>{
+    const perHa=p.ha>0?Math.round(p.ing/p.ha):0;
+    html+=`<tr>
+      <td><span class="badge badge-area">🌾 ${p.nom}</span></td>
+      <td style="text-align:right">${p.ha}</td>
+      <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(p.ing)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--verde)">${fmt(perHa)}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  card.innerHTML=html;
 }
 
 function renderFincaBreakdown(){
@@ -1361,7 +1423,7 @@ async function addRepostatge(){
     const idDespesa = (Date.now()+1).toString();
     const totalNum = parseFloat(total)||0;
     if(totalNum>0){
-      await appendRow(SHEET_MOV,[idDespesa,data,'maquinaria','gasto','Dièsel / combustible',`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,totalNum.toFixed(2),maquina,'','','Auto-generat des de repostatge']);
+      await appendRow(SHEET_MOV,[idDespesa,data,'maquinaria','gasto','Dièsel / combustible',`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,totalNum.toFixed(2),maquina,'','','','Auto-generat des de repostatge']);
       movimientos.push({id:idDespesa,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Dièsel / combustible',concepto:`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,importe:totalNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
     }
     setSyncing(false,'Connectat a Google Sheets');
@@ -1449,7 +1511,7 @@ async function addManteniment(){
     if(costNum>0){
       const idDespesa2 = (Date.now()+2).toString();
       const concepte = fetPer==='Nosaltres' ? `${tipus}: ${desc} (${maquina} — ${qui})` : `${tipus}: ${desc} (${maquina} — ${mecanic||'Mecànic extern'})`;
-      await appendRow(SHEET_MOV,[idDespesa2,data,'maquinaria','gasto','Reparacions',concepte,costNum.toFixed(2),maquina,'','','Auto-generat des de manteniment']);
+      await appendRow(SHEET_MOV,[idDespesa2,data,'maquinaria','gasto','Reparacions',concepte,costNum.toFixed(2),maquina,'','','','Auto-generat des de manteniment']);
       movimientos.push({id:idDespesa2,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Reparacions',concepto:concepte,importe:costNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
     }
     setSyncing(false,'Connectat a Google Sheets');
@@ -1538,6 +1600,7 @@ async function loadParcData(){
 };
 let parcMap=null,parcLayer=null,parcAllLayers={};
 let treballParcelles=[];
+let vendaParcelles=[]; // parcel·les seleccionades per venda de cereal
 
 async function initParcelMap(){
   if(parcMap) return;
@@ -1569,10 +1632,18 @@ function styleParcel(selected){
 }
 
 function toggleParcelLayer(p,layer){
-  const idx=treballParcelles.findIndex(x=>x.id===p.id);
-  if(idx>=0){treballParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
-  else{treballParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle(styleParcel(true));}
-  updateTreballParcChips();
+  const mode=window._parcMode||'treball';
+  if(mode==='venda'){
+    const idx=vendaParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){vendaParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{vendaParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle(styleParcel(true));}
+    updateVendaChips();
+  } else {
+    const idx=treballParcelles.findIndex(x=>x.id===p.id);
+    if(idx>=0){treballParcelles.splice(idx,1);layer.setStyle(styleParcel(false));}
+    else{treballParcelles.push({id:p.id,nom:p.nom,ha:p.ha});layer.setStyle(styleParcel(true));}
+    updateTreballParcChips();
+  }
 }
 
 function updateTreballParcChips(){
@@ -1588,6 +1659,27 @@ function removeParcelTreball(id){
   treballParcelles=treballParcelles.filter(p=>p.id!==id);
   if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));
   updateTreballParcChips();
+}
+
+function updateVendaChips(){
+  const wrap=document.getElementById('f-venda-selected');
+  const haSpan=document.getElementById('f-venda-ha');
+  if(!wrap) return;
+  const totalHa=vendaParcelles.reduce((s,p)=>s+p.ha,0);
+  haSpan.textContent=vendaParcelles.length>0?'('+vendaParcelles.length+' parc. / '+totalHa.toFixed(2)+' ha)':'';
+  wrap.innerHTML=vendaParcelles.map(p=>'<span data-vrmid="'+p.id+'" style="display:inline-flex;align-items:center;gap:4px;background:var(--verde-claro);color:var(--verde);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500">'+p.nom+' ('+p.ha+'ha) <button data-vrmid="'+p.id+'" style="background:none;border:none;cursor:pointer;color:var(--verde);font-size:14px;padding:0">x</button></span>').join('');
+  if(!wrap._rl){wrap.addEventListener('click',function(e){var btn=e.target.closest('[data-vrmid]');if(btn&&e.target.tagName==='BUTTON'){removeVendaParcel(btn.getAttribute('data-vrmid'));}});wrap._rl=true;}
+}
+
+function removeVendaParcel(id){
+  vendaParcelles=vendaParcelles.filter(p=>p.id!==id);
+  updateVendaChips();
+}
+
+function obrirSelectorParcellesVenda(){
+  // Switch to map, mark mode as venda
+  window._parcMode='venda';
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
 }
 
 function obrirSelectorParcelles(){
@@ -1626,10 +1718,12 @@ function toggleParcelFromList(id){
   const feat=PARC_DATA.features.find(f=>f.properties.id===id);
   if(!feat) return;
   const p=feat.properties;
-  const idx=treballParcelles.findIndex(x=>x.id===id);
-  if(idx>=0){treballParcelles.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
-  else{treballParcelles.push({id:p.id,nom:p.nom,ha:p.ha});if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(true));}
-  updateTreballParcChips();
+  const mode=window._parcMode||'treball';
+  const arr=mode==='venda'?vendaParcelles:treballParcelles;
+  const idx=arr.findIndex(x=>x.id===id);
+  if(idx>=0){arr.splice(idx,1);if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(false));}
+  else{arr.push({id:p.id,nom:p.nom,ha:p.ha});if(parcAllLayers[id]) parcAllLayers[id].setStyle(styleParcel(true));}
+  if(mode==='venda') updateVendaChips(); else updateTreballParcChips();
   const q=document.getElementById('parc-cerca')&&document.getElementById('parc-cerca').value.toLowerCase();
   renderParcList(q?PARC_DATA.features.filter(f=>f.properties.nom.toLowerCase().includes(q)):PARC_DATA.features);
 }
@@ -1731,14 +1825,21 @@ async function addTreball(){
   const apero = document.getElementById('t-apero').value;
   const notes = document.getElementById('t-notes').value.trim();
   const extres = getExtresData();
-  const parcHa=treballParcelles.reduce((s,p)=>s+p.ha,0);
+  const parcHaTot=treballParcelles.reduce((s,p)=>s+p.ha,0);
   const parcNoms=treballParcelles.map(p=>p.nom).join(', ');
+  const parcHa=parcHaTot;
+  // Distribute hours proportionally
+  const horesDistrib = treballParcelles.map(p=>({
+    id:p.id, nom:p.nom, ha:p.ha,
+    hores: parcHaTot>0 ? Math.round((p.ha/parcHaTot)*hores*100)/100 : 0
+  }));
+  const parcDetail = horesDistrib.map(p=>p.nom+':'+p.hores+'h('+p.ha+'ha)').join('|');
   const msg = document.getElementById('treball-msg');
   if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant treball...');
   try {
-    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),extres,notes,parcNoms,parcHa.toFixed(2)]);
+    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),extres,notes,parcNoms,parcHa.toFixed(2),parcDetail]);
     treballParcelles=[];
     updateTreballParcChips();
     Object.values(parcAllLayers).forEach(l=>{try{l.setStyle(styleParcel(false));}catch(e){}});
