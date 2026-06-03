@@ -240,14 +240,13 @@
             <div>
               <label>Mode de seleccio</label>
               <select id="f-venda-mode" onchange="onVendaModeChange()">
-                <option value="finca">Per finca</option>
+                <option value="finca">Per finca(es)</option>
                 <option value="parcelles">Per parcel·les individuals</option>
               </select>
             </div>
             <div id="f-venda-finca-wrap">
-              <label>Finca</label>
-              <select id="f-venda-finca" onchange="onVendaFincaChange()">
-                <option value="">— Selecciona finca —</option>
+              <label>Finques (pots triar varies)</label>
+              <select id="f-venda-finca" multiple style="height:80px;font-size:12px" onchange="onVendaFincaChange()">
               </select>
             </div>
           </div>
@@ -275,14 +274,13 @@
             <div>
               <label>Mode de seleccio</label>
               <select id="f-gasto-mode" onchange="onGastoModeChange()">
-                <option value="finca">Per finca</option>
+                <option value="finca">Per finca(es)</option>
                 <option value="parcelles">Per parcel·les individuals</option>
               </select>
             </div>
             <div id="f-gasto-finca-wrap">
-              <label>Finca</label>
-              <select id="f-gasto-finca" onchange="onGastoFincaChange()">
-                <option value="">— Selecciona finca —</option>
+              <label>Finques (pots triar varies)</label>
+              <select id="f-gasto-finca" multiple style="height:80px;font-size:12px" onchange="onGastoFincaChange()">
               </select>
             </div>
           </div>
@@ -412,11 +410,26 @@
         <div><label>Apero</label><select id="t-apero"><option value="">— Cap —</option></select></div>
       </div>
 
-      <!-- Seleccio parcelles -->
+      <!-- Seleccio finques/parcelles treballs -->
       <div style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🗺️ Parcel·les treballades <span id="t-parc-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
-        <div id="t-parc-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px"></div>
-        <button class="btn btn-sm" type="button" onclick="obrirSelectorParcelles()">+ Seleccionar parcel·les</button>
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🗺️ On s ha treballat? <span id="t-parc-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+        <div class="form-row g2" style="margin-bottom:8px">
+          <div>
+            <label>Mode</label>
+            <select id="t-parc-mode" onchange="onTrebParcModeChange()">
+              <option value="finca">Per finca(es)</option>
+              <option value="parcelles">Per parcel·les individuals</option>
+            </select>
+          </div>
+          <div id="t-finca-multi-wrap">
+            <label>Finques (pots triar varies)</label>
+            <select id="t-finques-sel" multiple style="height:80px;font-size:12px"></select>
+          </div>
+        </div>
+        <div id="t-parc-btn-wrap" class="hidden">
+          <button class="btn btn-sm" type="button" onclick="obrirSelectorParcelles()">+ Seleccionar parcel·les al mapa</button>
+        </div>
+        <div id="t-parc-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:20px"></div>
       </div>
 
       <div style="margin-top:10px;margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
@@ -472,8 +485,9 @@
         <button class="btn btn-sm btn-primary" onclick="mostrarFormFinca()">+ Crear finca</button>
       </div>
       <div id="finca-form" class="hidden" style="margin-bottom:1rem;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div class="form-row g2" style="margin-bottom:8px">
+        <div class="form-row g3" style="margin-bottom:8px">
           <div><label>Nom de la finca</label><input type="text" id="finca-nom" placeholder="Ex: Finca de Baix..."/></div>
+          <div><label>Arrendament anual (€)</label><input type="number" id="finca-arrendament" placeholder="0" min="0" step="0.01"/></div>
           <div style="display:flex;align-items:flex-end"><span id="finca-ha-preview" style="font-size:13px;color:var(--verde);font-weight:500"></span></div>
         </div>
         <div style="font-size:12px;color:var(--gris-texto);margin-bottom:8px;font-weight:500">Selecciona les parcelles al mapa o a la llista:</div>
@@ -889,7 +903,7 @@ async function loadFromSheets(){
     flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
     try {
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
-      finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0}));
+      finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
     } catch(e){ finques=[]; }
     try {
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
@@ -935,7 +949,7 @@ function showTab(t, btn){
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
   if(t==='flota'){ renderFlota(); loadRepostatges(); populateFitxaSel(); renderEquipList(); }
-  if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
+  if(t==='treballs'){ populateTreballSelects(); loadTreballs(); onTrebParcModeChange(); populateTrebFinquesSel(); }
   if(t==='parcelles'){ initParcelMap(); renderFinquesList(); setTimeout(()=>{ if(parcMap) parcMap.invalidateSize(); },300); }
 }
 
@@ -1431,15 +1445,37 @@ function renderParcRendibilitat(){
     return;
   }
   
+  // Add arrendament per parcel·la from finques
+  list.forEach(p=>{
+    finques.forEach(f=>{
+      if(f.arrendament>0 && f.parcellesIds.length>0){
+        const feat = PARC_DATA?.features.find(x=>x.properties.nom===p.nom);
+        if(feat && f.parcellesIds.includes(feat.properties.id)){
+          // Distribute arrendament proportionally by ha
+          const fincaHaTot = f.parcellesIds.reduce((s,pid)=>{
+            const pf=PARC_DATA?.features.find(x=>x.properties.id===pid);
+            return s+(pf?pf.properties.ha:0);
+          },0);
+          if(fincaHaTot>0) p.arrendament=(p.arrendament||0)+f.arrendament*(p.ha/fincaHaTot);
+        }
+      }
+    });
+    p.marge = p.ing - (p.arrendament||0);
+  });
+
   let html='<div class="card-title">🌾 Rendibilitat per parcel·la</div>';
-  html+='<table class="mov-table"><thead><tr><th>Parcel·la</th><th style="text-align:right">Ha</th><th style="text-align:right">Ingressos</th><th style="text-align:right">€/ha</th></tr></thead><tbody>';
-  list.sort((a,b)=>b.ing-a.ing).forEach(p=>{
-    const perHa=p.ha>0?Math.round(p.ing/p.ha):0;
+  html+='<table class="mov-table"><thead><tr><th>Parcel·la</th><th style="text-align:right">Ha</th><th style="text-align:right">Ingressos</th><th style="text-align:right">Arrendament</th><th style="text-align:right">Marge</th><th style="text-align:right">€/ha</th></tr></thead><tbody>';
+  list.sort((a,b)=>b.marge-a.marge).forEach(p=>{
+    const marge=p.marge||p.ing;
+    const perHa=p.ha>0?Math.round(marge/p.ha):0;
+    const arrAnual=p.arrendament||0;
     html+=`<tr>
       <td><span class="badge badge-area">🌾 ${p.nom}</span></td>
       <td style="text-align:right">${p.ha}</td>
       <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(p.ing)}</td>
-      <td style="text-align:right;font-weight:700;color:var(--verde)">${fmt(perHa)}</td>
+      <td style="text-align:right;color:var(--rojo)">${arrAnual>0?fmt(arrAnual):'—'}</td>
+      <td style="text-align:right;font-weight:700;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)}</td>
+      <td style="text-align:right;font-weight:700;color:${perHa>=0?'var(--verde)':'var(--rojo)'}">${fmt(perHa)}</td>
     </tr>`;
   });
   html+='</tbody></table>';
@@ -2022,8 +2058,7 @@ function onVendaModeChange(){
 function populateVendaFincaSel(){
   const sel = document.getElementById('f-venda-finca');
   if(!sel) return;
-  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
-    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
 }
 
 function onVendaFincaChange(){
@@ -2133,6 +2168,7 @@ function mostrarFormFinca(){
   window._parcMode = 'finca';
   document.getElementById('finca-form').classList.remove('hidden');
   document.getElementById('finca-nom').value = '';
+  const arrEl = document.getElementById('finca-arrendament'); if(arrEl) arrEl.value='';
   document.getElementById('finca-parc-chips').innerHTML = '';
   document.getElementById('finca-ha-preview').textContent = '';
   document.getElementById('finca-msg').textContent = '';
@@ -2171,13 +2207,14 @@ async function guardarFinca(){
   const msg = document.getElementById('finca-msg');
   if(!nom){ msg.style.color='var(--rojo)'; msg.textContent='Posa un nom a la finca.'; return; }
   if(fincaParcelles.length===0){ msg.style.color='var(--rojo)'; msg.textContent='Selecciona almenys una parcel·la.'; return; }
+  const arrendament = document.getElementById('finca-arrendament')?.value||'0';
   const id = Date.now().toString();
   const ids = fincaParcelles.map(p=>p.id).join(',');
   const ha = fincaParcelles.reduce((s,p)=>s+p.ha,0).toFixed(2);
   setSyncing(true,'Desant finca...');
   try {
-    await appendRow(SHEET_FINQUES,[id,nom,ids,ha]);
-    finques.push({id,nom,parcellesIds:fincaParcelles.map(p=>p.id),ha:parseFloat(ha)});
+    await appendRow(SHEET_FINQUES,[id,nom,ids,ha,arrendament]);
+    finques.push({id,nom,parcellesIds:fincaParcelles.map(p=>p.id),ha:parseFloat(ha),arrendament:parseFloat(arrendament)||0});
     setSyncing(false,'Connectat a Google Sheets');
     msg.style.color='var(--verde)'; msg.textContent='Finca guardada!';
     setTimeout(()=>{ cancelarFinca(); renderFinquesList(); updateFincaSelectors(); },1000);
@@ -2212,10 +2249,11 @@ function renderFinquesList(){
       const feat = PARC_DATA.features.find(x=>x.properties.id===pid);
       return feat ? feat.properties.nom : pid;
     }).join(', ');
+    const arrInfo = f.arrendament>0 ? ' · Arrendament: '+fmt(f.arrendament)+'/any' : '';
     return '<div class="flota-item" style="flex-direction:column;align-items:flex-start">' +
       '<div style="display:flex;justify-content:space-between;width:100%;align-items:center">' +
         '<div><div class="flota-nombre">🏡 '+f.nom+'</div>' +
-          '<div class="flota-ref">'+f.ha+' ha — '+noms+'</div></div>' +
+          '<div class="flota-ref">'+f.ha+' ha — '+noms+arrInfo+'</div></div>' +
         '<button class="btn btn-sm btn-danger" data-fid="'+f.id+'" style="margin-left:8px">✕</button>' +
       '</div></div>';
   }).join('')+'</div>';
@@ -2294,8 +2332,7 @@ let gastoParcelles = [];
 function populateCultiuGastoSel(){
   const sel = document.getElementById('f-gasto-finca');
   if(!sel) return;
-  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
-    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
 }
 
 function onGastoModeChange(){
@@ -2314,14 +2351,18 @@ function onGastoModeChange(){
 }
 
 function onGastoFincaChange(){
-  const fincaId = document.getElementById('f-gasto-finca').value;
+  const sel = document.getElementById('f-gasto-finca');
+  if(!sel) return;
   gastoParcelles = [];
-  if(!fincaId){ updateGastoChips(); return; }
-  const finca = finques.find(f=>f.id===fincaId);
-  if(!finca||!PARC_DATA) return;
-  finca.parcellesIds.forEach(pid=>{
-    const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-    if(feat) gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+  Array.from(sel.selectedOptions).forEach(opt=>{
+    const finca = finques.find(f=>f.id===opt.value);
+    if(!finca||!PARC_DATA) return;
+    finca.parcellesIds.forEach(pid=>{
+      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+      if(feat && !gastoParcelles.find(p=>p.id===pid)){
+        gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+      }
+    });
   });
   updateGastoChips();
 }
@@ -2637,6 +2678,41 @@ function onEquipChange(){
     document.getElementById('t-maquina').value = eq.maquina||'';
     document.getElementById('t-apero').value = eq.apero||'';
   }
+}
+
+
+function onTrebParcModeChange(){
+  const mode = document.getElementById('t-parc-mode').value;
+  document.getElementById('t-finca-multi-wrap').classList.toggle('hidden', mode!=='finca');
+  document.getElementById('t-parc-btn-wrap').classList.toggle('hidden', mode!=='parcelles');
+  treballParcelles = [];
+  updateTreballParcChips();
+  if(mode==='finca') populateTrebFinquesSel();
+}
+
+function populateTrebFinquesSel(){
+  const sel = document.getElementById('t-finques-sel');
+  if(!sel) return;
+  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  sel.addEventListener('change', onTrebFincaChange);
+  sel._hasListener = true;
+}
+
+function onTrebFincaChange(){
+  const sel = document.getElementById('t-finques-sel');
+  if(!sel||!PARC_DATA) return;
+  treballParcelles = [];
+  Array.from(sel.selectedOptions).forEach(opt=>{
+    const finca = finques.find(f=>f.id===opt.value);
+    if(!finca) return;
+    finca.parcellesIds.forEach(pid=>{
+      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+      if(feat && !treballParcelles.find(p=>p.id===pid)){
+        treballParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+      }
+    });
+  });
+  updateTreballParcChips();
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
@@ -3103,15 +3179,37 @@ function renderParcRendibilitat(){
     return;
   }
   
+  // Add arrendament per parcel·la from finques
+  list.forEach(p=>{
+    finques.forEach(f=>{
+      if(f.arrendament>0 && f.parcellesIds.length>0){
+        const feat = PARC_DATA?.features.find(x=>x.properties.nom===p.nom);
+        if(feat && f.parcellesIds.includes(feat.properties.id)){
+          // Distribute arrendament proportionally by ha
+          const fincaHaTot = f.parcellesIds.reduce((s,pid)=>{
+            const pf=PARC_DATA?.features.find(x=>x.properties.id===pid);
+            return s+(pf?pf.properties.ha:0);
+          },0);
+          if(fincaHaTot>0) p.arrendament=(p.arrendament||0)+f.arrendament*(p.ha/fincaHaTot);
+        }
+      }
+    });
+    p.marge = p.ing - (p.arrendament||0);
+  });
+
   let html='<div class="card-title">🌾 Rendibilitat per parcel·la</div>';
-  html+='<table class="mov-table"><thead><tr><th>Parcel·la</th><th style="text-align:right">Ha</th><th style="text-align:right">Ingressos</th><th style="text-align:right">€/ha</th></tr></thead><tbody>';
-  list.sort((a,b)=>b.ing-a.ing).forEach(p=>{
-    const perHa=p.ha>0?Math.round(p.ing/p.ha):0;
+  html+='<table class="mov-table"><thead><tr><th>Parcel·la</th><th style="text-align:right">Ha</th><th style="text-align:right">Ingressos</th><th style="text-align:right">Arrendament</th><th style="text-align:right">Marge</th><th style="text-align:right">€/ha</th></tr></thead><tbody>';
+  list.sort((a,b)=>b.marge-a.marge).forEach(p=>{
+    const marge=p.marge||p.ing;
+    const perHa=p.ha>0?Math.round(marge/p.ha):0;
+    const arrAnual=p.arrendament||0;
     html+=`<tr>
       <td><span class="badge badge-area">🌾 ${p.nom}</span></td>
       <td style="text-align:right">${p.ha}</td>
       <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(p.ing)}</td>
-      <td style="text-align:right;font-weight:700;color:var(--verde)">${fmt(perHa)}</td>
+      <td style="text-align:right;color:var(--rojo)">${arrAnual>0?fmt(arrAnual):'—'}</td>
+      <td style="text-align:right;font-weight:700;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)}</td>
+      <td style="text-align:right;font-weight:700;color:${perHa>=0?'var(--verde)':'var(--rojo)'}">${fmt(perHa)}</td>
     </tr>`;
   });
   html+='</tbody></table>';
@@ -3649,8 +3747,7 @@ gastoParcelles = [];
 function populateCultiuGastoSel(){
   const sel = document.getElementById('f-gasto-finca');
   if(!sel) return;
-  sel.innerHTML = '<option value="">— Selecciona finca —</option>' +
-    finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
 }
 
 function onGastoModeChange(){
@@ -3669,14 +3766,18 @@ function onGastoModeChange(){
 }
 
 function onGastoFincaChange(){
-  const fincaId = document.getElementById('f-gasto-finca').value;
+  const sel = document.getElementById('f-gasto-finca');
+  if(!sel) return;
   gastoParcelles = [];
-  if(!fincaId){ updateGastoChips(); return; }
-  const finca = finques.find(f=>f.id===fincaId);
-  if(!finca||!PARC_DATA) return;
-  finca.parcellesIds.forEach(pid=>{
-    const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-    if(feat) gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+  Array.from(sel.selectedOptions).forEach(opt=>{
+    const finca = finques.find(f=>f.id===opt.value);
+    if(!finca||!PARC_DATA) return;
+    finca.parcellesIds.forEach(pid=>{
+      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+      if(feat && !gastoParcelles.find(p=>p.id===pid)){
+        gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+      }
+    });
   });
   updateGastoChips();
 }
@@ -3992,6 +4093,41 @@ function onEquipChange(){
     document.getElementById('t-maquina').value = eq.maquina||'';
     document.getElementById('t-apero').value = eq.apero||'';
   }
+}
+
+
+function onTrebParcModeChange(){
+  const mode = document.getElementById('t-parc-mode').value;
+  document.getElementById('t-finca-multi-wrap').classList.toggle('hidden', mode!=='finca');
+  document.getElementById('t-parc-btn-wrap').classList.toggle('hidden', mode!=='parcelles');
+  treballParcelles = [];
+  updateTreballParcChips();
+  if(mode==='finca') populateTrebFinquesSel();
+}
+
+function populateTrebFinquesSel(){
+  const sel = document.getElementById('t-finques-sel');
+  if(!sel) return;
+  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  sel.addEventListener('change', onTrebFincaChange);
+  sel._hasListener = true;
+}
+
+function onTrebFincaChange(){
+  const sel = document.getElementById('t-finques-sel');
+  if(!sel||!PARC_DATA) return;
+  treballParcelles = [];
+  Array.from(sel.selectedOptions).forEach(opt=>{
+    const finca = finques.find(f=>f.id===opt.value);
+    if(!finca) return;
+    finca.parcellesIds.forEach(pid=>{
+      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+      if(feat && !treballParcelles.find(p=>p.id===pid)){
+        treballParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+      }
+    });
+  });
+  updateTreballParcChips();
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
