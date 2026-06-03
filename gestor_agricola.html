@@ -373,6 +373,13 @@
       <div class="card-title">📂 Desglossament per categoria</div>
       <div id="cat-breakdown"></div>
     </div>
+
+    <!-- Amortitzacions -->
+    <div class="card" style="margin-top:1rem" id="rent-amort-card">
+      <div class="card-title">📉 Amortitzacions de maquinària</div>
+      <div id="rent-amort-body"></div>
+    </div>
+
   </div>
 
   <!-- FLOTA -->
@@ -998,9 +1005,72 @@ function renderRentabilitat(){
     html+='</div>';
   });
   document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra despeses per veure el desglossament.</div>';
+  renderAmortitzacions();
 }
 
 function renderRentabilidad(){ renderRentabilitat(); }
+
+function renderAmortitzacions(){
+  const card = document.getElementById('rent-amort-card');
+  const body = document.getElementById('rent-amort-body');
+  if(!card||!body) return;
+
+  // Only show when maquinaria is selected or all
+  if(rentAreaActiva!=='totes'&&rentAreaActiva!=='maquinaria'){
+    card.style.display='none'; return;
+  }
+  card.style.display='block';
+
+  const anyActual = new Date().getFullYear();
+  const maqAmbAmort = flota.filter(f=>parseFloat(f.amortAnual)>0);
+
+  if(!maqAmbAmort.length){
+    body.innerHTML='<div class="empty">Afegeix màquines amb data de compra i anys d'amortització per veure aquest apartat.</div>';
+    return;
+  }
+
+  // Filter by selected machine if applicable
+  const maqSel = document.getElementById('rent-maq-sel')?.value||'';
+
+  let totalAmortAnual = 0;
+  let totalDespesesReals = 0;
+  let html = '<table class="mov-table"><thead><tr><th>Màquina</th><th style="text-align:right">Cost compra</th><th style="text-align:right">Quota anual</th><th style="text-align:right">Anys restants</th><th style="text-align:right">Pendent amort.</th></tr></thead><tbody>';
+
+  maqAmbAmort.forEach(m=>{
+    if(maqSel && m.nombre!==maqSel) return;
+    const cost = parseFloat(m.cost)||0;
+    const amortAnual = parseFloat(m.amortAnual)||0;
+    const amortAnys = parseFloat(m.amortAnys)||0;
+    const anyCompra = m.dataCompra ? new Date(m.dataCompra).getFullYear() : anyActual;
+    const anysPassats = anyActual - anyCompra;
+    const amortAcum = Math.min(anysPassats * amortAnual, cost);
+    const restant = Math.max(cost - amortAcum, 0);
+    const anysRestants = Math.max(amortAnys - anysPassats, 0);
+    totalAmortAnual += amortAnual;
+
+    html+=`<tr>
+      <td><span class="badge badge-area">🚜 ${m.nombre}</span></td>
+      <td style="text-align:right">${fmt(cost)}</td>
+      <td style="text-align:right;font-weight:600;color:var(--naranja)">${fmt(amortAnual)}/any</td>
+      <td style="text-align:right">${anysRestants} any${anysRestants!==1?'s':''}</td>
+      <td style="text-align:right;color:${restant>0?'var(--rojo)':'var(--verde)'};font-weight:600">${fmt(restant)}</td>
+    </tr>`;
+  });
+
+  html+='</tbody></table>';
+
+  // Summary box
+  const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
+  const costTotal = despesesReals + totalAmortAnual;
+
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem">
+    <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Cost total (real + amort.)</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
+  </div>`;
+
+  body.innerHTML = html;
+}
 
 // ── FLOTA ──────────────────────────────────────────────
 function calcFlotaAmort(){
