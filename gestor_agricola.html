@@ -667,6 +667,7 @@ const SHEET_MOV = 'Movimientos';
 const SHEET_FLOTA = 'Flota';
 const SHEET_TREBALLS = 'Treballs';
 const SHEET_FINQUES = 'Finques';
+const SHEET_COMPONENTS = 'Components';
 const SHEET_REPOSTATGES = 'Repostatges';
 const SHEET_MANTENIMENTS = 'Manteniments';
 
@@ -681,6 +682,7 @@ const AREAS = { cultivos:{label:'Cultius',icon:'🌾'}, maquinaria:{label:'Maqui
 let accessToken = null;
 let movimientos = [];
 let finques = [];
+let components = [];
 let flota = [];
 let userEmail = '';
 
@@ -737,6 +739,7 @@ async function ensureSheets(){
   if(!nombres.includes(SHEET_FLOTA)) toCreate.push({addSheet:{properties:{title:SHEET_FLOTA}}});
   if(!nombres.includes(SHEET_TREBALLS)) toCreate.push({addSheet:{properties:{title:SHEET_TREBALLS}}});
   if(!nombres.includes(SHEET_FINQUES)) toCreate.push({addSheet:{properties:{title:SHEET_FINQUES}}});
+  if(!nombres.includes(SHEET_COMPONENTS)) toCreate.push({addSheet:{properties:{title:SHEET_COMPONENTS}}});
   if(!nombres.includes(SHEET_REPOSTATGES)) toCreate.push({addSheet:{properties:{title:SHEET_REPOSTATGES}}});
   if(!nombres.includes(SHEET_MANTENIMENTS)) toCreate.push({addSheet:{properties:{title:SHEET_MANTENIMENTS}}});
   if(toCreate.length){
@@ -753,11 +756,15 @@ async function loadFromSheets(){
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
     const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:D');
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
-    flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||''}));
+    flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
     try {
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
       finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0}));
     } catch(e){ finques=[]; }
+    try {
+      const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
+      components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0}));
+    } catch(e){ components=[]; }
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
   } catch(e){ setSyncing(false,'Error en carregar',true); }
@@ -1203,8 +1210,13 @@ async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
     
     const MO_HORA = 20;
     const costMO = totalHores * MO_HORA;
-    const costTotal = despesesReals + totalAmortAnual + costMO;
-    const costHora = totalHores>0 ? costTotal/totalHores : 0;
+    // Add components amortization
+    const compAmort = maqSel ? getTotalComponentsAmort(flota.find(f=>f.nombre===maqSel)?.id||'') : components.reduce((s,c)=>s+c.amortAnual,0);
+    // Add hores inicials to total
+    const horesInicialsTot = maqSel ? (flota.find(f=>f.nombre===maqSel)?.horesInicials||0) : flota.filter(f=>f.tipo==='maquina').reduce((s,m)=>s+(m.horesInicials||0),0);
+    const totalHoresAmbInicials = totalHores + horesInicialsTot;
+    const costTotal = despesesReals + totalAmortAnual + compAmort + costMO;
+    const costHora = totalHoresAmbInicials>0 ? costTotal/totalHoresAmbInicials : 0;
     
     const div = document.getElementById('rent-amort-body');
     if(!div) return;
@@ -1215,10 +1227,13 @@ async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
     const costHoraHtml = `<div style="margin-top:1rem;padding:1rem;background:var(--amarillo-claro);border:1px solid #ffe08a;border-radius:var(--radio)">
       <div style="font-size:13px;font-weight:600;color:#7a5800;margin-bottom:10px">💶 Anàlisi de cost per hora — ${anyActual}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
-        <div class="kpi"><div class="kpi-label">Hores treballades</div><div class="kpi-value" style="color:#333">${totalHores.toFixed(1)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Hores app</div><div class="kpi-value" style="color:#333">${totalHores.toFixed(1)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Hores inicials</div><div class="kpi-value" style="color:#333">${horesInicialsTot.toFixed(0)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Hores totals</div><div class="kpi-value" style="color:#333">${totalHoresAmbInicials.toFixed(1)}h</div></div>
         <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
         <div class="kpi"><div class="kpi-label">Mà d'obra (${MO_HORA}€/h)</div><div class="kpi-value" style="color:var(--naranja)">${fmt(costMO)}</div></div>
-        <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+        <div class="kpi"><div class="kpi-label">Amortitzacio maquina</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortitzacio components</div><div class="kpi-value" style="color:var(--naranja)">${fmt(compAmortTotal)}</div></div>
         <div class="kpi"><div class="kpi-label">Cost total any</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
         <div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white">${costHora>0?fmt(costHora):'-'}</div></div>
       </div>
@@ -1398,6 +1413,13 @@ function renderAmortitzacions(){
   const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
   const costTotal = despesesReals + totalAmortAnual;
 
+  // Components amortitzables per maquina
+  const compAmortTotal = maqAmbAmort.reduce((s,m)=>{
+    const maqSel2 = document.getElementById('rent-maq-sel')?.value||'';
+    if(maqSel2 && m.nombre!==maqSel2) return s;
+    return s + getTotalComponentsAmort(m.id);
+  }, 0);
+  
   // Hores totals de l'any de cada màquina (des de treballs)
   const anyActualStr = String(anyActual);
   // Hores des de treballs registrats
@@ -1410,7 +1432,8 @@ function renderAmortitzacions(){
   // Total hours worked this year on maquinaria from treballs
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem">
     <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
-    <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortitzacio maquina</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortitzacio components</div><div class="kpi-value" style="color:var(--naranja)">${fmt(compAmortTotal)}</div></div>
     <div class="kpi"><div class="kpi-label">Cost total (real + amort.)</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
   </div>`;
   
@@ -1519,6 +1542,37 @@ function renderFlota(){
             <div><label>Data de compra</label><input type="date" id="ef-data-${m.id}" value="${m.dataCompra||''}"/></div>
             <div><label>Cost de compra (€)</label><input type="number" id="ef-cost-${m.id}" value="${m.cost||''}" placeholder="0" oninput="calcEditAmort('${m.id}')"/></div>
             <div><label>Anys amortitzacio</label><input type="number" id="ef-anys-${m.id}" value="${m.amortAnys||''}" placeholder="10" oninput="calcEditAmort('${m.id}')"/></div>
+          </div>
+          <div class="form-row g2" style="margin-bottom:8px">
+            <div><label>Hores inicials (abans de l app)</label><input type="number" id="ef-hores-${m.id}" value="${m.horesInicials||''}" placeholder="0" min="0"/></div>
+            <div></div>
+          </div>
+          <div style="margin-bottom:8px">
+            <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
+            <div id="ef-comp-list-${m.id}" style="margin-bottom:6px"></div>
+            <button class="btn btn-sm" onclick="afegirComponent('${m.id}')">+ Afegir component</button>
+            <div id="ef-comp-form-${m.id}" class="hidden" style="margin-top:8px;padding:8px;background:var(--gris-bg);border-radius:var(--radio-sm)">
+              <div class="form-row g3" style="margin-bottom:6px">
+                <div><label>Component</label>
+                  <select id="ef-comp-nom-${m.id}">
+                    <option>Rodes</option>
+                    <option>Motor</option>
+                    <option>Hidraulic</option>
+                    <option>Cadenes</option>
+                    <option>Transmissio</option>
+                    <option>Cabina</option>
+                    <option>Altres</option>
+                  </select>
+                </div>
+                <div><label>Cost (€)</label><input type="number" id="ef-comp-cost-${m.id}" placeholder="0" oninput="calcCompAmort('${m.id}')"/></div>
+                <div><label>Anys vida util</label><input type="number" id="ef-comp-anys-${m.id}" placeholder="5" oninput="calcCompAmort('${m.id}')"/></div>
+              </div>
+              <div id="ef-comp-result-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:6px"></div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-primary" onclick="desarComponent('${m.id}')">✓ Afegir</button>
+                <button class="btn btn-sm" onclick="document.getElementById('ef-comp-form-${m.id}').classList.add('hidden')">Cancel·lar</button>
+              </div>
+            </div>
           </div>
           <div id="ef-amort-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:8px"></div>
           <div style="display:flex;gap:6px">
@@ -2055,6 +2109,7 @@ async function desarEditFlota(id){
   const cost = document.getElementById('ef-cost-'+id)?.value||'';
   const amortAnys = document.getElementById('ef-anys-'+id)?.value||'';
   const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0)?(parseFloat(cost)/parseFloat(amortAnys)).toFixed(2):'';
+  const horesInicials = document.getElementById('ef-hores-'+id)?.value||'';
   const msg = document.getElementById('ef-msg-'+id);
   
   // Find row index in sheet
@@ -2141,6 +2196,93 @@ function updateGastoChips(){
 function obrirSelectorParcellesGasto(){
   window._parcMode = 'gasto';
   document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+}
+
+
+// ── COMPONENTS AMORTITZABLES ────────────────────────────
+function afegirComponent(maqId){
+  const form = document.getElementById('ef-comp-form-'+maqId);
+  if(form) form.classList.toggle('hidden');
+  renderCompList(maqId);
+}
+
+function calcCompAmort(maqId){
+  const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
+  const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
+  const div = document.getElementById('ef-comp-result-'+maqId);
+  if(div && cost>0 && anys>0){
+    div.innerHTML = '<span class="amort-badge">'+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes</span>';
+  } else if(div) div.textContent='';
+}
+
+async function desarComponent(maqId){
+  const maq = flota.find(f=>f.id===maqId);
+  if(!maq) return;
+  const nom = document.getElementById('ef-comp-nom-'+maqId)?.value||'';
+  const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
+  const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
+  if(!nom||cost<=0||anys<=0){ alert('Omple tots els camps del component.'); return; }
+  const amortAnual = cost/anys;
+  const id = Date.now().toString();
+  setSyncing(true,'Desant component...');
+  try {
+    await appendRow(SHEET_COMPONENTS,[id,maqId,maq.nombre,nom,cost.toFixed(2),anys.toFixed(1),amortAnual.toFixed(2)]);
+    components.push({id,maquinaId:maqId,maquinaNom:maq.nombre,component:nom,cost,anys,amortAnual});
+    setSyncing(false,'Connectat a Google Sheets');
+    // Reset form
+    if(document.getElementById('ef-comp-cost-'+maqId)) document.getElementById('ef-comp-cost-'+maqId).value='';
+    if(document.getElementById('ef-comp-anys-'+maqId)) document.getElementById('ef-comp-anys-'+maqId).value='';
+    if(document.getElementById('ef-comp-result-'+maqId)) document.getElementById('ef-comp-result-'+maqId).textContent='';
+    document.getElementById('ef-comp-form-'+maqId)?.classList.add('hidden');
+    renderCompList(maqId);
+    renderFlota(); // refresh amort info
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+async function eliminarComponent(id){
+  if(!confirm('Eliminar aquest component?')) return;
+  const idx = components.findIndex(c=>c.id===id);
+  if(idx<0) return;
+  const maqId = components[idx].maquinaId;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:A');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx>=0) await deleteRow(SHEET_COMPONENTS, rowIdx+1);
+    components.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
+    renderCompList(maqId);
+    renderFlota();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+function renderCompList(maqId){
+  const el = document.getElementById('ef-comp-list-'+maqId);
+  if(!el) return;
+  const comps = components.filter(c=>c.maquinaId===maqId);
+  if(!comps.length){ el.innerHTML='<div style="font-size:12px;color:var(--gris-texto)">Sense components registrats.</div>'; return; }
+  const total = comps.reduce((s,c)=>s+c.amortAnual,0);
+  el.innerHTML = comps.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+    <span><strong>${c.component}</strong> — ${fmt(c.cost)} / ${c.anys}anys</span>
+    <span style="display:flex;align-items:center;gap:8px">
+      <span class="amort-badge">${fmt(c.amortAnual)}/any</span>
+      <button class="btn btn-sm btn-danger" data-cid="${c.id}" style="padding:2px 6px;font-size:11px">✕</button>
+    </span>
+  </div>`).join('')+
+  `<div style="font-size:12px;font-weight:600;color:var(--naranja);margin-top:6px">Total components: ${fmt(total)}/any</div>`;
+  
+  if(!el._rl){
+    el.addEventListener('click',function(e){
+      const btn=e.target.closest('[data-cid]');
+      if(btn&&e.target.tagName==='BUTTON') eliminarComponent(btn.getAttribute('data-cid'));
+    });
+    el._rl=true;
+  }
+}
+
+function getTotalComponentsAmort(maqId){
+  return components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
@@ -2524,8 +2666,13 @@ async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
     
     const MO_HORA = 20;
     const costMO = totalHores * MO_HORA;
-    const costTotal = despesesReals + totalAmortAnual + costMO;
-    const costHora = totalHores>0 ? costTotal/totalHores : 0;
+    // Add components amortization
+    const compAmort = maqSel ? getTotalComponentsAmort(flota.find(f=>f.nombre===maqSel)?.id||'') : components.reduce((s,c)=>s+c.amortAnual,0);
+    // Add hores inicials to total
+    const horesInicialsTot = maqSel ? (flota.find(f=>f.nombre===maqSel)?.horesInicials||0) : flota.filter(f=>f.tipo==='maquina').reduce((s,m)=>s+(m.horesInicials||0),0);
+    const totalHoresAmbInicials = totalHores + horesInicialsTot;
+    const costTotal = despesesReals + totalAmortAnual + compAmort + costMO;
+    const costHora = totalHoresAmbInicials>0 ? costTotal/totalHoresAmbInicials : 0;
     
     const div = document.getElementById('rent-amort-body');
     if(!div) return;
@@ -2536,10 +2683,13 @@ async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
     const costHoraHtml = `<div style="margin-top:1rem;padding:1rem;background:var(--amarillo-claro);border:1px solid #ffe08a;border-radius:var(--radio)">
       <div style="font-size:13px;font-weight:600;color:#7a5800;margin-bottom:10px">💶 Anàlisi de cost per hora — ${anyActual}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
-        <div class="kpi"><div class="kpi-label">Hores treballades</div><div class="kpi-value" style="color:#333">${totalHores.toFixed(1)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Hores app</div><div class="kpi-value" style="color:#333">${totalHores.toFixed(1)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Hores inicials</div><div class="kpi-value" style="color:#333">${horesInicialsTot.toFixed(0)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Hores totals</div><div class="kpi-value" style="color:#333">${totalHoresAmbInicials.toFixed(1)}h</div></div>
         <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
         <div class="kpi"><div class="kpi-label">Mà d'obra (${MO_HORA}€/h)</div><div class="kpi-value" style="color:var(--naranja)">${fmt(costMO)}</div></div>
-        <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+        <div class="kpi"><div class="kpi-label">Amortitzacio maquina</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortitzacio components</div><div class="kpi-value" style="color:var(--naranja)">${fmt(compAmortTotal)}</div></div>
         <div class="kpi"><div class="kpi-label">Cost total any</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
         <div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white">${costHora>0?fmt(costHora):'-'}</div></div>
       </div>
@@ -2719,6 +2869,13 @@ function renderAmortitzacions(){
   const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
   const costTotal = despesesReals + totalAmortAnual;
 
+  // Components amortitzables per maquina
+  const compAmortTotal = maqAmbAmort.reduce((s,m)=>{
+    const maqSel2 = document.getElementById('rent-maq-sel')?.value||'';
+    if(maqSel2 && m.nombre!==maqSel2) return s;
+    return s + getTotalComponentsAmort(m.id);
+  }, 0);
+  
   // Hores totals de l'any de cada màquina (des de treballs)
   const anyActualStr = String(anyActual);
   // Hores des de treballs registrats
@@ -2731,7 +2888,8 @@ function renderAmortitzacions(){
   // Total hours worked this year on maquinaria from treballs
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem">
     <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
-    <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortitzacio maquina</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+    <div class="kpi"><div class="kpi-label">Amortitzacio components</div><div class="kpi-value" style="color:var(--naranja)">${fmt(compAmortTotal)}</div></div>
     <div class="kpi"><div class="kpi-label">Cost total (real + amort.)</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
   </div>`;
   
@@ -2840,6 +2998,37 @@ function renderFlota(){
             <div><label>Data de compra</label><input type="date" id="ef-data-${m.id}" value="${m.dataCompra||''}"/></div>
             <div><label>Cost de compra (€)</label><input type="number" id="ef-cost-${m.id}" value="${m.cost||''}" placeholder="0" oninput="calcEditAmort('${m.id}')"/></div>
             <div><label>Anys amortitzacio</label><input type="number" id="ef-anys-${m.id}" value="${m.amortAnys||''}" placeholder="10" oninput="calcEditAmort('${m.id}')"/></div>
+          </div>
+          <div class="form-row g2" style="margin-bottom:8px">
+            <div><label>Hores inicials (abans de l app)</label><input type="number" id="ef-hores-${m.id}" value="${m.horesInicials||''}" placeholder="0" min="0"/></div>
+            <div></div>
+          </div>
+          <div style="margin-bottom:8px">
+            <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
+            <div id="ef-comp-list-${m.id}" style="margin-bottom:6px"></div>
+            <button class="btn btn-sm" onclick="afegirComponent('${m.id}')">+ Afegir component</button>
+            <div id="ef-comp-form-${m.id}" class="hidden" style="margin-top:8px;padding:8px;background:var(--gris-bg);border-radius:var(--radio-sm)">
+              <div class="form-row g3" style="margin-bottom:6px">
+                <div><label>Component</label>
+                  <select id="ef-comp-nom-${m.id}">
+                    <option>Rodes</option>
+                    <option>Motor</option>
+                    <option>Hidraulic</option>
+                    <option>Cadenes</option>
+                    <option>Transmissio</option>
+                    <option>Cabina</option>
+                    <option>Altres</option>
+                  </select>
+                </div>
+                <div><label>Cost (€)</label><input type="number" id="ef-comp-cost-${m.id}" placeholder="0" oninput="calcCompAmort('${m.id}')"/></div>
+                <div><label>Anys vida util</label><input type="number" id="ef-comp-anys-${m.id}" placeholder="5" oninput="calcCompAmort('${m.id}')"/></div>
+              </div>
+              <div id="ef-comp-result-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:6px"></div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-primary" onclick="desarComponent('${m.id}')">✓ Afegir</button>
+                <button class="btn btn-sm" onclick="document.getElementById('ef-comp-form-${m.id}').classList.add('hidden')">Cancel·lar</button>
+              </div>
+            </div>
           </div>
           <div id="ef-amort-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:8px"></div>
           <div style="display:flex;gap:6px">
@@ -3060,6 +3249,7 @@ async function desarEditFlota(id){
   const cost = document.getElementById('ef-cost-'+id)?.value||'';
   const amortAnys = document.getElementById('ef-anys-'+id)?.value||'';
   const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0)?(parseFloat(cost)/parseFloat(amortAnys)).toFixed(2):'';
+  const horesInicials = document.getElementById('ef-hores-'+id)?.value||'';
   const msg = document.getElementById('ef-msg-'+id);
   
   // Find row index in sheet
@@ -3146,6 +3336,93 @@ function updateGastoChips(){
 function obrirSelectorParcellesGasto(){
   window._parcMode = 'gasto';
   document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+}
+
+
+// ── COMPONENTS AMORTITZABLES ────────────────────────────
+function afegirComponent(maqId){
+  const form = document.getElementById('ef-comp-form-'+maqId);
+  if(form) form.classList.toggle('hidden');
+  renderCompList(maqId);
+}
+
+function calcCompAmort(maqId){
+  const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
+  const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
+  const div = document.getElementById('ef-comp-result-'+maqId);
+  if(div && cost>0 && anys>0){
+    div.innerHTML = '<span class="amort-badge">'+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes</span>';
+  } else if(div) div.textContent='';
+}
+
+async function desarComponent(maqId){
+  const maq = flota.find(f=>f.id===maqId);
+  if(!maq) return;
+  const nom = document.getElementById('ef-comp-nom-'+maqId)?.value||'';
+  const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
+  const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
+  if(!nom||cost<=0||anys<=0){ alert('Omple tots els camps del component.'); return; }
+  const amortAnual = cost/anys;
+  const id = Date.now().toString();
+  setSyncing(true,'Desant component...');
+  try {
+    await appendRow(SHEET_COMPONENTS,[id,maqId,maq.nombre,nom,cost.toFixed(2),anys.toFixed(1),amortAnual.toFixed(2)]);
+    components.push({id,maquinaId:maqId,maquinaNom:maq.nombre,component:nom,cost,anys,amortAnual});
+    setSyncing(false,'Connectat a Google Sheets');
+    // Reset form
+    if(document.getElementById('ef-comp-cost-'+maqId)) document.getElementById('ef-comp-cost-'+maqId).value='';
+    if(document.getElementById('ef-comp-anys-'+maqId)) document.getElementById('ef-comp-anys-'+maqId).value='';
+    if(document.getElementById('ef-comp-result-'+maqId)) document.getElementById('ef-comp-result-'+maqId).textContent='';
+    document.getElementById('ef-comp-form-'+maqId)?.classList.add('hidden');
+    renderCompList(maqId);
+    renderFlota(); // refresh amort info
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+async function eliminarComponent(id){
+  if(!confirm('Eliminar aquest component?')) return;
+  const idx = components.findIndex(c=>c.id===id);
+  if(idx<0) return;
+  const maqId = components[idx].maquinaId;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:A');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>row[0]===id);
+    if(rowIdx>=0) await deleteRow(SHEET_COMPONENTS, rowIdx+1);
+    components.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
+    renderCompList(maqId);
+    renderFlota();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+function renderCompList(maqId){
+  const el = document.getElementById('ef-comp-list-'+maqId);
+  if(!el) return;
+  const comps = components.filter(c=>c.maquinaId===maqId);
+  if(!comps.length){ el.innerHTML='<div style="font-size:12px;color:var(--gris-texto)">Sense components registrats.</div>'; return; }
+  const total = comps.reduce((s,c)=>s+c.amortAnual,0);
+  el.innerHTML = comps.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+    <span><strong>${c.component}</strong> — ${fmt(c.cost)} / ${c.anys}anys</span>
+    <span style="display:flex;align-items:center;gap:8px">
+      <span class="amort-badge">${fmt(c.amortAnual)}/any</span>
+      <button class="btn btn-sm btn-danger" data-cid="${c.id}" style="padding:2px 6px;font-size:11px">✕</button>
+    </span>
+  </div>`).join('')+
+  `<div style="font-size:12px;font-weight:600;color:var(--naranja);margin-top:6px">Total components: ${fmt(total)}/any</div>`;
+  
+  if(!el._rl){
+    el.addEventListener('click',function(e){
+      const btn=e.target.closest('[data-cid]');
+      if(btn&&e.target.tagName==='BUTTON') eliminarComponent(btn.getAttribute('data-cid'));
+    });
+    el._rl=true;
+  }
+}
+
+function getTotalComponentsAmort(maqId){
+  return components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
