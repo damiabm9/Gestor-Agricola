@@ -623,7 +623,7 @@ async function ensureSheets(){
   if(!nombres.includes(SHEET_MANTENIMENTS)) toCreate.push({addSheet:{properties:{title:SHEET_MANTENIMENTS}}});
   if(toCreate.length){
     await sheetsReq(':batchUpdate','POST',{requests:toCreate});
-    await sheetsReq('/values/'+SHEET_MOV+'!A1:K1+:append?valueInputOption=RAW','POST',{values:[['ID','Fecha','Área','Tipo','Categoría','Concepto','Importe','Máquina','Apero','Horas','Notas']]});
+    await sheetsReq('/values/'+SHEET_MOV+'!A1:L1+:append?valueInputOption=RAW','POST',{values:[['ID','Data','Area','Tipus','Categoria','Concepte','Import','Maquina','Apero','Hores','Finca_Kg','Notes']]});
     await sheetsReq('/values/'+SHEET_FLOTA+'!A1:D1+:append?valueInputOption=RAW','POST',{values:[['ID','Tipo','Nombre','Ref']]});
   }
   setSyncing(false,'Connectat a Google Sheets');
@@ -682,6 +682,24 @@ function onAreaChange(){
   populateCat(area, tipo);
   document.getElementById('f-maq-wrap').classList.add('hidden');
   document.getElementById('f-amort-wrap').classList.add('hidden');
+  document.getElementById('f-finca-wrap').classList.add('hidden');
+  document.getElementById('f-tercers-wrap').classList.add('hidden');
+  // Cultius ingrés -> finca
+  if(area==='cultivos'&&tipo==='ingreso') document.getElementById('f-finca-wrap').classList.remove('hidden');
+  // Maquinaria ingrés treballs a tercers -> maquina+apero+hores
+  if(area==='maquinaria'&&tipo==='ingreso'){
+    const cat = document.getElementById('f-categoria').value;
+    if(cat==='Treballs a tercers') showTercersWrap();
+  }
+}
+
+function showTercersWrap(){
+  const wrap = document.getElementById('f-tercers-wrap');
+  wrap.classList.remove('hidden');
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos = flota.filter(f=>f.tipo==='apero');
+  document.getElementById('f-tercers-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
+  document.getElementById('f-tercers-apero').innerHTML='<option value="">— Cap —</option>'+aperos.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
 }
 function populateCat(area, tipo){
   const sel = document.getElementById('f-categoria');
@@ -694,6 +712,8 @@ function onCatChange(){
   const cat = document.getElementById('f-categoria').value;
   document.getElementById('f-maq-wrap').classList.add('hidden');
   document.getElementById('f-amort-wrap').classList.add('hidden');
+  document.getElementById('f-tercers-wrap').classList.add('hidden');
+  if(area==='maquinaria'&&tipo==='ingreso'&&cat==='Treballs a tercers') showTercersWrap();
   if(area==='maquinaria'&&tipo==='gasto'){
     if(['Dièsel / combustible','Reparacions','Assegurances'].includes(cat)){
       document.getElementById('f-maq-wrap').classList.remove('hidden');
@@ -751,7 +771,7 @@ async function addMovimiento(){
 }
 
 function clearForm(){
-  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-finca','f-kg','f-tercers-hores'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-tipo').value='ingreso';
   document.getElementById('f-area').value='cultivos';
   document.getElementById('amort-result').textContent='';
@@ -1008,6 +1028,99 @@ function renderRentabilitat(){
   renderAmortitzacions();
 }
 
+async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
+  try {
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:I');
+    const treballs = (r.values||[]).map(row=>({data:row[1]||'',maquina:row[4]||'',apero:row[5]||'',hores:parseFloat(row[6])||0}));
+    const anyActual = String(new Date().getFullYear());
+    const treballsAny = treballs.filter(t=>t.data.startsWith(anyActual));
+    
+    let totalHores = 0;
+    if(maqSel){
+      totalHores = treballsAny.filter(t=>t.maquina===maqSel||t.apero===maqSel).reduce((s,t)=>s+t.hores,0);
+    } else {
+      totalHores = treballsAny.reduce((s,t)=>s+t.hores,0);
+    }
+    
+    const MO_HORA = 20;
+    const costMO = totalHores * MO_HORA;
+    const costTotal = despesesReals + totalAmortAnual + costMO;
+    const costHora = totalHores>0 ? costTotal/totalHores : 0;
+    
+    const div = document.getElementById('rent-amort-body');
+    if(!div) return;
+    
+    const existingTable = div.querySelector('table');
+    const kpiGrid = div.querySelector('[style*="grid"]');
+    
+    const costHoraHtml = `<div style="margin-top:1rem;padding:1rem;background:var(--amarillo-claro);border:1px solid #ffe08a;border-radius:var(--radio)">
+      <div style="font-size:13px;font-weight:600;color:#7a5800;margin-bottom:10px">💶 Anàlisi de cost per hora — ${anyActual}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+        <div class="kpi"><div class="kpi-label">Hores treballades</div><div class="kpi-value" style="color:#333">${totalHores.toFixed(1)}h</div></div>
+        <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
+        <div class="kpi"><div class="kpi-label">Mà d'obra (${MO_HORA}€/h)</div><div class="kpi-value" style="color:var(--naranja)">${fmt(costMO)}</div></div>
+        <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
+        <div class="kpi"><div class="kpi-label">Cost total any</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
+        <div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white">${costHora>0?fmt(costHora):'-'}</div></div>
+      </div>
+      <div style="font-size:11px;color:#7a5800;margin-top:8px">Cost/hora = (Despeses reals + Mà d'obra + Amortització) ÷ Hores treballades l'any</div>
+    </div>`;
+    
+    div.insertAdjacentHTML('beforeend', costHoraHtml);
+  } catch(e){ console.error('Error renderCostHora', e); }
+}
+
+function renderFincaBreakdown(){
+  if(rentAreaActiva!=='cultivos') return;
+  // Find or create finca card
+  let fincaCard = document.getElementById('rent-finca-card');
+  if(!fincaCard){
+    const rentabilitat = document.getElementById('tab-rentabilidad');
+    fincaCard = document.createElement('div');
+    fincaCard.id = 'rent-finca-card';
+    fincaCard.className = 'card';
+    fincaCard.style.marginTop = '1rem';
+    rentabilitat.appendChild(fincaCard);
+  }
+  
+  // Extract finca from notas field (format: "... | Finca:X Kg:Y")
+  const cultData = movimientos.filter(m=>m.area==='cultivos');
+  const finques = {};
+  cultData.forEach(m=>{
+    const notas = m.notas||'';
+    const fincaMatch = notas.match(/Finca:([^|\s]+)/);
+    const kgMatch = notas.match(/Kg:(\d+)/);
+    if(fincaMatch&&fincaMatch[1]&&fincaMatch[1]!==''){
+      const finca = fincaMatch[1];
+      if(!finques[finca]) finques[finca]={ing:0,gas:0,kg:0};
+      if(m.tipo==='ingreso') finques[finca].ing+=m.importe;
+      else finques[finca].gas+=m.importe;
+      if(kgMatch) finques[finca].kg+=parseInt(kgMatch[1])||0;
+    }
+  });
+  
+  const finquesList = Object.entries(finques);
+  if(!finquesList.length){
+    fincaCard.innerHTML='<div class="card-title">🌾 Rendibilitat per finca</div><div class="empty">Encara no hi ha factures amb finca assignada.</div>';
+    return;
+  }
+  
+  let html='<div class="card-title">🌾 Rendibilitat per finca</div>';
+  html+='<table class="mov-table"><thead><tr><th>Finca</th><th style="text-align:right">Ingressos</th><th style="text-align:right">Despeses</th><th style="text-align:right">Marge</th><th style="text-align:right">Kg venuts</th></tr></thead><tbody>';
+  finquesList.forEach(([finca,d])=>{
+    const marge=d.ing-d.gas;
+    html+=`<tr>
+      <td><span class="badge badge-area">🌾 ${finca}</span></td>
+      <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(d.ing)}</td>
+      <td style="text-align:right;color:var(--rojo);font-weight:600">${fmt(d.gas)}</td>
+      <td style="text-align:right;font-weight:700;color:${marge>=0?'var(--verde)':'var(--rojo)'}">${fmt(marge)}</td>
+      <td style="text-align:right">${d.kg>0?d.kg.toLocaleString('es-ES')+' kg':'—'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  fincaCard.innerHTML=html;
+}
+
 function renderRentabilidad(){ renderRentabilitat(); }
 
 function renderAmortitzacions(){
@@ -1017,7 +1130,9 @@ function renderAmortitzacions(){
 
   // Only show when maquinaria is selected or all
   if(rentAreaActiva!=='totes'&&rentAreaActiva!=='maquinaria'){
-    card.style.display='none'; return;
+    card.style.display='none';
+    renderFincaBreakdown();
+    return;
   }
   card.style.display='block';
 
@@ -1063,11 +1178,24 @@ function renderAmortitzacions(){
   const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
   const costTotal = despesesReals + totalAmortAnual;
 
+  // Hores totals de l'any de cada màquina (des de treballs)
+  const anyActualStr = String(anyActual);
+  // Hores des de treballs registrats
+  let totalHoresTreballs = 0;
+  // We need to load treballs - use a simpler approach with stored data
+  // Calculate cost/hour
+  const MO_HORA = 20; // €/hora mà d'obra
+  
+  // Get hores from treballs sheet if available - for now calculate from what we know
+  // Total hours worked this year on maquinaria from treballs
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem">
     <div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">${fmt(despesesReals)}</div></div>
     <div class="kpi"><div class="kpi-label">Amortització anual</div><div class="kpi-value" style="color:var(--naranja)">${fmt(totalAmortAnual)}</div></div>
     <div class="kpi"><div class="kpi-label">Cost total (real + amort.)</div><div class="kpi-value neg">${fmt(costTotal)}</div></div>
   </div>`;
+  
+  // Cost per hora - need treballs data
+  renderCostHora(maqSel, despesesReals, totalAmortAnual);
 
   body.innerHTML = html;
 }
