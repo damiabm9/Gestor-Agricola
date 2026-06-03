@@ -401,6 +401,49 @@
     </div>
   </div>
 
+  <!-- PARCELLES -->
+  <div id="tab-parcelles" class="section">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid #f0f0f0">
+        <div class="card-title" style="margin-bottom:.5rem">🗺️ Parcel·les — Pinos <span id="parc-ha-total" style="font-size:12px;color:var(--gris-texto);font-weight:400"></span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="parc-cerca" placeholder="Buscar per nom..." oninput="filtrarParcelles()" style="width:180px;padding:6px 10px;font-size:12px"/>
+          <span id="parc-count" style="font-size:12px;color:var(--gris-texto)">140 parcelles</span>
+        </div>
+      </div>
+      <div id="parc-map" style="height:480px;width:100%;min-height:480px;display:block"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title">Llista de parcelles</div>
+      <div style="max-height:320px;overflow-y:auto">
+        <table class="mov-table">
+          <thead><tr><th>Nom</th><th style="text-align:right">Ha</th></tr></thead>
+          <tbody id="parc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>🏡 Finques (grups de parcelles)</span>
+        <button class="btn btn-sm btn-primary" onclick="mostrarFormFinca()">+ Crear finca</button>
+      </div>
+      <div id="finca-form" class="hidden" style="margin-bottom:1rem;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div class="form-row g2" style="margin-bottom:8px">
+          <div><label>Nom de la finca</label><input type="text" id="finca-nom" placeholder="Ex: Finca de Baix..."/></div>
+          <div style="display:flex;align-items:flex-end"><span id="finca-ha-preview" style="font-size:13px;color:var(--verde);font-weight:500"></span></div>
+        </div>
+        <div style="font-size:12px;color:var(--gris-texto);margin-bottom:8px;font-weight:500">Selecciona les parcelles al mapa o a la llista:</div>
+        <div id="finca-parc-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:24px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="guardarFinca()">Guardar finca</button>
+          <button class="btn btn-sm" onclick="cancelarFinca()">Cancel·lar</button>
+        </div>
+        <div id="finca-msg" style="font-size:12px;margin-top:6px"></div>
+      </div>
+      <div id="finques-list"></div>
+    </div>
+  </div>
+
   <!-- MOVIMIENTOS -->
   <div id="tab-movimientos" class="section">
     <div class="card">
@@ -752,7 +795,7 @@ function showTab(t, btn){
   if(t==='rentabilidad') renderRentabilitat();
   if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); }
   if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
-  if(t==='parcelles'){ initParcelMap(); renderFinquesList(); }
+  if(t==='parcelles'){ initParcelMap(); renderFinquesList(); setTimeout(()=>{ if(parcMap) parcMap.invalidateSize(); },300); }
 }
 
 // ── FORMULARIO ─────────────────────────────────────────
@@ -1694,7 +1737,7 @@ let treballParcelles=[];
 let vendaParcelles=[]; // parcel·les seleccionades per venda de cereal
 
 async function initParcelMap(){
-  if(parcMap) return;
+  if(parcMap){ setTimeout(()=>parcMap.invalidateSize(),100); return; }
   await loadParcData();
   if(!PARC_DATA){document.getElementById("parc-map").innerHTML="<div class='empty'>Error carregant les parcel·les.</div>";return;}
   setTimeout(()=>{
@@ -1711,6 +1754,7 @@ async function initParcelMap(){
       }
     }).addTo(parcMap);
     parcMap.fitBounds(parcLayer.getBounds(),{padding:[10,10]});
+    setTimeout(()=>parcMap.invalidateSize(),200);
     renderParcList(PARC_DATA.features);
     const tot=PARC_DATA.features.reduce((s,f)=>s+f.properties.ha,0);
     document.getElementById('parc-ha-total').textContent='Total: '+tot.toFixed(2)+' ha';
@@ -3014,7 +3058,7 @@ treballParcelles=[];
 vendaParcelles=[]; // parcel·les seleccionades per venda de cereal
 
 async function initParcelMap(){
-  if(parcMap) return;
+  if(parcMap){ setTimeout(()=>parcMap.invalidateSize(),100); return; }
   await loadParcData();
   if(!PARC_DATA){document.getElementById("parc-map").innerHTML="<div class='empty'>Error carregant les parcel·les.</div>";return;}
   setTimeout(()=>{
@@ -3031,6 +3075,7 @@ async function initParcelMap(){
       }
     }).addTo(parcMap);
     parcMap.fitBounds(parcLayer.getBounds(),{padding:[10,10]});
+    setTimeout(()=>parcMap.invalidateSize(),200);
     renderParcList(PARC_DATA.features);
     const tot=PARC_DATA.features.reduce((s,f)=>s+f.properties.ha,0);
     document.getElementById('parc-ha-total').textContent='Total: '+tot.toFixed(2)+' ha';
