@@ -684,9 +684,11 @@ function onAreaChange(){
   document.getElementById('f-amort-wrap').classList.add('hidden');
   document.getElementById('f-finca-wrap').classList.add('hidden');
   document.getElementById('f-tercers-wrap').classList.add('hidden');
-  // Cultius ingrés -> finca
-  if(area==='cultivos'&&tipo==='ingreso') document.getElementById('f-finca-wrap').classList.remove('hidden');
-  // Maquinaria ingrés treballs a tercers -> maquina+apero+hores
+  // Cultius ingrés -> sempre mostra finca (totes les categories d'ingrés de cultius)
+  if(area==='cultivos'&&tipo==='ingreso'){
+    document.getElementById('f-finca-wrap').classList.remove('hidden');
+  }
+  // Maquinaria ingrés -> comprova categoria després de populateCat
   if(area==='maquinaria'&&tipo==='ingreso'){
     const cat = document.getElementById('f-categoria').value;
     if(cat==='Treballs a tercers') showTercersWrap();
@@ -713,6 +715,12 @@ function onCatChange(){
   document.getElementById('f-maq-wrap').classList.add('hidden');
   document.getElementById('f-amort-wrap').classList.add('hidden');
   document.getElementById('f-tercers-wrap').classList.add('hidden');
+  // Cultius ingrés -> sempre finca visible
+  if(area==='cultivos'&&tipo==='ingreso'){
+    document.getElementById('f-finca-wrap').classList.remove('hidden');
+  } else {
+    document.getElementById('f-finca-wrap').classList.add('hidden');
+  }
   if(area==='maquinaria'&&tipo==='ingreso'&&cat==='Treballs a tercers') showTercersWrap();
   if(area==='maquinaria'&&tipo==='gasto'){
     if(['Dièsel / combustible','Reparacions','Assegurances'].includes(cat)){
@@ -1486,6 +1494,8 @@ function calcAmortLib(){
 
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
+// Init treballs form to show correct fields
+onTipusFeinaChange();
 document.getElementById('rep-data').valueAsDate=new Date();
 document.getElementById('mant-data').valueAsDate=new Date();
 
