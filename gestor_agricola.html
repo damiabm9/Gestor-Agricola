@@ -743,8 +743,10 @@ function setSyncing(loading, msg, err=false){
 function showTab(t, btn){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('visible'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+t).classList.add('visible');
-  btn.classList.add('active');
+  const tabEl = document.getElementById('tab-'+t);
+  if(!tabEl) return;
+  tabEl.classList.add('visible');
+  if(btn) btn.classList.add('active');
   if(t==='resumen') renderResumen();
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
@@ -768,13 +770,15 @@ function onAreaChange(){
   // Pollastres: Nau A/B selector
   const nauWrap = document.getElementById('f-nau-wrap');
   if(nauWrap) nauWrap.classList.toggle('hidden', area!=='pollos');
+  const cultiuGastoWrap = document.getElementById('f-cultiu-gasto-wrap');
+  // handled below
   if(area==='cultivos'&&tipo==='ingreso'){
     document.getElementById('f-finca-wrap').classList.remove('hidden');
-    document.getElementById('f-cultiu-gasto-wrap').classList.add('hidden');
+    document.getElementById('f-cultiu-gasto-wrap')?.classList.add('hidden');
     populateVendaFincaSel();
     onVendaModeChange();
   } else if(area==='cultivos'&&tipo==='gasto'){
-    document.getElementById('f-cultiu-gasto-wrap').classList.remove('hidden');
+    document.getElementById('f-cultiu-gasto-wrap')?.classList.remove('hidden');
     document.getElementById('f-llavor-wrap').classList.toggle('hidden', cat!=='Llavors');
     populateCultiuGastoSel();
   }
@@ -809,18 +813,20 @@ function onCatChange(){
   // Pollastres: Nau A/B selector
   const nauWrap = document.getElementById('f-nau-wrap');
   if(nauWrap) nauWrap.classList.toggle('hidden', area!=='pollos');
+  const cultiuGastoWrap = document.getElementById('f-cultiu-gasto-wrap');
+  // handled below
   if(area==='cultivos'&&tipo==='ingreso'){
     document.getElementById('f-finca-wrap').classList.remove('hidden');
-    document.getElementById('f-cultiu-gasto-wrap').classList.add('hidden');
+    document.getElementById('f-cultiu-gasto-wrap')?.classList.add('hidden');
     populateVendaFincaSel();
     onVendaModeChange();
   } else if(area==='cultivos'&&tipo==='gasto'){
     document.getElementById('f-finca-wrap').classList.add('hidden');
-    document.getElementById('f-cultiu-gasto-wrap').classList.remove('hidden');
+    document.getElementById('f-cultiu-gasto-wrap')?.classList.remove('hidden');
     populateCultiuGastoSel();
   } else {
     document.getElementById('f-finca-wrap').classList.add('hidden');
-    document.getElementById('f-cultiu-gasto-wrap').classList.add('hidden');
+    document.getElementById('f-cultiu-gasto-wrap')?.classList.add('hidden');
   }
   if(area==='maquinaria'&&tipo==='ingreso'&&cat==='Treballs a tercers') showTercersWrap();
   if(area==='maquinaria'&&tipo==='gasto'){
@@ -1816,7 +1822,8 @@ function obrirSelectorParcellesVenda(){
 }
 
 function obrirSelectorParcelles(){
-  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+  window._parcMode = window._parcMode||'treball';
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent&&t.textContent.includes('Parcel')) t.click();});
 }
 
 function filtrarParcelles(){
@@ -3135,7 +3142,8 @@ function obrirSelectorParcellesVenda(){
 }
 
 function obrirSelectorParcelles(){
-  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.includes('Parcel')) t.click();});
+  window._parcMode = window._parcMode||'treball';
+  document.querySelectorAll('.tab').forEach(t=>{if(t.textContent&&t.textContent.includes('Parcel')) t.click();});
 }
 
 function filtrarParcelles(){
@@ -3419,19 +3427,7 @@ document.getElementById('rep-data').valueAsDate=new Date();
 document.getElementById('mant-data').valueAsDate=new Date();
 
 // ── TREBALLS ───────────────────────────────────────────
-function onTipusFeinaChange(){
-  const tipus = document.getElementById('t-tipus').value;
-  ['sembrar','ensulfatar','purins','fems'].forEach(t=>{
-    document.getElementById('extra-'+t).classList.add('hidden');
-  });
-  if(tipus==='Sembrar') document.getElementById('extra-sembrar').classList.remove('hidden');
-  if(tipus==='Ensulfatar'){
-    document.getElementById('extra-ensulfatar').classList.remove('hidden');
-    if(document.getElementById('productes-wrap').children.length===0) addProducte();
-  }
-  if(tipus==='Aplicar Purins') document.getElementById('extra-purins').classList.remove('hidden');
-  if(tipus==='Aplicar Fems') document.getElementById('extra-fems').classList.remove('hidden');
-}
+function onTipusFeinaChange(){ /* simplified - details moved to Registre Factures */ }
 
 function addProducte(){
   const wrap = document.getElementById('productes-wrap');
