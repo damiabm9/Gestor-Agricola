@@ -245,9 +245,8 @@
               </select>
             </div>
             <div id="f-venda-finca-wrap">
-              <label>Finques (pots triar varies)</label>
-              <select id="f-venda-finca" multiple style="height:80px;font-size:12px" onchange="onVendaFincaChange()">
-              </select>
+              <label>Finques</label>
+              <div id="f-venda-finca-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
             </div>
           </div>
           <div id="f-venda-parc-btn" class="hidden">
@@ -279,9 +278,8 @@
               </select>
             </div>
             <div id="f-gasto-finca-wrap">
-              <label>Finques (pots triar varies)</label>
-              <select id="f-gasto-finca" multiple style="height:80px;font-size:12px" onchange="onGastoFincaChange()">
-              </select>
+              <label>Finques</label>
+              <div id="f-gasto-finca-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
             </div>
           </div>
           <div id="f-gasto-parc-btn" class="hidden">
@@ -422,8 +420,8 @@
             </select>
           </div>
           <div id="t-finca-multi-wrap">
-            <label>Finques (pots triar varies)</label>
-            <select id="t-finques-sel" multiple style="height:80px;font-size:12px"></select>
+            <label>Finques</label>
+            <div id="t-finques-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
           </div>
         </div>
         <div id="t-parc-btn-wrap" class="hidden">
@@ -905,6 +903,7 @@ async function loadFromSheets(){
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
       finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
     } catch(e){ finques=[]; }
+    setTimeout(refreshAllFincaBtns, 100);
     try {
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
       components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0}));
@@ -2056,9 +2055,7 @@ function onVendaModeChange(){
 }
 
 function populateVendaFincaSel(){
-  const sel = document.getElementById('f-venda-finca');
-  if(!sel) return;
-  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  renderFincaBtns('f-venda-finca-btns', [], function(selIds){ applyFincesToParcelles(selIds,'venda'); });
 }
 
 function onVendaFincaChange(){
@@ -2359,9 +2356,7 @@ function calcLlavorCost(){
 let gastoParcelles = [];
 
 function populateCultiuGastoSel(){
-  const sel = document.getElementById('f-gasto-finca');
-  if(!sel) return;
-  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  renderFincaBtns('f-gasto-finca-btns', [], function(selIds){ applyFincesToParcelles(selIds,'gasto'); });
 }
 
 function onGastoModeChange(){
@@ -2380,20 +2375,7 @@ function onGastoModeChange(){
 }
 
 function onGastoFincaChange(){
-  const sel = document.getElementById('f-gasto-finca');
-  if(!sel) return;
-  gastoParcelles = [];
-  Array.from(sel.selectedOptions).forEach(opt=>{
-    const finca = finques.find(f=>f.id===opt.value);
-    if(!finca||!PARC_DATA) return;
-    finca.parcellesIds.forEach(pid=>{
-      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-      if(feat && !gastoParcelles.find(p=>p.id===pid)){
-        gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
-      }
-    });
-  });
-  updateGastoChips();
+  // handled by renderFincaBtns callback
 }
 
 function updateGastoChips(){
@@ -2720,29 +2702,10 @@ function onTrebParcModeChange(){
 }
 
 function populateTrebFinquesSel(){
-  const sel = document.getElementById('t-finques-sel');
-  if(!sel) return;
-  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
-  sel.addEventListener('change', onTrebFincaChange);
-  sel._hasListener = true;
+  renderFincaBtns('t-finques-btns', [], function(selIds){ applyFincesToParcelles(selIds,'treball'); });
 }
 
-function onTrebFincaChange(){
-  const sel = document.getElementById('t-finques-sel');
-  if(!sel||!PARC_DATA) return;
-  treballParcelles = [];
-  Array.from(sel.selectedOptions).forEach(opt=>{
-    const finca = finques.find(f=>f.id===opt.value);
-    if(!finca) return;
-    finca.parcellesIds.forEach(pid=>{
-      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-      if(feat && !treballParcelles.find(p=>p.id===pid)){
-        treballParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
-      }
-    });
-  });
-  updateTreballParcChips();
-}
+function onTrebFincaChange(){ /* handled by renderFincaBtns */ }
 
 
 async function desarEditFinca(id){
@@ -2774,6 +2737,54 @@ async function desarEditFinca(id){
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ document.getElementById('edit-finca-'+id)?.classList.add('hidden'); renderFinquesList(); },800);
   } catch(e){ setSyncing(false,'Error',true); if(msg){ msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; } }
+}
+
+
+// ── FINCA BUTTON TOGGLE ─────────────────────────────────
+function renderFincaBtns(containerId, selectedIds, onChange){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  if(!finques.length){ wrap.innerHTML='<span style="font-size:12px;color:var(--gris-texto)">Sense finques creades. Ves a Parcel·les per crear-ne.</span>'; return; }
+  wrap.innerHTML = finques.map(f=>{
+    const sel = selectedIds.includes(f.id);
+    return '<button class="finca-btn'+(sel?' selected':'')+'" data-fid="'+f.id+'" data-container="'+containerId+'" type="button">'+
+      '🏡 '+f.nom+'<span style="font-size:10px;margin-left:4px;opacity:0.8">('+f.ha+'ha'+(f.arrendament>0?' · '+fmt(f.arrendament)+'/any':'')+') </span>'+
+    '</button>';
+  }).join('');
+  if(!wrap._rl){
+    wrap.addEventListener('click', function(e){
+      const btn = e.target.closest('.finca-btn');
+      if(!btn) return;
+      btn.classList.toggle('selected');
+      const selIds = Array.from(wrap.querySelectorAll('.finca-btn.selected')).map(b=>b.dataset.fid);
+      if(onChange) onChange(selIds);
+    });
+    wrap._rl = true;
+  }
+}
+
+function applyFincesToParcelles(selIds, mode){
+  const parcelles = [];
+  selIds.forEach(fid=>{
+    const finca = finques.find(f=>f.id===fid);
+    if(!finca||!PARC_DATA) return;
+    finca.parcellesIds.forEach(pid=>{
+      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+      if(feat && !parcelles.find(p=>p.id===pid)){
+        parcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+      }
+    });
+  });
+  if(mode==='treball'){ treballParcelles=parcelles; updateTreballParcChips(); }
+  else if(mode==='venda'){ vendaParcelles=parcelles; updateVendaChips(); }
+  else if(mode==='gasto'){ gastoParcelles=parcelles; updateGastoChips(); }
+}
+
+// Refresh finca buttons when finques are loaded
+function refreshAllFincaBtns(){
+  if(document.getElementById('t-finques-btns')) populateTrebFinquesSel();
+  if(document.getElementById('f-venda-finca-btns')) populateVendaFincaSel();
+  if(document.getElementById('f-gasto-finca-btns')) populateCultiuGastoSel();
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
@@ -3806,9 +3817,7 @@ function calcLlavorCost(){
 gastoParcelles = [];
 
 function populateCultiuGastoSel(){
-  const sel = document.getElementById('f-gasto-finca');
-  if(!sel) return;
-  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
+  renderFincaBtns('f-gasto-finca-btns', [], function(selIds){ applyFincesToParcelles(selIds,'gasto'); });
 }
 
 function onGastoModeChange(){
@@ -3827,20 +3836,7 @@ function onGastoModeChange(){
 }
 
 function onGastoFincaChange(){
-  const sel = document.getElementById('f-gasto-finca');
-  if(!sel) return;
-  gastoParcelles = [];
-  Array.from(sel.selectedOptions).forEach(opt=>{
-    const finca = finques.find(f=>f.id===opt.value);
-    if(!finca||!PARC_DATA) return;
-    finca.parcellesIds.forEach(pid=>{
-      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-      if(feat && !gastoParcelles.find(p=>p.id===pid)){
-        gastoParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
-      }
-    });
-  });
-  updateGastoChips();
+  // handled by renderFincaBtns callback
 }
 
 function updateGastoChips(){
@@ -4167,29 +4163,10 @@ function onTrebParcModeChange(){
 }
 
 function populateTrebFinquesSel(){
-  const sel = document.getElementById('t-finques-sel');
-  if(!sel) return;
-  sel.innerHTML = finques.map(f=>'<option value="'+f.id+'">🏡 '+f.nom+' ('+f.ha+' ha)</option>').join('');
-  sel.addEventListener('change', onTrebFincaChange);
-  sel._hasListener = true;
+  renderFincaBtns('t-finques-btns', [], function(selIds){ applyFincesToParcelles(selIds,'treball'); });
 }
 
-function onTrebFincaChange(){
-  const sel = document.getElementById('t-finques-sel');
-  if(!sel||!PARC_DATA) return;
-  treballParcelles = [];
-  Array.from(sel.selectedOptions).forEach(opt=>{
-    const finca = finques.find(f=>f.id===opt.value);
-    if(!finca) return;
-    finca.parcellesIds.forEach(pid=>{
-      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-      if(feat && !treballParcelles.find(p=>p.id===pid)){
-        treballParcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
-      }
-    });
-  });
-  updateTreballParcChips();
-}
+function onTrebFincaChange(){ /* handled by renderFincaBtns */ }
 
 
 async function desarEditFinca(id){
@@ -4221,6 +4198,54 @@ async function desarEditFinca(id){
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ document.getElementById('edit-finca-'+id)?.classList.add('hidden'); renderFinquesList(); },800);
   } catch(e){ setSyncing(false,'Error',true); if(msg){ msg.style.color='var(--rojo)'; msg.textContent='Error en desar.'; } }
+}
+
+
+// ── FINCA BUTTON TOGGLE ─────────────────────────────────
+function renderFincaBtns(containerId, selectedIds, onChange){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  if(!finques.length){ wrap.innerHTML='<span style="font-size:12px;color:var(--gris-texto)">Sense finques creades. Ves a Parcel·les per crear-ne.</span>'; return; }
+  wrap.innerHTML = finques.map(f=>{
+    const sel = selectedIds.includes(f.id);
+    return '<button class="finca-btn'+(sel?' selected':'')+'" data-fid="'+f.id+'" data-container="'+containerId+'" type="button">'+
+      '🏡 '+f.nom+'<span style="font-size:10px;margin-left:4px;opacity:0.8">('+f.ha+'ha'+(f.arrendament>0?' · '+fmt(f.arrendament)+'/any':'')+') </span>'+
+    '</button>';
+  }).join('');
+  if(!wrap._rl){
+    wrap.addEventListener('click', function(e){
+      const btn = e.target.closest('.finca-btn');
+      if(!btn) return;
+      btn.classList.toggle('selected');
+      const selIds = Array.from(wrap.querySelectorAll('.finca-btn.selected')).map(b=>b.dataset.fid);
+      if(onChange) onChange(selIds);
+    });
+    wrap._rl = true;
+  }
+}
+
+function applyFincesToParcelles(selIds, mode){
+  const parcelles = [];
+  selIds.forEach(fid=>{
+    const finca = finques.find(f=>f.id===fid);
+    if(!finca||!PARC_DATA) return;
+    finca.parcellesIds.forEach(pid=>{
+      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+      if(feat && !parcelles.find(p=>p.id===pid)){
+        parcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+      }
+    });
+  });
+  if(mode==='treball'){ treballParcelles=parcelles; updateTreballParcChips(); }
+  else if(mode==='venda'){ vendaParcelles=parcelles; updateVendaChips(); }
+  else if(mode==='gasto'){ gastoParcelles=parcelles; updateGastoChips(); }
+}
+
+// Refresh finca buttons when finques are loaded
+function refreshAllFincaBtns(){
+  if(document.getElementById('t-finques-btns')) populateTrebFinquesSel();
+  if(document.getElementById('f-venda-finca-btns')) populateVendaFincaSel();
+  if(document.getElementById('f-gasto-finca-btns')) populateCultiuGastoSel();
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
