@@ -464,6 +464,10 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="text" id="parc-cerca" placeholder="Buscar per nom..." oninput="filtrarParcelles()" style="width:180px;padding:6px 10px;font-size:12px"/>
           <span id="parc-count" style="font-size:12px;color:var(--gris-texto)">140 parcelles</span>
+          <button id="parc-delete-btn" class="btn btn-sm" onclick="toggleDeleteMode()" style="margin-left:auto">🗑️ Mode eliminar</button>
+        </div>
+        <div id="parc-delete-info" class="hidden" style="margin-top:6px;padding:6px 10px;background:var(--rojo-claro);border-radius:var(--radio-sm);font-size:12px;color:var(--rojo)">
+          Mode eliminar actiu — fes clic a una parcel·la al mapa o a la llista per eliminar-la. Fes clic a "Mode eliminar" per sortir.
         </div>
       </div>
       <div id="parc-map" style="height:480px;width:100%;min-height:480px;display:block"></div>
@@ -1998,6 +2002,10 @@ function styleParcel(selected){
 }
 
 function toggleParcelLayer(p,layer){
+  if(deleteMode){
+    eliminarParcel·la(p.id);
+    return;
+  }
   const mode=window._parcMode||'treball';
   if(mode==='finca'){
     const idx=fincaParcelles.findIndex(x=>x.id===p.id);
@@ -2126,6 +2134,11 @@ function renderParcList(features){
 }
 
 function toggleParcelFromList(id){
+  if(deleteMode){
+    eliminarParcel·la(id);
+    renderParcList(PARC_DATA?PARC_DATA.features:[]);
+    return;
+  }
   if(!PARC_DATA) return;
   const feat=PARC_DATA.features.find(f=>f.properties.id===id);
   if(!feat) return;
@@ -2747,8 +2760,11 @@ function renderFincaBtns(containerId, selectedIds, onChange){
   if(!finques.length){ wrap.innerHTML='<span style="font-size:12px;color:var(--gris-texto)">Sense finques creades. Ves a Parcel·les per crear-ne.</span>'; return; }
   wrap.innerHTML = finques.map(f=>{
     const sel = selectedIds.includes(f.id);
+    const arrTxt = f.arrendament>0 ? ' · '+fmt(f.arrendament)+'/any' : '';
     return '<button class="finca-btn'+(sel?' selected':'')+'" data-fid="'+f.id+'" data-container="'+containerId+'" type="button">'+
-      '🏡 '+f.nom+'<span style="font-size:10px;margin-left:4px;opacity:0.8">('+f.ha+'ha'+(f.arrendament>0?' · '+fmt(f.arrendament)+'/any':'')+') </span>'+
+      '<span class="finca-check">'+(sel?'✓':'')+'</span>'+
+      '<span><strong>'+f.nom+'</strong></span>'+
+      '<span class="finca-ha-badge">'+f.ha+'ha'+arrTxt+'</span>'+
     '</button>';
   }).join('');
   if(!wrap._rl){
@@ -2756,6 +2772,8 @@ function renderFincaBtns(containerId, selectedIds, onChange){
       const btn = e.target.closest('.finca-btn');
       if(!btn) return;
       btn.classList.toggle('selected');
+      const check = btn.querySelector('.finca-check');
+      if(check) check.textContent = btn.classList.contains('selected') ? '✓' : '';
       const selIds = Array.from(wrap.querySelectorAll('.finca-btn.selected')).map(b=>b.dataset.fid);
       if(onChange) onChange(selIds);
     });
@@ -2785,6 +2803,57 @@ function refreshAllFincaBtns(){
   if(document.getElementById('t-finques-btns')) populateTrebFinquesSel();
   if(document.getElementById('f-venda-finca-btns')) populateVendaFincaSel();
   if(document.getElementById('f-gasto-finca-btns')) populateCultiuGastoSel();
+}
+
+
+// ── ELIMINAR PARCEL·LES ─────────────────────────────────
+let deleteMode = false;
+
+function toggleDeleteMode(){
+  deleteMode = !deleteMode;
+  const btn = document.getElementById('parc-delete-btn');
+  const info = document.getElementById('parc-delete-info');
+  if(btn){
+    btn.textContent = deleteMode ? '✓ Sortir de mode eliminar' : '🗑️ Mode eliminar';
+    btn.style.background = deleteMode ? 'var(--rojo)' : '';
+    btn.style.color = deleteMode ? 'white' : '';
+    btn.style.borderColor = deleteMode ? 'var(--rojo)' : '';
+  }
+  if(info) info.classList.toggle('hidden', !deleteMode);
+  // Update map cursor
+  if(parcMap) parcMap.getContainer().style.cursor = deleteMode ? 'crosshair' : '';
+}
+
+async function eliminarParcel·la(id){
+  if(!PARC_DATA) return;
+  const feat = PARC_DATA.features.find(f=>f.properties.id===id);
+  if(!feat) return;
+  const nom = feat.properties.nom;
+  if(!confirm('Eliminar la parcel·la "'+nom+'"? Aquesta acció no es pot desfer.')) return;
+
+  // Remove from PARC_DATA
+  PARC_DATA.features = PARC_DATA.features.filter(f=>f.properties.id!==id);
+
+  // Remove from map
+  if(parcAllLayers[id]){
+    parcLayer.removeLayer(parcAllLayers[id]);
+    delete parcAllLayers[id];
+  }
+
+  // Update count
+  const countEl = document.getElementById('parc-count');
+  if(countEl) countEl.textContent = PARC_DATA.features.length+' parcelles';
+
+  // Re-render list
+  renderParcList(PARC_DATA.features);
+
+  // Save updated geojson to GitHub Pages is not possible directly
+  // But we can save a list of deleted IDs to Sheets
+  try {
+    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
+  } catch(e){ /* silent - sheet might not exist */ }
+
+  setSyncing(false,'Parcel·la eliminada (sessio actual)');
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
@@ -4208,8 +4277,11 @@ function renderFincaBtns(containerId, selectedIds, onChange){
   if(!finques.length){ wrap.innerHTML='<span style="font-size:12px;color:var(--gris-texto)">Sense finques creades. Ves a Parcel·les per crear-ne.</span>'; return; }
   wrap.innerHTML = finques.map(f=>{
     const sel = selectedIds.includes(f.id);
+    const arrTxt = f.arrendament>0 ? ' · '+fmt(f.arrendament)+'/any' : '';
     return '<button class="finca-btn'+(sel?' selected':'')+'" data-fid="'+f.id+'" data-container="'+containerId+'" type="button">'+
-      '🏡 '+f.nom+'<span style="font-size:10px;margin-left:4px;opacity:0.8">('+f.ha+'ha'+(f.arrendament>0?' · '+fmt(f.arrendament)+'/any':'')+') </span>'+
+      '<span class="finca-check">'+(sel?'✓':'')+'</span>'+
+      '<span><strong>'+f.nom+'</strong></span>'+
+      '<span class="finca-ha-badge">'+f.ha+'ha'+arrTxt+'</span>'+
     '</button>';
   }).join('');
   if(!wrap._rl){
@@ -4217,6 +4289,8 @@ function renderFincaBtns(containerId, selectedIds, onChange){
       const btn = e.target.closest('.finca-btn');
       if(!btn) return;
       btn.classList.toggle('selected');
+      const check = btn.querySelector('.finca-check');
+      if(check) check.textContent = btn.classList.contains('selected') ? '✓' : '';
       const selIds = Array.from(wrap.querySelectorAll('.finca-btn.selected')).map(b=>b.dataset.fid);
       if(onChange) onChange(selIds);
     });
@@ -4246,6 +4320,56 @@ function refreshAllFincaBtns(){
   if(document.getElementById('t-finques-btns')) populateTrebFinquesSel();
   if(document.getElementById('f-venda-finca-btns')) populateVendaFincaSel();
   if(document.getElementById('f-gasto-finca-btns')) populateCultiuGastoSel();
+}
+
+
+// ── ELIMINAR PARCEL·LES ─────────────────────────────────
+
+function toggleDeleteMode(){
+  deleteMode = !deleteMode;
+  const btn = document.getElementById('parc-delete-btn');
+  const info = document.getElementById('parc-delete-info');
+  if(btn){
+    btn.textContent = deleteMode ? '✓ Sortir de mode eliminar' : '🗑️ Mode eliminar';
+    btn.style.background = deleteMode ? 'var(--rojo)' : '';
+    btn.style.color = deleteMode ? 'white' : '';
+    btn.style.borderColor = deleteMode ? 'var(--rojo)' : '';
+  }
+  if(info) info.classList.toggle('hidden', !deleteMode);
+  // Update map cursor
+  if(parcMap) parcMap.getContainer().style.cursor = deleteMode ? 'crosshair' : '';
+}
+
+async function eliminarParcel·la(id){
+  if(!PARC_DATA) return;
+  const feat = PARC_DATA.features.find(f=>f.properties.id===id);
+  if(!feat) return;
+  const nom = feat.properties.nom;
+  if(!confirm('Eliminar la parcel·la "'+nom+'"? Aquesta acció no es pot desfer.')) return;
+
+  // Remove from PARC_DATA
+  PARC_DATA.features = PARC_DATA.features.filter(f=>f.properties.id!==id);
+
+  // Remove from map
+  if(parcAllLayers[id]){
+    parcLayer.removeLayer(parcAllLayers[id]);
+    delete parcAllLayers[id];
+  }
+
+  // Update count
+  const countEl = document.getElementById('parc-count');
+  if(countEl) countEl.textContent = PARC_DATA.features.length+' parcelles';
+
+  // Re-render list
+  renderParcList(PARC_DATA.features);
+
+  // Save updated geojson to GitHub Pages is not possible directly
+  // But we can save a list of deleted IDs to Sheets
+  try {
+    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
+  } catch(e){ /* silent - sheet might not exist */ }
+
+  setSyncing(false,'Parcel·la eliminada (sessio actual)');
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
