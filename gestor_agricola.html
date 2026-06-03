@@ -141,13 +141,12 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showTab('resumen',this)">📊 Resum</button>
-    <button class="tab" onclick="showTab('registrar',this)">🧾 Registre Factures</button>
+    <button class="tab" onclick="showTab('registrar',this)">🧾 Factures</button>
     <button class="tab" onclick="showTab('treballs',this)">👷 Treballs</button>
     <button class="tab" onclick="showTab('parcelles',this)">🗺️ Parcel·les</button>
     <button class="tab" onclick="showTab('movimientos',this)">📋 Moviments</button>
     <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
-    <button class="tab" onclick="showTab('comparador',this)">🧮 Comparador</button>
   </div>
 
   <!-- RESUMEN -->
@@ -308,6 +307,43 @@
         </div>
       </div>
 
+      <!-- Maquinaria gasto Reparacions: detalls -->
+      <div id="f-rep-wrap" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🔩 Detalls de la reparació</div>
+        <div class="form-row g2">
+          <div><label>Fet per</label>
+            <select id="f-rep-fet" onchange="onRepFetChange()">
+              <option value="Nosaltres">Nosaltres</option>
+              <option value="Mecànic extern">Mecànic extern</option>
+            </select>
+          </div>
+          <div id="f-rep-qui-wrap"><label>Qui</label>
+            <select id="f-rep-qui">
+              <option value="Damià">Damià</option>
+              <option value="Joan">Joan</option>
+              <option value="Roger">Roger</option>
+              <option value="Treballador">Treballador</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row g2" id="f-rep-hores-wrap">
+          <div><label>Hores dedicades</label><input type="number" id="f-rep-hores" placeholder="0" min="0" step="0.5"/></div>
+          <div></div>
+        </div>
+        <div id="f-rep-mecanic-wrap" class="hidden">
+          <label>Nom del mecànic / taller</label>
+          <input type="text" id="f-rep-mecanic" placeholder="Ex: Taller Mas..."/>
+        </div>
+        <div style="margin-top:6px">
+          <label>Estat</label>
+          <select id="f-rep-estat">
+            <option value="Resolt">Resolt</option>
+            <option value="Pendent">Pendent</option>
+            <option value="En reparació">En reparació</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Maquinaria ingres: treballs a tercers -->
       <div id="f-tercers-wrap" class="hidden" style="margin-top:10px">
         <div class="form-row g3">
@@ -364,8 +400,16 @@
         <div><label>Hores totals</label><input type="number" id="t-hores" placeholder="0" min="0" step="0.5"/></div>
       </div>
       <div class="form-row g2">
-        <div><label>Maquina utilitzada</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
-        <div><label>Apero utilitzat</label><select id="t-apero"><option value="">— Cap —</option></select></div>
+        <div><label>Equipament</label>
+          <select id="t-equip" onchange="onEquipChange()">
+            <option value="">— Selecciona o manual —</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+      <div class="form-row g2" id="t-maq-manual">
+        <div><label>Maquina</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
+        <div><label>Apero</label><select id="t-apero"><option value="">— Cap —</option></select></div>
       </div>
 
       <!-- Seleccio parcelles -->
@@ -534,6 +578,27 @@
       <div id="flota-aperos"></div>
     </div>
 
+    <!-- Equipaments predefinits -->
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>⚙️ Equipaments (combinacions tractor + apero)</span>
+        <button class="btn btn-sm btn-primary" onclick="mostrarFormEquip()">+ Afegir</button>
+      </div>
+      <div id="equip-form" class="hidden" style="margin-bottom:1rem;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+        <div class="form-row g3">
+          <div><label>Nom de l equipament</label><input type="text" id="eq-nom" placeholder="Ex: JD 6120 + Sembradora"/></div>
+          <div><label>Maquina</label><select id="eq-maquina"><option value="">— Cap —</option></select></div>
+          <div><label>Apero</label><select id="eq-apero"><option value="">— Cap —</option></select></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-sm btn-primary" onclick="desarEquip()">✓ Desar</button>
+          <button class="btn btn-sm" onclick="document.getElementById('equip-form').classList.add('hidden')">Cancel·lar</button>
+        </div>
+        <div id="equip-msg" style="font-size:12px;margin-top:4px"></div>
+      </div>
+      <div id="equip-list"></div>
+    </div>
+
     <!-- Fitxa per màquina -->
     <div class="card">
       <div class="card-title">📊 Fitxa de màquina / apero</div>
@@ -683,12 +748,13 @@ const SHEET_FLOTA = 'Flota';
 const SHEET_TREBALLS = 'Treballs';
 const SHEET_FINQUES = 'Finques';
 const SHEET_COMPONENTS = 'Components';
+const SHEET_EQUIP = 'Equipaments';
 const SHEET_REPOSTATGES = 'Repostatges';
 const SHEET_MANTENIMENTS = 'Manteniments';
 
 const CATS = {
   cultivos:   { gasto: ['Herbicides','Llavors','Fertilitzants','Fitosanitaris','Mà d\'obra','Altres'], ingreso: ['Venda collita','Subvencions','Altres'] },
-  maquinaria: { gasto: ['Dièsel / combustible','Reparacions','Compra / amortització apero','Assegurances','Altres'], ingreso: ['Treballs a tercers','Lloguer maquinària','Altres'] },
+  maquinaria: { gasto: ['Reparacions','Compra / amortització apero','Assegurances','Altres'], ingreso: ['Treballs a tercers','Lloguer maquinària','Altres'] },
   cerdos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Reparacions','Medicaments / veterinari','Pinso / alimentació','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] },
   pollos:     { gasto: ['Aigua','Llum / electricitat','Gas','Dièsel / combustible','Jaç','Reparacions','Medicaments / veterinari','Pinso / alimentació','Altres'], ingreso: ['Venda animals','Subvencions','Altres'] }
 };
@@ -698,6 +764,7 @@ let accessToken = null;
 let movimientos = [];
 let finques = [];
 let components = [];
+let equipaments = [];
 let flota = [];
 let userEmail = '';
 
@@ -755,6 +822,7 @@ async function ensureSheets(){
   if(!nombres.includes(SHEET_TREBALLS)) toCreate.push({addSheet:{properties:{title:SHEET_TREBALLS}}});
   if(!nombres.includes(SHEET_FINQUES)) toCreate.push({addSheet:{properties:{title:SHEET_FINQUES}}});
   if(!nombres.includes(SHEET_COMPONENTS)) toCreate.push({addSheet:{properties:{title:SHEET_COMPONENTS}}});
+  if(!nombres.includes(SHEET_EQUIP)) toCreate.push({addSheet:{properties:{title:SHEET_EQUIP}}});
   if(!nombres.includes(SHEET_REPOSTATGES)) toCreate.push({addSheet:{properties:{title:SHEET_REPOSTATGES}}});
   if(!nombres.includes(SHEET_MANTENIMENTS)) toCreate.push({addSheet:{properties:{title:SHEET_MANTENIMENTS}}});
   if(toCreate.length){
@@ -780,6 +848,10 @@ async function loadFromSheets(){
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
       components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0}));
     } catch(e){ components=[]; }
+    try {
+      const rEq = await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A2:D');
+      equipaments = (rEq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',maquina:r[2]||'',apero:r[3]||''}));
+    } catch(e){ equipaments=[]; }
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
   } catch(e){ setSyncing(false,'Error en carregar',true); }
@@ -815,7 +887,7 @@ function showTab(t, btn){
   if(t==='resumen') renderResumen();
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
-  if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); populateFitxaSel(); }
+  if(t==='flota'){ renderFlota(); loadRepostatges(); loadManteniments(); populateFitxaSel(); renderEquipList(); }
   if(t==='treballs'){ populateTreballSelects(); loadTreballs(); }
   if(t==='parcelles'){ initParcelMap(); renderFinquesList(); setTimeout(()=>{ if(parcMap) parcMap.invalidateSize(); },300); }
 }
@@ -852,6 +924,13 @@ function onAreaChange(){
     const cat = document.getElementById('f-categoria').value;
     if(cat==='Treballs a tercers') showTercersWrap();
   }
+}
+
+function onRepFetChange(){
+  const fet = document.getElementById('f-rep-fet')?.value;
+  document.getElementById('f-rep-qui-wrap')?.classList.toggle('hidden', fet!=='Nosaltres');
+  document.getElementById('f-rep-hores-wrap')?.classList.toggle('hidden', fet!=='Nosaltres');
+  document.getElementById('f-rep-mecanic-wrap')?.classList.toggle('hidden', fet==='Nosaltres');
 }
 
 function showTercersWrap(){
@@ -951,7 +1030,7 @@ async function addMovimiento(){
 }
 
 function clearForm(){
-  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-kg','f-tercers-hores','f-llavor-kg','f-llavor-preu','f-llavor-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''}); vendaParcelles=[]; gastoParcelles=[]; if(typeof updateVendaChips==='function'){updateVendaChips();updateGastoChips();}
+  ['f-concepto','f-importe','f-fecha','f-notas','f-horas','f-amort-nombre','f-amort-coste','f-amort-years','f-kg','f-tercers-hores','f-llavor-kg','f-llavor-preu','f-llavor-total','f-rep-hores','f-rep-mecanic'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''}); vendaParcelles=[]; gastoParcelles=[]; if(typeof updateVendaChips==='function'){updateVendaChips();updateGastoChips();}
   document.getElementById('f-tipo').value='ingreso';
   document.getElementById('f-area').value='cultivos';
   document.getElementById('amort-result').textContent='';
@@ -2437,6 +2516,82 @@ async function renderFitxaMaquina(){
   body.innerHTML = html;
 }
 
+
+// ── EQUIPAMENTS ─────────────────────────────────────────
+function mostrarFormEquip(){
+  document.getElementById('equip-form').classList.toggle('hidden');
+  // Populate selectors
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos = flota.filter(f=>f.tipo==='apero');
+  document.getElementById('eq-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>'<option value="'+m.nombre+'">'+m.nombre+'</option>').join('');
+  document.getElementById('eq-apero').innerHTML='<option value="">— Cap —</option>'+aperos.map(a=>'<option value="'+a.nombre+'">'+a.nombre+'</option>').join('');
+}
+
+async function desarEquip(){
+  const nom = document.getElementById('eq-nom').value.trim();
+  const maquina = document.getElementById('eq-maquina').value;
+  const apero = document.getElementById('eq-apero').value;
+  const msg = document.getElementById('equip-msg');
+  if(!nom){ msg.style.color='var(--rojo)'; msg.textContent='Posa un nom.'; return; }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant...');
+  try {
+    await appendRow(SHEET_EQUIP,[id,nom,maquina,apero]);
+    equipaments.push({id,nom,maquina,apero});
+    setSyncing(false,'Connectat a Google Sheets');
+    document.getElementById('eq-nom').value='';
+    msg.style.color='var(--verde)'; msg.textContent='Afegit!';
+    setTimeout(()=>{ document.getElementById('equip-form').classList.add('hidden'); msg.textContent=''; },1000);
+    renderEquipList(); populateTreballSelects();
+  } catch(e){ setSyncing(false,'Error',true); msg.style.color='var(--rojo)'; msg.textContent='Error.'; }
+}
+
+async function eliminarEquip(id){
+  if(!confirm('Eliminar?')) return;
+  const idx=equipaments.findIndex(e=>e.id===id);
+  if(idx<0) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r=await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A2:A');
+    const rows=r.values||[];
+    const rowIdx=rows.findIndex(row=>row[0]===id);
+    if(rowIdx>=0) await deleteRow(SHEET_EQUIP,rowIdx+1);
+    equipaments.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
+    renderEquipList(); populateTreballSelects();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+function renderEquipList(){
+  const el=document.getElementById('equip-list');
+  if(!el) return;
+  if(!equipaments.length){ el.innerHTML='<div class="empty">Sense equipaments definits.</div>'; return; }
+  el.innerHTML='<div class="flota-list">'+equipaments.map(e=>
+    '<div class="flota-item"><div><div class="flota-nombre">'+e.nom+'</div>'+
+    '<div class="flota-ref">'+(e.maquina||'—')+' + '+(e.apero||'—')+'</div></div>'+
+    '<button class="btn btn-sm btn-danger" data-eid="'+e.id+'">✕</button></div>'
+  ).join('')+'</div>';
+  if(!el._rl){ el.addEventListener('click',function(e){ const btn=e.target.closest('[data-eid]'); if(btn&&e.target.tagName==='BUTTON') eliminarEquip(btn.getAttribute('data-eid')); }); el._rl=true; }
+}
+
+function onEquipChange(){
+  const val = document.getElementById('t-equip').value;
+  const manual = document.getElementById('t-maq-manual');
+  if(!val){
+    manual.classList.remove('hidden');
+    document.getElementById('t-maquina').value='';
+    document.getElementById('t-apero').value='';
+    return;
+  }
+  const eq = equipaments.find(e=>e.id===val);
+  if(eq){
+    manual.classList.add('hidden');
+    // Set values for saving
+    document.getElementById('t-maquina').value = eq.maquina||'';
+    document.getElementById('t-apero').value = eq.apero||'';
+  }
+}
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -2450,6 +2605,9 @@ function populateTreballSelects(){
   const aperos_list = flota.filter(f=>f.tipo==='apero');
   document.getElementById('t-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
   document.getElementById('t-apero').innerHTML='<option value="">— Cap —</option>'+aperos_list.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
+  // Equipaments
+  const eqSel = document.getElementById('t-equip');
+  if(eqSel){ eqSel.innerHTML='<option value="">— Selecciona o manual —</option>'+equipaments.map(e=>'<option value="'+e.id+'">⚙️ '+e.nom+'</option>').join(''); }
   // Filter selector
   const fil = document.getElementById('t-fil-maquina');
   if(fil){
@@ -3713,6 +3871,82 @@ async function renderFitxaMaquina(){
   body.innerHTML = html;
 }
 
+
+// ── EQUIPAMENTS ─────────────────────────────────────────
+function mostrarFormEquip(){
+  document.getElementById('equip-form').classList.toggle('hidden');
+  // Populate selectors
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos = flota.filter(f=>f.tipo==='apero');
+  document.getElementById('eq-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>'<option value="'+m.nombre+'">'+m.nombre+'</option>').join('');
+  document.getElementById('eq-apero').innerHTML='<option value="">— Cap —</option>'+aperos.map(a=>'<option value="'+a.nombre+'">'+a.nombre+'</option>').join('');
+}
+
+async function desarEquip(){
+  const nom = document.getElementById('eq-nom').value.trim();
+  const maquina = document.getElementById('eq-maquina').value;
+  const apero = document.getElementById('eq-apero').value;
+  const msg = document.getElementById('equip-msg');
+  if(!nom){ msg.style.color='var(--rojo)'; msg.textContent='Posa un nom.'; return; }
+  const id = Date.now().toString();
+  setSyncing(true,'Desant...');
+  try {
+    await appendRow(SHEET_EQUIP,[id,nom,maquina,apero]);
+    equipaments.push({id,nom,maquina,apero});
+    setSyncing(false,'Connectat a Google Sheets');
+    document.getElementById('eq-nom').value='';
+    msg.style.color='var(--verde)'; msg.textContent='Afegit!';
+    setTimeout(()=>{ document.getElementById('equip-form').classList.add('hidden'); msg.textContent=''; },1000);
+    renderEquipList(); populateTreballSelects();
+  } catch(e){ setSyncing(false,'Error',true); msg.style.color='var(--rojo)'; msg.textContent='Error.'; }
+}
+
+async function eliminarEquip(id){
+  if(!confirm('Eliminar?')) return;
+  const idx=equipaments.findIndex(e=>e.id===id);
+  if(idx<0) return;
+  setSyncing(true,'Eliminant...');
+  try {
+    const r=await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A2:A');
+    const rows=r.values||[];
+    const rowIdx=rows.findIndex(row=>row[0]===id);
+    if(rowIdx>=0) await deleteRow(SHEET_EQUIP,rowIdx+1);
+    equipaments.splice(idx,1);
+    setSyncing(false,'Connectat a Google Sheets');
+    renderEquipList(); populateTreballSelects();
+  } catch(e){ setSyncing(false,'Error',true); }
+}
+
+function renderEquipList(){
+  const el=document.getElementById('equip-list');
+  if(!el) return;
+  if(!equipaments.length){ el.innerHTML='<div class="empty">Sense equipaments definits.</div>'; return; }
+  el.innerHTML='<div class="flota-list">'+equipaments.map(e=>
+    '<div class="flota-item"><div><div class="flota-nombre">'+e.nom+'</div>'+
+    '<div class="flota-ref">'+(e.maquina||'—')+' + '+(e.apero||'—')+'</div></div>'+
+    '<button class="btn btn-sm btn-danger" data-eid="'+e.id+'">✕</button></div>'
+  ).join('')+'</div>';
+  if(!el._rl){ el.addEventListener('click',function(e){ const btn=e.target.closest('[data-eid]'); if(btn&&e.target.tagName==='BUTTON') eliminarEquip(btn.getAttribute('data-eid')); }); el._rl=true; }
+}
+
+function onEquipChange(){
+  const val = document.getElementById('t-equip').value;
+  const manual = document.getElementById('t-maq-manual');
+  if(!val){
+    manual.classList.remove('hidden');
+    document.getElementById('t-maquina').value='';
+    document.getElementById('t-apero').value='';
+    return;
+  }
+  const eq = equipaments.find(e=>e.id===val);
+  if(eq){
+    manual.classList.add('hidden');
+    // Set values for saving
+    document.getElementById('t-maquina').value = eq.maquina||'';
+    document.getElementById('t-apero').value = eq.apero||'';
+  }
+}
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -3787,6 +4021,9 @@ function populateTreballSelects(){
   const aperos_list = flota.filter(f=>f.tipo==='apero');
   document.getElementById('t-maquina').innerHTML='<option value="">— Cap —</option>'+maquines.map(m=>`<option value="${m.nombre}">${m.nombre}</option>`).join('');
   document.getElementById('t-apero').innerHTML='<option value="">— Cap —</option>'+aperos_list.map(a=>`<option value="${a.nombre}">${a.nombre}</option>`).join('');
+  // Equipaments
+  const eqSel = document.getElementById('t-equip');
+  if(eqSel){ eqSel.innerHTML='<option value="">— Selecciona o manual —</option>'+equipaments.map(e=>'<option value="'+e.id+'">⚙️ '+e.nom+'</option>').join(''); }
 }
 
 async function addTreball(){
