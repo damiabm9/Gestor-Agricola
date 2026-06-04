@@ -732,39 +732,7 @@
     </div>
 
 
-    <!-- Repostatges -->
-    <div class="card">
-      <div class="card-title">⛽ Registrar repostatge</div>
-      <div class="form-row g3">
-        <div><label>Data</label><input type="date" id="rep-data"/></div>
-        <div><label>Màquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
-        <div><label>Tipus</label>
-          <select id="rep-tipus">
-            <option value="Dièsel">⛽ Dièsel</option>
-            <option value="AdBlue">🟦 AdBlue</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row g3">
-        <div><label>Litres</label><input type="number" id="rep-litres" placeholder="0" min="0" step="0.1" oninput="calcRepostatge()"/></div>
-        <div><label>Preu (€/litre)</label><input type="number" id="rep-preu" placeholder="0.00" min="0" step="0.001" oninput="calcRepostatge()"/></div>
-        <div><label>Total (€)</label><input type="number" id="rep-total" placeholder="0.00" readonly style="background:var(--gris-bg)"/></div>
-      </div>
-      <button class="btn btn-primary" onclick="addRepostatge()">✓ Desar repostatge</button>
-      <div id="rep-msg"></div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="justify-content:space-between;display:flex">
-        <span>📋 Historial repostatges</span>
-        <button class="btn btn-sm" onclick="loadRepostatges()">↺ Recarregar</button>
-      </div>
-      <table class="mov-table">
-        <thead><tr><th>Data</th><th>Màquina</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
-        <tbody id="rep-list"><tr><td colspan="6"><div class="empty">Carregant...</div></td></tr></tbody>
-      </table>
-    </div>
 
-ript>
 <script>
 const CLIENT_ID = '826467492165-jis8n655430lc0cibhi276t43p4hk6jc.apps.googleusercontent.com';
 const SHEET_ID = '1pZIiwLBt66VI2J9h9CLikoHT2nM8LGpofIogCR9VS64';
