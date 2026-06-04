@@ -141,10 +141,8 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showTab('resumen',this)">📊 Resum</button>
-    <button class="tab" onclick="showTab('registrar',this)">🧾 Factures</button>
-    <button class="tab" onclick="showTab('treballs',this)">👷 Treballs</button>
+    <button class="tab" onclick="showTab('partes',this)">📋 Partes</button>
     <button class="tab" onclick="showTab('parcelles',this)">🗺️ Parcel·les</button>
-    <button class="tab" onclick="showTab('movimientos',this)">📋 Moviments</button>
     <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
   </div>
@@ -187,273 +185,381 @@
     </div>
   </div>
 
-  <!-- REGISTRAR -->
-  <div id="tab-registrar" class="section">
-    <div class="card">
-      <div class="card-title">🧾 Nova factura</div>
-      <div class="form-row g2">
-        <div><label>Tipus</label>
-          <select id="f-tipo" onchange="onTipoChange()">
-            <option value="ingreso">Ingrés</option>
-            <option value="gasto">Despesa</option>
-          </select>
+  <!-- PARTES -->
+  <div id="tab-partes" class="section">
+
+    <!-- Subtabs -->
+    <div style="display:flex;gap:4px;margin-bottom:1.25rem;background:var(--blanco);border-radius:var(--radio);padding:4px;box-shadow:var(--sombra)">
+      <button class="tab active" id="ptab-factura" onclick="showPartesTip('factura',this)" style="flex:1">🧾 Factura</button>
+      <button class="tab" id="ptab-feina" onclick="showPartesTip('feina',this)" style="flex:1">👷 Feina</button>
+      <button class="tab" id="ptab-manteniment" onclick="showPartesTip('manteniment',this)" style="flex:1">🔩 Manteniment</button>
+      <button class="tab" id="ptab-repostatge" onclick="showPartesTip('repostatge',this)" style="flex:1">⛽ Repostatge</button>
+    </div>
+
+    <!-- FACTURA form -->
+    <div id="partes-factura" class="partes-sub">
+      <div class="card">
+        <div class="card-title">🧾 Nova factura</div>
+        <div class="form-row g2">
+          <div><label>Tipus</label>
+            <select id="f-tipo" onchange="onTipoChange()">
+              <option value="ingreso">Ingrés</option>
+              <option value="gasto">Despesa</option>
+            </select>
+          </div>
+          <div><label>Àrea</label>
+            <select id="f-area" onchange="onAreaChange()">
+              <option value="cultivos">🌾 Cultius</option>
+              <option value="maquinaria">🚜 Maquinària</option>
+              <option value="cerdos">🐷 Porcs</option>
+              <option value="pollos">🐔 Pollastres</option>
+            </select>
+          </div>
         </div>
-        <div><label>Àrea</label>
-          <select id="f-area" onchange="onAreaChange()">
-            <option value="cultivos">🌾 Cultius</option>
-            <option value="maquinaria">🚜 Maquinària</option>
-            <option value="cerdos">🐷 Porcs</option>
-            <option value="pollos">🐔 Pollastres</option>
-          </select>
-        </div>
-      </div>
-      <div id="f-cat-wrap" class="form-row g2 hidden">
-        <div><label>Categoria</label><select id="f-categoria" onchange="onCatChange()"></select></div>
-        <div></div>
-      </div>
-      <div id="f-maq-wrap" class="hidden">
-        <div class="form-row g3">
-          <div><label>Màquina utilitzada</label><select id="f-maquina"><option value="">— Cap —</option></select></div>
-          <div><label>Apero utilitzat</label><select id="f-apero"><option value="">— Cap —</option></select></div>
-          <div><label>Hores treballades</label><input type="number" id="f-horas" placeholder="0" min="0" step="0.5"/></div>
-        </div>
-      </div>
-      <div id="f-amort-wrap" class="hidden">
-        <hr>
-        <div class="card-title" style="font-size:12px;margin-bottom:.75rem">🔧 Datos del apero (amortización)</div>
-        <div class="form-row g3">
-          <div><label>Nom de l'apero</label><input type="text" id="f-amort-nombre" placeholder="Ex: Sembradora Maschio"/></div>
-          <div><label>Cost de compra (€)</label><input type="number" id="f-amort-coste" placeholder="0" oninput="calcAmort()"/></div>
-          <div><label>Vida útil (anys)</label><input type="number" id="f-amort-years" placeholder="10" oninput="calcAmort()"/></div>
-        </div>
-        <div id="amort-result"></div>
-      </div>
-      <!-- Cultius ingres: selector parcelles/finca venda -->
-      <div id="f-finca-wrap" class="hidden" style="margin-top:10px">
-        <div class="form-row g2" style="margin-bottom:8px">
-          <div><label>Quilograms venuts (kg)</label><input type="number" id="f-kg" placeholder="0" min="0" step="1"/></div>
+        <div id="f-cat-wrap" class="form-row g2 hidden">
+          <div><label>Categoria</label><select id="f-categoria" onchange="onCatChange()"></select></div>
           <div></div>
         </div>
-        <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🌾 On adjudiques la venda?</div>
-          <div class="form-row g2" style="margin-bottom:10px">
-            <div>
-              <label>Mode de seleccio</label>
-              <select id="f-venda-mode" onchange="onVendaModeChange()">
-                <option value="finca">Per finca(es)</option>
-                <option value="parcelles">Per parcel·les individuals</option>
-              </select>
-            </div>
-            <div id="f-venda-finca-wrap">
-              <label>Finques</label>
-              <div id="f-venda-finca-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
-            </div>
-          </div>
-          <div id="f-venda-parc-btn" class="hidden">
-            <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesVenda()">+ Seleccionar parcel·les al mapa</button>
-          </div>
-          <div id="f-venda-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:24px"></div>
-          <span id="f-venda-ha" style="font-size:12px;color:var(--gris-texto);margin-top:4px;display:block"></span>
-        </div>
-      </div>
-
-      <!-- Cultius gasto: assignar a finca/parcella + llavor -->
-      <div id="f-cultiu-gasto-wrap" class="hidden" style="margin-top:10px">
-        <div id="f-llavor-wrap" class="hidden" style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde);margin-bottom:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🌱 Detalls de la llavor</div>
+        <div id="f-maq-wrap" class="hidden">
           <div class="form-row g3">
-            <div><label>Kg de llavor</label><input type="number" id="f-llavor-kg" placeholder="0" min="0" step="1" oninput="calcLlavorCost()"/></div>
-            <div><label>Preu (€/tona)</label><input type="number" id="f-llavor-preu" placeholder="0" min="0" step="0.01" oninput="calcLlavorCost()"/></div>
-            <div><label>Total calculat</label><input type="number" id="f-llavor-total" readonly style="background:var(--gris-bg)"/></div>
+            <div><label>Màquina</label><select id="f-maquina"><option value="">— Cap —</option></select></div>
+            <div><label>Apero</label><select id="f-apero"><option value="">— Cap —</option></select></div>
+            <div><label>Hores</label><input type="number" id="f-horas" placeholder="0" min="0" step="0.5"/></div>
           </div>
         </div>
-        <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">📍 Assignar a finca o parcel·les <span id="f-gasto-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
-          <div class="form-row g2" style="margin-bottom:8px">
-            <div>
-              <label>Mode de seleccio</label>
-              <select id="f-gasto-mode" onchange="onGastoModeChange()">
-                <option value="finca">Per finca(es)</option>
-                <option value="parcelles">Per parcel·les individuals</option>
+        <div id="f-amort-wrap" class="hidden">
+          <hr>
+          <div class="card-title" style="font-size:12px;margin-bottom:.75rem">🔧 Dades de l apero (amortització)</div>
+          <div class="form-row g3">
+            <div><label>Nom de l apero</label><input type="text" id="f-amort-nombre" placeholder="Ex: Sembradora"/></div>
+            <div><label>Cost de compra (€)</label><input type="number" id="f-amort-coste" placeholder="0" oninput="calcAmort()"/></div>
+            <div><label>Vida util (anys)</label><input type="number" id="f-amort-years" placeholder="10" oninput="calcAmort()"/></div>
+          </div>
+          <div id="amort-result"></div>
+        </div>
+        <div id="f-rep-wrap" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🔩 Detalls de la reparació</div>
+          <div class="form-row g2">
+            <div><label>Fet per</label>
+              <select id="f-rep-fet" onchange="onRepFetChange()">
+                <option value="Nosaltres">Nosaltres</option>
+                <option value="Mecanic extern">Mecànic extern</option>
               </select>
             </div>
-            <div id="f-gasto-finca-wrap">
-              <label>Finques</label>
-              <div id="f-gasto-finca-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+            <div id="f-rep-qui-wrap"><label>Qui</label>
+              <select id="f-rep-qui">
+                <option value="Damia">Damià</option>
+                <option value="Joan">Joan</option>
+                <option value="Roger">Roger</option>
+                <option value="Treballador">Treballador</option>
+              </select>
             </div>
           </div>
-          <div id="f-gasto-parc-btn" class="hidden">
-            <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesGasto()">+ Seleccionar parcel·les al mapa</button>
+          <div class="form-row g2" id="f-rep-hores-wrap">
+            <div><label>Hores dedicades</label><input type="number" id="f-rep-hores" placeholder="0" min="0" step="0.5"/></div>
+            <div></div>
           </div>
-          <div id="f-gasto-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:20px"></div>
+          <div id="f-rep-mecanic-wrap" class="hidden">
+            <label>Nom del mecanic / taller</label>
+            <input type="text" id="f-rep-mecanic" placeholder="Ex: Taller Mas..."/>
+          </div>
+          <div style="margin-top:6px"><label>Estat</label>
+            <select id="f-rep-estat">
+              <option value="Resolt">Resolt</option>
+              <option value="Pendent">Pendent</option>
+              <option value="En reparacio">En reparació</option>
+            </select>
+          </div>
         </div>
+        <div id="f-finca-wrap" class="hidden" style="margin-top:10px">
+          <div class="form-row g2" style="margin-bottom:8px">
+            <div><label>Quilograms venuts (kg)</label><input type="number" id="f-kg" placeholder="0" min="0" step="1"/></div>
+            <div></div>
+          </div>
+          <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+            <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">On adjudiques la venda? <span id="f-venda-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+            <div class="form-row g2" style="margin-bottom:10px">
+              <div><label>Mode</label>
+                <select id="f-venda-mode" onchange="onVendaModeChange()">
+                  <option value="finca">Per finca(es)</option>
+                  <option value="parcelles">Per parcel·les individuals</option>
+                </select>
+              </div>
+              <div id="f-venda-finca-wrap"><label>Finques</label>
+                <div id="f-venda-finca-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+              </div>
+            </div>
+            <div id="f-venda-parc-btn" class="hidden">
+              <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesVenda()">+ Seleccionar parcelles al mapa</button>
+            </div>
+            <div id="f-venda-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:24px"></div>
+            <span id="f-venda-ha2" style="font-size:12px;color:var(--gris-texto);margin-top:4px;display:block"></span>
+          </div>
+        </div>
+        <div id="f-cultiu-gasto-wrap" class="hidden" style="margin-top:10px">
+          <div id="f-llavor-wrap" class="hidden" style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde);margin-bottom:8px">
+            <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">Detalls de la llavor</div>
+            <div class="form-row g3">
+              <div><label>Kg de llavor</label><input type="number" id="f-llavor-kg" placeholder="0" min="0" step="1" oninput="calcLlavorCost()"/></div>
+              <div><label>Preu (€/tona)</label><input type="number" id="f-llavor-preu" placeholder="0" min="0" step="0.01" oninput="calcLlavorCost()"/></div>
+              <div><label>Total calculat</label><input type="number" id="f-llavor-total" readonly style="background:var(--gris-bg)"/></div>
+            </div>
+          </div>
+          <div style="padding:10px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+            <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">On adjudiques la despesa? <span id="f-gasto-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+            <div class="form-row g2" style="margin-bottom:8px">
+              <div><label>Mode</label>
+                <select id="f-gasto-mode" onchange="onGastoModeChange()">
+                  <option value="finca">Per finca(es)</option>
+                  <option value="parcelles">Per parcel·les individuals</option>
+                </select>
+              </div>
+              <div id="f-gasto-finca-wrap"><label>Finques</label>
+                <div id="f-gasto-finca-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+              </div>
+            </div>
+            <div id="f-gasto-parc-btn" class="hidden">
+              <button class="btn btn-sm" type="button" onclick="obrirSelectorParcellesGasto()">+ Seleccionar parcelles al mapa</button>
+            </div>
+            <div id="f-gasto-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:20px"></div>
+          </div>
+        </div>
+        <div id="f-nau-wrap" class="hidden" style="margin-top:10px">
+          <div class="form-row g2">
+            <div><label>Nau</label>
+              <select id="f-nau">
+                <option value="Nau A">Nau A</option>
+                <option value="Nau B">Nau B</option>
+                <option value="Ambdues naus">Ambdues naus</option>
+              </select>
+            </div>
+            <div></div>
+          </div>
+        </div>
+        <div id="f-tercers-wrap" class="hidden" style="margin-top:10px">
+          <div class="form-row g3">
+            <div><label>Maquina</label><select id="f-tercers-maquina"><option value="">— Cap —</option></select></div>
+            <div><label>Apero</label><select id="f-tercers-apero"><option value="">— Cap —</option></select></div>
+            <div><label>Hores facturades</label><input type="number" id="f-tercers-hores" placeholder="0" min="0" step="0.5"/></div>
+          </div>
+        </div>
+        <hr>
+        <div class="form-row g3">
+          <div><label>Concepte / descripció</label><input type="text" id="f-concepto" placeholder="Ex: Compra herbicida Roundup"/></div>
+          <div><label>Import (€)</label><input type="number" id="f-importe" placeholder="0.00" min="0" step="0.01"/></div>
+          <div><label>Data</label><input type="date" id="f-fecha"/></div>
+        </div>
+        <div><label>Notes (opcional)</label><input type="text" id="f-notas" placeholder="Observacions..."/></div>
+        <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="addMovimiento()">✓ Desar factura</button>
+          <button class="btn" onclick="clearForm()">↺ Netejar</button>
+        </div>
+        <div id="form-msg"></div>
       </div>
+      <!-- Historial factures -->
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;display:flex">
+          <span>📋 Historial factures</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select id="fil-area" onchange="renderMovimientos()" style="font-size:12px;padding:4px 8px"><option value="">Totes les àrees</option><option value="cultivos">Cultius</option><option value="maquinaria">Maquinaria</option><option value="cerdos">Porcs</option><option value="pollos">Pollastres</option></select>
+            <select id="fil-tipo" onchange="renderMovimientos()" style="font-size:12px;padding:4px 8px"><option value="">Tots</option><option value="ingreso">Ingressos</option><option value="gasto">Despeses</option></select>
+            <select id="fil-cat" onchange="renderMovimientos()" style="font-size:12px;padding:4px 8px"><option value="">Totes categories</option></select>
+          </div>
+        </div>
+        <table class="mov-table">
+          <thead><tr><th>Data</th><th>Concepte</th><th>Area</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th><th></th></tr></thead>
+          <tbody id="mov-list"></tbody>
+        </table>
+      </div>
+    </div>
 
-      <!-- Pollastres: Nau A o B -->
-      <div id="f-nau-wrap" class="hidden" style="margin-top:10px">
+    <!-- FEINA form -->
+    <div id="partes-feina" class="partes-sub hidden">
+      <div class="card">
+        <div class="card-title">👷 Nova feina</div>
         <div class="form-row g2">
-          <div><label>Nau</label>
-            <select id="f-nau">
-              <option value="Nau A">Nau A</option>
-              <option value="Nau B">Nau B</option>
-              <option value="Ambdues naus">Ambdues naus</option>
+          <div><label>Data</label><input type="date" id="t-data"/></div>
+          <div><label>Qui ha fet la feina</label>
+            <select id="t-qui">
+              <option value="Damia">Damià</option>
+              <option value="Joan">Joan</option>
+              <option value="Roger">Roger</option>
+              <option value="Treballador">Treballador</option>
+              <option value="Empresa de Serveis">Empresa de Serveis</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row g2">
+          <div><label>Tipus de feina</label>
+            <select id="t-tipus">
+              <option value="Sembrar">🌱 Sembrar</option>
+              <option value="Ensulfatar">🌿 Ensulfatar</option>
+              <option value="Aplicar Purins">💧 Aplicar Purins</option>
+              <option value="Aplicar Fems">🌾 Aplicar Fems</option>
+              <option value="Treball de Sol">⚙️ Treball de Sol</option>
+              <option value="Segar">✂️ Segar</option>
+              <option value="Altres">Altres</option>
+            </select>
+          </div>
+          <div><label>Hores totals</label><input type="number" id="t-hores" placeholder="0" min="0" step="0.5"/></div>
+        </div>
+        <div class="form-row g2">
+          <div><label>Equipament</label>
+            <select id="t-equip" onchange="onEquipChange()">
+              <option value="">— Selecciona o manual —</option>
             </select>
           </div>
           <div></div>
         </div>
+        <div class="form-row g2" id="t-maq-manual">
+          <div><label>Maquina</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
+          <div><label>Apero</label><select id="t-apero"><option value="">— Cap —</option></select></div>
+        </div>
+        <div style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
+          <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">On s ha treballat? <span id="t-parc-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
+          <div class="form-row g2" style="margin-bottom:8px">
+            <div><label>Mode</label>
+              <select id="t-parc-mode" onchange="onTrebParcModeChange()">
+                <option value="finca">Per finca(es)</option>
+                <option value="parcelles">Per parcel·les individuals</option>
+              </select>
+            </div>
+            <div id="t-finca-multi-wrap">
+              <label>Finques</label>
+              <div id="t-finques-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+            </div>
+          </div>
+          <div id="t-parc-btn-wrap" class="hidden">
+            <button class="btn btn-sm" type="button" onclick="obrirSelectorParcelles()">+ Seleccionar parcelles al mapa</button>
+          </div>
+          <div id="t-parc-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:20px"></div>
+        </div>
+        <div style="margin-top:10px;margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="addTreball()">✓ Desar feina</button>
+          <button class="btn" onclick="clearTreball()">↺ Netejar</button>
+        </div>
+        <div id="treball-msg"></div>
       </div>
+      <!-- Historial feines -->
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;display:flex">
+          <span>📋 Historial feines</span>
+          <div style="display:flex;gap:6px">
+            <select id="t-fil-maquina" onchange="loadTreballs()" style="font-size:12px;padding:4px 8px"><option value="">Totes les maquines</option></select>
+            <button class="btn btn-sm" onclick="loadTreballs()">↺</button>
+          </div>
+        </div>
+        <div id="t-hores-resum" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+        <table class="mov-table">
+          <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Maquina</th><th>Parcelles</th><th style="text-align:right">Hores</th><th></th></tr></thead>
+          <tbody id="treballs-list"></tbody>
+        </table>
+      </div>
+    </div>
 
-      <!-- Maquinaria gasto Reparacions: detalls -->
-      <div id="f-rep-wrap" class="hidden" style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🔩 Detalls de la reparació</div>
+    <!-- MANTENIMENT form -->
+    <div id="partes-manteniment" class="partes-sub hidden">
+      <div class="card">
+        <div class="card-title">🔩 Nou manteniment / avaria</div>
+        <div class="form-row g2">
+          <div><label>Data</label><input type="date" id="mant-data"/></div>
+          <div><label>Maquina o apero</label><select id="mant-maquina"><option value="">— Selecciona —</option></select></div>
+        </div>
+        <div class="form-row g2">
+          <div><label>Tipus</label>
+            <select id="mant-tipus">
+              <option value="Manteniment preventiu">Manteniment preventiu</option>
+              <option value="Avaria">Avaria</option>
+              <option value="Revisio">Revisió</option>
+              <option value="Canvi d oli">Canvi d oli</option>
+              <option value="Altres">Altres</option>
+            </select>
+          </div>
+          <div><label>Estat</label>
+            <select id="mant-estat">
+              <option value="Resolt">Resolt</option>
+              <option value="Pendent">Pendent</option>
+              <option value="En reparacio">En reparació</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:10px"><label>Descripció</label><input type="text" id="mant-desc" placeholder="Ex: Canvi filtres, reparacio hidraulic..."/></div>
         <div class="form-row g2">
           <div><label>Fet per</label>
-            <select id="f-rep-fet" onchange="onRepFetChange()">
+            <select id="mant-fet-per" onchange="onMantFetPerChange()">
               <option value="Nosaltres">Nosaltres</option>
-              <option value="Mecànic extern">Mecànic extern</option>
+              <option value="Mecanic extern">Mecànic extern</option>
             </select>
           </div>
-          <div id="f-rep-qui-wrap"><label>Qui</label>
-            <select id="f-rep-qui">
-              <option value="Damià">Damià</option>
+          <div id="mant-qui-wrap"><label>Qui</label>
+            <select id="mant-qui">
+              <option value="Damia">Damià</option>
               <option value="Joan">Joan</option>
               <option value="Roger">Roger</option>
               <option value="Treballador">Treballador</option>
             </select>
           </div>
         </div>
-        <div class="form-row g2" id="f-rep-hores-wrap">
-          <div><label>Hores dedicades</label><input type="number" id="f-rep-hores" placeholder="0" min="0" step="0.5"/></div>
-          <div></div>
+        <div class="form-row g2" id="mant-hores-wrap">
+          <div><label>Hores dedicades</label><input type="number" id="mant-hores" placeholder="0" min="0" step="0.5"/></div>
+          <div><label>Cost (€)</label><input type="number" id="mant-cost" placeholder="0.00" min="0" step="0.01"/></div>
         </div>
-        <div id="f-rep-mecanic-wrap" class="hidden">
-          <label>Nom del mecànic / taller</label>
-          <input type="text" id="f-rep-mecanic" placeholder="Ex: Taller Mas..."/>
+        <div id="mant-mecanic-wrap" class="hidden">
+          <div class="form-row g2">
+            <div><label>Nom del mecanic / taller</label><input type="text" id="mant-mecanic" placeholder="Ex: Taller Mas..."/></div>
+            <div><label>Cost (€)</label><input type="number" id="mant-cost-ext" placeholder="0.00" min="0" step="0.01"/></div>
+          </div>
         </div>
-        <div style="margin-top:6px">
-          <label>Estat</label>
-          <select id="f-rep-estat">
-            <option value="Resolt">Resolt</option>
-            <option value="Pendent">Pendent</option>
-            <option value="En reparació">En reparació</option>
-          </select>
+        <button class="btn btn-primary" onclick="addManteniment()" style="margin-top:8px">✓ Desar manteniment</button>
+        <div id="mant-msg"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;display:flex">
+          <span>📋 Historial manteniments</span>
+          <button class="btn btn-sm" onclick="loadManteniments()">↺</button>
         </div>
+        <table class="mov-table">
+          <thead><tr><th>Data</th><th>Element</th><th>Tipus</th><th>Descripció</th><th>Fet per</th><th>Estat</th><th style="text-align:right">Cost</th><th></th></tr></thead>
+          <tbody id="mant-list"></tbody>
+        </table>
       </div>
-
-      <!-- Maquinaria ingres: treballs a tercers -->
-      <div id="f-tercers-wrap" class="hidden" style="margin-top:10px">
-        <div class="form-row g3">
-          <div><label>Maquina utilitzada</label><select id="f-tercers-maquina"><option value="">- Cap -</option></select></div>
-          <div><label>Apero utilitzat</label><select id="f-tercers-apero"><option value="">- Cap -</option></select></div>
-          <div><label>Hores facturades</label><input type="number" id="f-tercers-hores" placeholder="0" min="0" step="0.5"/></div>
-        </div>
-      </div>
-
-      <hr>
-      <div class="form-row g3">
-        <div><label>Concepte / descripció</label><input type="text" id="f-concepto" placeholder="Ex: Compra herbicida Roundup"/></div>
-        <div><label>Import (€)</label><input type="number" id="f-importe" placeholder="0.00" min="0" step="0.01"/></div>
-        <div><label>Data</label><input type="date" id="f-fecha"/></div>
-      </div>
-      <div><label>Notes (opcional)</label><input type="text" id="f-notas" placeholder="Observacions..."/></div>
-      <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="addMovimiento()">✓ Desar factura</button>
-        <button class="btn" onclick="clearForm()">↺ Netejar</button>
-      </div>
-      <div id="form-msg"></div>
     </div>
-  </div>
 
-
-  <!-- TREBALLS -->
-  <div id="tab-treballs" class="section">
-    <div class="card">
-      <div class="card-title">👷 Registrar treball</div>
-      <div class="form-row g2">
-        <div><label>Data</label><input type="date" id="t-data"/></div>
-        <div><label>Qui ha fet la feina</label>
-          <select id="t-qui">
-            <option value="Damià">Damià</option>
-            <option value="Joan">Joan</option>
-            <option value="Roger">Roger</option>
-            <option value="Treballador">Treballador</option>
-            <option value="Empresa de Serveis">Empresa de Serveis</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row g2">
-        <div><label>Tipus de feina</label>
-          <select id="t-tipus">
-            <option value="Sembrar">🌱 Sembrar</option>
-            <option value="Ensulfatar">🌿 Ensulfatar</option>
-            <option value="Aplicar Purins">💧 Aplicar Purins</option>
-            <option value="Aplicar Fems">🌾 Aplicar Fems</option>
-            <option value="Treball de Sol">⚙️ Treball de Sòl</option>
-            <option value="Segar">✂️ Segar</option>
-            <option value="Altres">Altres</option>
-          </select>
-        </div>
-        <div><label>Hores totals</label><input type="number" id="t-hores" placeholder="0" min="0" step="0.5"/></div>
-      </div>
-      <div class="form-row g2">
-        <div><label>Equipament</label>
-          <select id="t-equip" onchange="onEquipChange()">
-            <option value="">— Selecciona o manual —</option>
-          </select>
-        </div>
-        <div></div>
-      </div>
-      <div class="form-row g2" id="t-maq-manual">
-        <div><label>Maquina</label><select id="t-maquina"><option value="">— Cap —</option></select></div>
-        <div><label>Apero</label><select id="t-apero"><option value="">— Cap —</option></select></div>
-      </div>
-
-      <!-- Seleccio finques/parcelles treballs -->
-      <div style="margin-top:10px;padding:12px;background:var(--gris-bg);border-radius:var(--radio);border:1px solid var(--gris-borde)">
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:8px">🗺️ On s ha treballat? <span id="t-parc-ha" style="font-weight:400;color:var(--gris-texto)"></span></div>
-        <div class="form-row g2" style="margin-bottom:8px">
-          <div>
-            <label>Mode</label>
-            <select id="t-parc-mode" onchange="onTrebParcModeChange()">
-              <option value="finca">Per finca(es)</option>
-              <option value="parcelles">Per parcel·les individuals</option>
+    <!-- REPOSTATGE form -->
+    <div id="partes-repostatge" class="partes-sub hidden">
+      <div class="card">
+        <div class="card-title">⛽ Nou repostatge</div>
+        <div class="form-row g3">
+          <div><label>Data</label><input type="date" id="rep-data"/></div>
+          <div><label>Maquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
+          <div><label>Tipus</label>
+            <select id="rep-tipus">
+              <option value="Diesel">⛽ Diesel</option>
+              <option value="AdBlue">🟦 AdBlue</option>
             </select>
           </div>
-          <div id="t-finca-multi-wrap">
-            <label>Finques</label>
-            <div id="t-finques-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
-          </div>
         </div>
-        <div id="t-parc-btn-wrap" class="hidden">
-          <button class="btn btn-sm" type="button" onclick="obrirSelectorParcelles()">+ Seleccionar parcel·les al mapa</button>
+        <div class="form-row g3">
+          <div><label>Litres</label><input type="number" id="rep-litres" placeholder="0" min="0" step="0.1" oninput="calcRepostatge()"/></div>
+          <div><label>Preu (€/litre)</label><input type="number" id="rep-preu" placeholder="0.00" min="0" step="0.001" oninput="calcRepostatge()"/></div>
+          <div><label>Total (€)</label><input type="number" id="rep-total" placeholder="0.00" readonly style="background:var(--gris-bg)"/></div>
         </div>
-        <div id="t-parc-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:20px"></div>
+        <button class="btn btn-primary" onclick="addRepostatge()" style="margin-top:8px">✓ Desar repostatge</button>
+        <div id="rep-msg"></div>
       </div>
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;display:flex">
+          <span>📋 Historial repostatges</span>
+          <button class="btn btn-sm" onclick="loadRepostatges()">↺</button>
+        </div>
+        <table class="mov-table">
+          <thead><tr><th>Data</th><th>Maquina</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
+          <tbody id="rep-list"></tbody>
+        </table>
+      </div>
+    </div>
 
-      <div style="margin-top:10px;margin-bottom:10px"><label>Notes (opcional)</label><input type="text" id="t-notes" placeholder="Observacions..."/></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="addTreball()">✓ Desar treball</button>
-        <button class="btn" onclick="clearTreball()">↺ Netejar</button>
-      </div>
-      <div id="treball-msg"></div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="justify-content:space-between;display:flex">
-        <span>📋 Historial de treballs</span>
-        <div style="display:flex;gap:6px">
-          <select id="t-fil-maquina" onchange="loadTreballs()" style="font-size:12px;padding:4px 8px">
-            <option value="">Totes les maquines</option>
-          </select>
-          <button class="btn btn-sm" onclick="loadTreballs()">↺ Recarregar</button>
-        </div>
-      </div>
-      <!-- Resum hores per maquina -->
-      <div id="t-hores-resum" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
-      <table class="mov-table">
-        <thead><tr><th>Data</th><th>Qui</th><th>Feina</th><th>Maquina / Apero</th><th>Parcel·les</th><th style="text-align:right">Hores</th><th></th></tr></thead>
-        <tbody id="treballs-list"><tr><td colspan="7"><div class="empty">Carregant...</div></td></tr></tbody>
-      </table>
-    </div>
   </div>
 
   <!-- PARCELLES -->
@@ -501,25 +607,6 @@
         <div id="finca-msg" style="font-size:12px;margin-top:6px"></div>
       </div>
       <div id="finques-list"></div>
-    </div>
-  </div>
-
-  <!-- MOVIMIENTOS -->
-  <div id="tab-movimientos" class="section">
-    <div class="card">
-      <div class="card-title">🔍 Filtrar</div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr auto">
-        <div><label>Àrea</label><select id="fil-area" onchange="renderMovimientos()"><option value="">Totes</option><option value="cultivos">🌾 Cultius</option><option value="maquinaria">🚜 Maquinària</option><option value="cerdos">🐷 Porcs</option><option value="pollos">🐔 Pollastres</option></select></div>
-        <div><label>Tipus</label><select id="fil-tipo" onchange="renderMovimientos()"><option value="">Tots</option><option value="ingreso">Ingressos</option><option value="gasto">Despeses</option></select></div>
-        <div><label>Categoria</label><select id="fil-cat" onchange="renderMovimientos()"><option value="">Totes</option></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="loadFromSheets()">↺ Recarregar</button></div>
-      </div>
-    </div>
-    <div class="card">
-      <table class="mov-table">
-        <thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Importe</th><th></th></tr></thead>
-        <tbody id="mov-list"></tbody>
-      </table>
     </div>
   </div>
 
@@ -2856,6 +2943,20 @@ async function eliminarParcel·la(id){
   setSyncing(false,'Parcel·la eliminada (sessio actual)');
 }
 
+
+// ── PARTES ──────────────────────────────────────────────
+function showPartesTip(tip, btn){
+  document.querySelectorAll('.partes-sub').forEach(s=>s.classList.add('hidden'));
+  document.querySelectorAll('[id^="ptab-"]').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById('partes-'+tip);
+  if(el) el.classList.remove('hidden');
+  if(btn) btn.classList.add('active');
+  if(tip==='feina'){ populateTreballSelects(); loadTreballs(); onTrebParcModeChange(); populateTrebFinquesSel(); }
+  if(tip==='manteniment'){ populateRepMantSelects(); loadManteniments(); }
+  if(tip==='repostatge'){ populateRepMantSelects(); loadRepostatges(); }
+  if(tip==='factura'){ onAreaChange(); renderMovimientos(); }
+}
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -4370,6 +4471,20 @@ async function eliminarParcel·la(id){
   } catch(e){ /* silent - sheet might not exist */ }
 
   setSyncing(false,'Parcel·la eliminada (sessio actual)');
+}
+
+
+// ── PARTES ──────────────────────────────────────────────
+function showPartesTip(tip, btn){
+  document.querySelectorAll('.partes-sub').forEach(s=>s.classList.add('hidden'));
+  document.querySelectorAll('[id^="ptab-"]').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById('partes-'+tip);
+  if(el) el.classList.remove('hidden');
+  if(btn) btn.classList.add('active');
+  if(tip==='feina'){ populateTreballSelects(); loadTreballs(); onTrebParcModeChange(); populateTrebFinquesSel(); }
+  if(tip==='manteniment'){ populateRepMantSelects(); loadManteniments(); }
+  if(tip==='repostatge'){ populateRepMantSelects(); loadRepostatges(); }
+  if(tip==='factura'){ onAreaChange(); renderMovimientos(); }
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
