@@ -203,12 +203,14 @@
         <div class="form-row g2">
           <div><label>Tipus</label>
             <select id="f-tipo" onchange="onTipoChange()">
+              <option value="">— Tipus de factura —</option>
               <option value="ingreso">Ingrés</option>
               <option value="gasto">Despesa</option>
             </select>
           </div>
           <div><label>Àrea</label>
             <select id="f-area" onchange="onAreaChange()">
+              <option value="">— Àrea —</option>
               <option value="cultivos">🌾 Cultius</option>
               <option value="maquinaria">🚜 Maquinària</option>
               <option value="cerdos">🐷 Porcs</option>
@@ -381,6 +383,7 @@
           <div><label>Data</label><input type="date" id="t-data"/></div>
           <div><label>Qui ha fet la feina</label>
             <select id="t-qui">
+              <option value="">— Qui —</option>
               <option value="Damia">Damià</option>
               <option value="Joan">Joan</option>
               <option value="Roger">Roger</option>
@@ -392,6 +395,7 @@
         <div class="form-row g2">
           <div><label>Tipus de feina</label>
             <select id="t-tipus">
+              <option value="">— Tipus de feina —</option>
               <option value="Sembrar">🌱 Sembrar</option>
               <option value="Ensulfatar">🌿 Ensulfatar</option>
               <option value="Aplicar Purins">💧 Aplicar Purins</option>
@@ -464,11 +468,12 @@
         <div class="card-title">🔩 Nou manteniment / avaria</div>
         <div class="form-row g2">
           <div><label>Data</label><input type="date" id="mant-data"/></div>
-          <div><label>Maquina o apero</label><select id="mant-maquina"><option value="">— Selecciona —</option></select></div>
+          <div><label>Maquina o apero</label><select id="mant-maquina"><option value="">— Maquina o apero —</option></select></div>
         </div>
         <div class="form-row g2">
           <div><label>Tipus</label>
             <select id="mant-tipus">
+              <option value="">— Tipus —</option>
               <option value="Manteniment preventiu">Manteniment preventiu</option>
               <option value="Avaria">Avaria</option>
               <option value="Revisio">Revisió</option>
@@ -532,7 +537,7 @@
         <div class="card-title">⛽ Nou repostatge</div>
         <div class="form-row g3">
           <div><label>Data</label><input type="date" id="rep-data"/></div>
-          <div><label>Maquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
+          <div><label>Maquina</label><select id="rep-maquina"><option value="">— Maquina —</option></select></div>
           <div><label>Tipus</label>
             <select id="rep-tipus">
               <option value="Diesel">⛽ Diesel</option>
@@ -899,6 +904,7 @@ const SHEET_TREBALLS = 'Treballs';
 const SHEET_FINQUES = 'Finques';
 const SHEET_COMPONENTS = 'Components';
 const SHEET_EQUIP = 'Equipaments';
+const SHEET_ELIMINADES = 'ParcellesEliminades';
 const SHEET_REPOSTATGES = 'Repostatges';
 const SHEET_MANTENIMENTS = 'Manteniments';
 
@@ -915,6 +921,7 @@ let movimientos = [];
 let finques = [];
 let components = [];
 let equipaments = [];
+let parcellesEliminades = new Set();
 let flota = [];
 let userEmail = '';
 
@@ -973,6 +980,7 @@ async function ensureSheets(){
   if(!nombres.includes(SHEET_FINQUES)) toCreate.push({addSheet:{properties:{title:SHEET_FINQUES}}});
   if(!nombres.includes(SHEET_COMPONENTS)) toCreate.push({addSheet:{properties:{title:SHEET_COMPONENTS}}});
   if(!nombres.includes(SHEET_EQUIP)) toCreate.push({addSheet:{properties:{title:SHEET_EQUIP}}});
+  if(!nombres.includes(SHEET_ELIMINADES)) toCreate.push({addSheet:{properties:{title:SHEET_ELIMINADES}}});
   if(!nombres.includes(SHEET_REPOSTATGES)) toCreate.push({addSheet:{properties:{title:SHEET_REPOSTATGES}}});
   if(!nombres.includes(SHEET_MANTENIMENTS)) toCreate.push({addSheet:{properties:{title:SHEET_MANTENIMENTS}}});
   if(toCreate.length){
@@ -995,6 +1003,14 @@ async function loadFromSheets(){
       finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
     } catch(e){ finques=[]; }
     setTimeout(refreshAllFincaBtns, 100);
+    // Load and apply eliminated parcelles
+    try {
+      const rEl = await sheetsReq('/values/'+encodeURIComponent(SHEET_ELIMINADES)+'!A2:C');
+      parcellesEliminades = new Set((rEl.values||[]).map(r=>r[0]||'').filter(Boolean));
+      if(parcellesEliminades.size>0 && PARC_DATA){
+        PARC_DATA.features = PARC_DATA.features.filter(f=>!parcellesEliminades.has(f.properties.id));
+      }
+    } catch(e){ parcellesEliminades = new Set(); }
     try {
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
       components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0}));
@@ -1158,6 +1174,9 @@ async function addMovimiento(){
   const fecha = document.getElementById('f-fecha').value;
   const notas = document.getElementById('f-notas').value.trim();
   const msg = document.getElementById('form-msg');
+  if(!tipo||!area){
+    msg.className='msg-err'; msg.textContent='Selecciona el tipus i l area de la factura.'; return;
+  }
   if(!concepto||isNaN(importe)||importe<=0||!fecha){
     msg.className='msg-err'; msg.textContent='Omple tots els camps obligatoris.'; return;
   }
@@ -1870,7 +1889,7 @@ async function addRepostatge(){
   const preu = document.getElementById('rep-preu').value;
   const total = document.getElementById('rep-total').value;
   const msg = document.getElementById('rep-msg');
-  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, màquina i litres.'; return; }
+  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, maquina i litres.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant...');
   try {
@@ -1947,7 +1966,8 @@ async function addManteniment(){
   const estat = document.getElementById('mant-estat').value;
   const fetPer = document.getElementById('mant-fet-per').value;
   const msg = document.getElementById('mant-msg');
-  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, element i descripció.'; return; }
+  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, maquina i descripcio.'; return; }
+  if(!tipus){ msg.className='msg-err'; msg.textContent='Selecciona el tipus de manteniment.'; return; }
 
   let cost = '0', qui = '', hores = '', mecanic = '';
   if(fetPer==='Nosaltres'){
@@ -2049,6 +2069,10 @@ async function loadParcData(){
   try {
     const r = await fetch('https://damiabm9.github.io/Gestor-Agricola/parcelles.geojson');
     PARC_DATA = await r.json();
+    // Filter already-eliminated parcelles
+    if(parcellesEliminades.size>0){
+      PARC_DATA.features = PARC_DATA.features.filter(f=>!parcellesEliminades.has(f.properties.id));
+    }
   } catch(e) {
     console.error('Error carregant parcelles:', e);
   }
@@ -2934,13 +2958,14 @@ async function eliminarParcel·la(id){
   // Re-render list
   renderParcList(PARC_DATA.features);
 
-  // Save updated geojson to GitHub Pages is not possible directly
-  // But we can save a list of deleted IDs to Sheets
+  // Save to Sheets permanently
   try {
-    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
-  } catch(e){ /* silent - sheet might not exist */ }
-
-  setSyncing(false,'Parcel·la eliminada (sessio actual)');
+    await appendRow(SHEET_ELIMINADES,[id, nom, new Date().toISOString().split('T')[0]]);
+    parcellesEliminades.add(id);
+    setSyncing(false,'Parcella eliminada permanentment');
+  } catch(e){
+    setSyncing(false,'Parcella eliminada (sessio actual)');
+  }
 }
 
 
@@ -2993,6 +3018,7 @@ async function addTreball(){
   const notes = document.getElementById('t-notes').value.trim();
   const msg = document.getElementById('treball-msg');
   if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
+  if(!qui||!tipus){ msg.className='msg-err'; msg.textContent='Selecciona qui fa la feina i el tipus.'; return; }
 
   const parcHaTot = treballParcelles.reduce((s,p)=>s+p.ha,0);
   const parcNoms = treballParcelles.map(p=>p.nom).join(', ');
@@ -3755,7 +3781,7 @@ async function addRepostatge(){
   const preu = document.getElementById('rep-preu').value;
   const total = document.getElementById('rep-total').value;
   const msg = document.getElementById('rep-msg');
-  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, màquina i litres.'; return; }
+  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, maquina i litres.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant...');
   try {
@@ -3832,7 +3858,8 @@ async function addManteniment(){
   const estat = document.getElementById('mant-estat').value;
   const fetPer = document.getElementById('mant-fet-per').value;
   const msg = document.getElementById('mant-msg');
-  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, element i descripció.'; return; }
+  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, maquina i descripcio.'; return; }
+  if(!tipus){ msg.className='msg-err'; msg.textContent='Selecciona el tipus de manteniment.'; return; }
 
   let cost = '0', qui = '', hores = '', mecanic = '';
   if(fetPer==='Nosaltres'){
@@ -4464,13 +4491,14 @@ async function eliminarParcel·la(id){
   // Re-render list
   renderParcList(PARC_DATA.features);
 
-  // Save updated geojson to GitHub Pages is not possible directly
-  // But we can save a list of deleted IDs to Sheets
+  // Save to Sheets permanently
   try {
-    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
-  } catch(e){ /* silent - sheet might not exist */ }
-
-  setSyncing(false,'Parcel·la eliminada (sessio actual)');
+    await appendRow(SHEET_ELIMINADES,[id, nom, new Date().toISOString().split('T')[0]]);
+    parcellesEliminades.add(id);
+    setSyncing(false,'Parcella eliminada permanentment');
+  } catch(e){
+    setSyncing(false,'Parcella eliminada (sessio actual)');
+  }
 }
 
 
@@ -4586,6 +4614,7 @@ async function addTreball(){
   const parcDetail = horesDistrib.map(p=>p.nom+':'+p.hores+'h('+p.ha+'ha)').join('|');
   const msg = document.getElementById('treball-msg');
   if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
+  if(!qui||!tipus){ msg.className='msg-err'; msg.textContent='Selecciona qui fa la feina i el tipus.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant treball...');
   try {
