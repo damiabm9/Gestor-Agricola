@@ -143,7 +143,6 @@
     <button class="tab active" onclick="showTab('resumen',this)">📊 Resum</button>
     <button class="tab" onclick="showTab('partes',this)">📋 Partes</button>
     <button class="tab" onclick="showTab('parcelles',this)">🗺️ Parcel·les</button>
-    <button class="tab" onclick="showTab('rentabilidad',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
   </div>
 
@@ -182,6 +181,28 @@
     <div class="card">
       <div class="card-title">⏱ Últims moviments</div>
       <div id="resumen-list"></div>
+    </div>
+
+    <!-- Rendibilitat integrada -->
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>📈 Rendibilitat</span>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">
+          <button class="tab active" id="rtab-totes" onclick="showRentArea('totes',this)" style="padding:4px 10px;font-size:11px">Totes</button>
+          <button class="tab" id="rtab-cultivos" onclick="showRentArea('cultivos',this)" style="padding:4px 10px;font-size:11px">🌾</button>
+          <button class="tab" id="rtab-maquinaria" onclick="showRentArea('maquinaria',this)" style="padding:4px 10px;font-size:11px">🚜</button>
+          <button class="tab" id="rtab-cerdos" onclick="showRentArea('cerdos',this)" style="padding:4px 10px;font-size:11px">🐷</button>
+          <button class="tab" id="rtab-pollos" onclick="showRentArea('pollos',this)" style="padding:4px 10px;font-size:11px">🐔</button>
+        </div>
+      </div>
+      <div id="rent-maq-filter" class="hidden" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:var(--gris-texto);font-weight:500">Filtrar per:</label>
+        <select id="rent-maq-sel" onchange="renderRentabilitat()" style="width:auto;padding:6px 12px;font-size:13px"><option value="">Tota la maquinaria</option></select>
+      </div>
+      <div class="rent-grid" id="rent-grid"></div>
+      <div id="cat-breakdown" style="margin-top:1rem"></div>
+      <div id="rent-amort-card" style="margin-top:1rem"></div>
+      <div id="rent-parcelles-card" style="margin-top:1rem"></div>
     </div>
   </div>
 
@@ -615,37 +636,23 @@
     </div>
   </div>
 
-  <!-- RENTABILIDAD -->
-  <div id="tab-rentabilidad" class="section">
-    <!-- Filtre àrea -->
-    <div style="display:flex;gap:4px;margin-bottom:1rem;background:var(--blanco);border-radius:var(--radio);padding:4px;box-shadow:var(--sombra);flex-wrap:wrap">
-      <button class="tab active" onclick="showRentArea('totes',this)" style="flex:1">Totes</button>
-      <button class="tab" onclick="showRentArea('cultivos',this)" style="flex:1">🌾 Cultius</button>
-      <button class="tab" onclick="showRentArea('maquinaria',this)" style="flex:1">🚜 Maquinària</button>
-      <button class="tab" onclick="showRentArea('cerdos',this)" style="flex:1">🐷 Porcs</button>
-      <button class="tab" onclick="showRentArea('pollos',this)" style="flex:1">🐔 Pollastres</button>
+  <!-- MOVIMIENTOS -->
+  <div id="tab-movimientos" class="section">
+    <div class="card">
+      <div class="card-title">🔍 Filtrar</div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr auto">
+        <div><label>Àrea</label><select id="fil-area" onchange="renderMovimientos()"><option value="">Totes</option><option value="cultivos">🌾 Cultius</option><option value="maquinaria">🚜 Maquinària</option><option value="cerdos">🐷 Porcs</option><option value="pollos">🐔 Pollastres</option></select></div>
+        <div><label>Tipus</label><select id="fil-tipo" onchange="renderMovimientos()"><option value="">Tots</option><option value="ingreso">Ingressos</option><option value="gasto">Despeses</option></select></div>
+        <div><label>Categoria</label><select id="fil-cat" onchange="renderMovimientos()"><option value="">Totes</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="loadFromSheets()">↺ Recarregar</button></div>
+      </div>
     </div>
-
-    <!-- Filtre maquinaria -->
-    <div id="rent-maq-filter" class="hidden" style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <label style="font-size:12px;color:var(--gris-texto);font-weight:500">Filtrar per:</label>
-      <select id="rent-maq-sel" onchange="renderRentabilitat()" style="width:auto;padding:6px 12px;font-size:13px">
-        <option value="">Tota la maquinària</option>
-      </select>
+    <div class="card">
+      <table class="mov-table">
+        <thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Importe</th><th></th></tr></thead>
+        <tbody id="mov-list"></tbody>
+      </table>
     </div>
-
-    <div class="rent-grid" id="rent-grid"></div>
-    <div class="card" style="margin-top:1rem">
-      <div class="card-title">📂 Desglossament per categoria</div>
-      <div id="cat-breakdown"></div>
-    </div>
-
-    <!-- Amortitzacions -->
-    <div class="card" style="margin-top:1rem" id="rent-amort-card">
-      <div class="card-title">📉 Amortitzacions de maquinària</div>
-      <div id="rent-amort-body"></div>
-    </div>
-
   </div>
 
   <!-- FLOTA -->
@@ -722,52 +729,6 @@
       <div id="fitxa-body"></div>
     </div>
 
-    <!-- Repostatges -->
-    <div class="card">
-      <div class="card-title">⛽ Registrar repostatge</div>
-      <div class="form-row g3">
-        <div><label>Data</label><input type="date" id="rep-data"/></div>
-        <div><label>Màquina</label><select id="rep-maquina"><option value="">— Selecciona —</option></select></div>
-        <div><label>Tipus</label>
-          <select id="rep-tipus">
-            <option value="Dièsel">⛽ Dièsel</option>
-            <option value="AdBlue">🟦 AdBlue</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row g3">
-        <div><label>Litres</label><input type="number" id="rep-litres" placeholder="0" min="0" step="0.1" oninput="calcRepostatge()"/></div>
-        <div><label>Preu (€/litre)</label><input type="number" id="rep-preu" placeholder="0.00" min="0" step="0.001" oninput="calcRepostatge()"/></div>
-        <div><label>Total (€)</label><input type="number" id="rep-total" placeholder="0.00" readonly style="background:var(--gris-bg)"/></div>
-      </div>
-      <button class="btn btn-primary" onclick="addRepostatge()">✓ Desar repostatge</button>
-      <div id="rep-msg"></div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="justify-content:space-between;display:flex">
-        <span>📋 Historial repostatges</span>
-        <button class="btn btn-sm" onclick="loadRepostatges()">↺ Recarregar</button>
-      </div>
-      <table class="mov-table">
-        <thead><tr><th>Data</th><th>Màquina</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th></th></tr></thead>
-        <tbody id="rep-list"><tr><td colspan="6"><div class="empty">Carregant...</div></td></tr></tbody>
-      </table>
-    </div>
-
-        <!-- Fitxa per màquina -->
-    <div class="card">
-      <div class="card-title">📊 Fitxa de màquina / apero</div>
-      <div class="form-row g2" style="margin-bottom:1rem">
-        <div>
-          <label>Selecciona màquina o apero</label>
-          <select id="fitxa-sel" onchange="renderFitxaMaquina()">
-            <option value="">— Selecciona —</option>
-          </select>
-        </div>
-        <div id="fitxa-hores-total" style="display:flex;align-items:flex-end;font-size:13px;color:var(--gris-texto);padding-bottom:6px"></div>
-      </div>
-      <div id="fitxa-body"></div>
-    </div>
 
     <!-- Repostatges -->
     <div class="card">
@@ -801,99 +762,7 @@
       </table>
     </div>
 
-    <!-- Manteniments -->
-    <div class="card">
-      <div class="card-title">🔩 Registrar manteniment / avaria</div>
-      <div class="form-row g2">
-        <div><label>Data</label><input type="date" id="mant-data"/></div>
-        <div><label>Màquina o apero</label><select id="mant-maquina"><option value="">— Selecciona —</option></select></div>
-      </div>
-      <div class="form-row g2">
-        <div><label>Tipus</label>
-          <select id="mant-tipus">
-            <option value="Manteniment preventiu">Manteniment preventiu</option>
-            <option value="Avaria">Avaria</option>
-            <option value="Revisió">Revisió</option>
-            <option value="Canvi d'oli">Canvi d'oli</option>
-            <option value="Altres">Altres</option>
-          </select>
-        </div>
-        <div><label>Estat</label>
-          <select id="mant-estat">
-            <option value="Resolt">Resolt</option>
-            <option value="Pendent">Pendent</option>
-            <option value="En reparació">En reparació</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-bottom:10px"><label>Descripció</label><input type="text" id="mant-desc" placeholder="Ex: Canvi filtres, reparació hidràulic..."/></div>
-      <div class="form-row g2">
-        <div><label>Fet per</label>
-          <select id="mant-fet-per" onchange="onMantFetPerChange()">
-            <option value="Nosaltres">Nosaltres</option>
-            <option value="Mecànic extern">Mecànic extern</option>
-          </select>
-        </div>
-        <div id="mant-qui-wrap"><label>Qui ho ha fet</label>
-          <select id="mant-qui">
-            <option value="Damià">Damià</option>
-            <option value="Joan">Joan</option>
-            <option value="Roger">Roger</option>
-            <option value="Treballador">Treballador</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row g2" id="mant-hores-wrap">
-        <div><label>Hores dedicades</label><input type="number" id="mant-hores" placeholder="0" min="0" step="0.5"/></div>
-        <div><label>Cost (€)</label><input type="number" id="mant-cost" placeholder="0.00" min="0" step="0.01"/></div>
-      </div>
-      <div class="form-row g2 hidden" id="mant-mecanic-wrap">
-        <div><label>Nom del mecànic / taller</label><input type="text" id="mant-mecanic" placeholder="Ex: Taller Mas, Joan Grau..."/></div>
-        <div><label>Cost (€)</label><input type="number" id="mant-cost-ext" placeholder="0.00" min="0" step="0.01"/></div>
-      </div>
-      <button class="btn btn-primary" onclick="addManteniment()">✓ Desar manteniment</button>
-      <div id="mant-msg"></div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="justify-content:space-between;display:flex">
-        <span>📋 Historial manteniments</span>
-        <button class="btn btn-sm" onclick="loadManteniments()">↺ Recarregar</button>
-      </div>
-      <table class="mov-table">
-        <thead><tr><th>Data</th><th>Element</th><th>Tipus</th><th>Descripció</th><th>Fet per</th><th>Estat</th><th style="text-align:right">Cost</th><th></th></tr></thead>
-        <tbody id="mant-list"><tr><td colspan="7"><div class="empty">Carregant...</div></td></tr></tbody>
-      </table>
-    </div>
-
-  </div>
-
-  <!-- COMPARADOR -->
-  <div id="tab-comparador" class="section">
-    <div class="card">
-      <div class="card-title">🧮 ¿Me sale mejor tener la máquina o contratar?</div>
-      <div class="form-row g2">
-        <div><label>Cost anual màquina pròpia (amortitz. + dièsel + reparacions + assegurança, €)</label><input type="number" id="c-propia" placeholder="0" oninput="calcComparador()"/></div>
-        <div><label>Cost anual servei contractat (€)</label><input type="number" id="c-contratado" placeholder="0" oninput="calcComparador()"/></div>
-      </div>
-      <div class="form-row g2">
-        <div><label>Hores anuals d'ús estimades</label><input type="number" id="c-horas" placeholder="0" oninput="calcComparador()"/></div>
-        <div><label>Preu hora servei contractat (€/h, opcional)</label><input type="number" id="c-hora-ext" placeholder="0" oninput="calcComparador()"/></div>
-      </div>
-      <div id="comparador-result" style="margin-top:1rem;font-size:14px;color:var(--gris-texto)"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">📐 Calculadora d'amortització</div>
-      <div class="form-row g3">
-        <div><label>Nom</label><input type="text" id="ca-nombre" placeholder="Ej: Sembradora"/></div>
-        <div><label>Cost de compra (€)</label><input type="number" id="ca-coste" placeholder="0" oninput="calcAmortLib()"/></div>
-        <div><label>Vida útil (anys)</label><input type="number" id="ca-years" placeholder="10" oninput="calcAmortLib()"/></div>
-      </div>
-      <div id="amort-lib-result"></div>
-    </div>
-  </div>
-</div>
-
-<script src="https://accounts.google.com/gsi/client"></script>
+ript>
 <script>
 const CLIENT_ID = '826467492165-jis8n655430lc0cibhi276t43p4hk6jc.apps.googleusercontent.com';
 const SHEET_ID = '1pZIiwLBt66VI2J9h9CLikoHT2nM8LGpofIogCR9VS64';
@@ -921,7 +790,6 @@ let movimientos = [];
 let finques = [];
 let components = [];
 let equipaments = [];
-let parcellesEliminades = new Set();
 let flota = [];
 let userEmail = '';
 
@@ -980,7 +848,6 @@ async function ensureSheets(){
   if(!nombres.includes(SHEET_FINQUES)) toCreate.push({addSheet:{properties:{title:SHEET_FINQUES}}});
   if(!nombres.includes(SHEET_COMPONENTS)) toCreate.push({addSheet:{properties:{title:SHEET_COMPONENTS}}});
   if(!nombres.includes(SHEET_EQUIP)) toCreate.push({addSheet:{properties:{title:SHEET_EQUIP}}});
-  if(!nombres.includes(SHEET_ELIMINADES)) toCreate.push({addSheet:{properties:{title:SHEET_ELIMINADES}}});
   if(!nombres.includes(SHEET_REPOSTATGES)) toCreate.push({addSheet:{properties:{title:SHEET_REPOSTATGES}}});
   if(!nombres.includes(SHEET_MANTENIMENTS)) toCreate.push({addSheet:{properties:{title:SHEET_MANTENIMENTS}}});
   if(toCreate.length){
@@ -1003,14 +870,6 @@ async function loadFromSheets(){
       finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
     } catch(e){ finques=[]; }
     setTimeout(refreshAllFincaBtns, 100);
-    // Load and apply eliminated parcelles
-    try {
-      const rEl = await sheetsReq('/values/'+encodeURIComponent(SHEET_ELIMINADES)+'!A2:C');
-      parcellesEliminades = new Set((rEl.values||[]).map(r=>r[0]||'').filter(Boolean));
-      if(parcellesEliminades.size>0 && PARC_DATA){
-        PARC_DATA.features = PARC_DATA.features.filter(f=>!parcellesEliminades.has(f.properties.id));
-      }
-    } catch(e){ parcellesEliminades = new Set(); }
     try {
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
       components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0}));
@@ -1051,7 +910,7 @@ function showTab(t, btn){
   if(!tabEl) return;
   tabEl.classList.add('visible');
   if(btn) btn.classList.add('active');
-  if(t==='resumen') renderResumen();
+  if(t==='resumen'){ renderResumen(); renderRentabilitat(); }
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
   if(t==='flota'){ renderFlota(); loadRepostatges(); populateFitxaSel(); renderEquipList(); }
@@ -1174,9 +1033,6 @@ async function addMovimiento(){
   const fecha = document.getElementById('f-fecha').value;
   const notas = document.getElementById('f-notas').value.trim();
   const msg = document.getElementById('form-msg');
-  if(!tipo||!area){
-    msg.className='msg-err'; msg.textContent='Selecciona el tipus i l area de la factura.'; return;
-  }
   if(!concepto||isNaN(importe)||importe<=0||!fecha){
     msg.className='msg-err'; msg.textContent='Omple tots els camps obligatoris.'; return;
   }
@@ -1889,7 +1745,7 @@ async function addRepostatge(){
   const preu = document.getElementById('rep-preu').value;
   const total = document.getElementById('rep-total').value;
   const msg = document.getElementById('rep-msg');
-  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, maquina i litres.'; return; }
+  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, màquina i litres.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant...');
   try {
@@ -1966,8 +1822,7 @@ async function addManteniment(){
   const estat = document.getElementById('mant-estat').value;
   const fetPer = document.getElementById('mant-fet-per').value;
   const msg = document.getElementById('mant-msg');
-  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, maquina i descripcio.'; return; }
-  if(!tipus){ msg.className='msg-err'; msg.textContent='Selecciona el tipus de manteniment.'; return; }
+  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, element i descripció.'; return; }
 
   let cost = '0', qui = '', hores = '', mecanic = '';
   if(fetPer==='Nosaltres'){
@@ -2069,10 +1924,6 @@ async function loadParcData(){
   try {
     const r = await fetch('https://damiabm9.github.io/Gestor-Agricola/parcelles.geojson');
     PARC_DATA = await r.json();
-    // Filter already-eliminated parcelles
-    if(parcellesEliminades.size>0){
-      PARC_DATA.features = PARC_DATA.features.filter(f=>!parcellesEliminades.has(f.properties.id));
-    }
   } catch(e) {
     console.error('Error carregant parcelles:', e);
   }
@@ -2958,15 +2809,15 @@ async function eliminarParcel·la(id){
   // Re-render list
   renderParcList(PARC_DATA.features);
 
-  // Save to Sheets permanently
+  // Save updated geojson to GitHub Pages is not possible directly
+  // But we can save a list of deleted IDs to Sheets
   try {
-    await appendRow(SHEET_ELIMINADES,[id, nom, new Date().toISOString().split('T')[0]]);
-    parcellesEliminades.add(id);
-    setSyncing(false,'Parcella eliminada permanentment');
-  } catch(e){
-    setSyncing(false,'Parcella eliminada (sessio actual)');
-  }
+    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
+  } catch(e){ /* silent - sheet might not exist */ }
+
+  setSyncing(false,'Parcel·la eliminada (sessio actual)');
 }
+
 
 
 // ── PARTES ──────────────────────────────────────────────
@@ -3018,7 +2869,6 @@ async function addTreball(){
   const notes = document.getElementById('t-notes').value.trim();
   const msg = document.getElementById('treball-msg');
   if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
-  if(!qui||!tipus){ msg.className='msg-err'; msg.textContent='Selecciona qui fa la feina i el tipus.'; return; }
 
   const parcHaTot = treballParcelles.reduce((s,p)=>s+p.ha,0);
   const parcNoms = treballParcelles.map(p=>p.nom).join(', ');
@@ -3781,7 +3631,7 @@ async function addRepostatge(){
   const preu = document.getElementById('rep-preu').value;
   const total = document.getElementById('rep-total').value;
   const msg = document.getElementById('rep-msg');
-  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, maquina i litres.'; return; }
+  if(!data||!maquina||!litres){ msg.className='msg-err'; msg.textContent='Omple data, màquina i litres.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant...');
   try {
@@ -3858,8 +3708,7 @@ async function addManteniment(){
   const estat = document.getElementById('mant-estat').value;
   const fetPer = document.getElementById('mant-fet-per').value;
   const msg = document.getElementById('mant-msg');
-  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, maquina i descripcio.'; return; }
-  if(!tipus){ msg.className='msg-err'; msg.textContent='Selecciona el tipus de manteniment.'; return; }
+  if(!data||!maquina||!desc){ msg.className='msg-err'; msg.textContent='Omple data, element i descripció.'; return; }
 
   let cost = '0', qui = '', hores = '', mecanic = '';
   if(fetPer==='Nosaltres'){
@@ -4491,15 +4340,15 @@ async function eliminarParcel·la(id){
   // Re-render list
   renderParcList(PARC_DATA.features);
 
-  // Save to Sheets permanently
+  // Save updated geojson to GitHub Pages is not possible directly
+  // But we can save a list of deleted IDs to Sheets
   try {
-    await appendRow(SHEET_ELIMINADES,[id, nom, new Date().toISOString().split('T')[0]]);
-    parcellesEliminades.add(id);
-    setSyncing(false,'Parcella eliminada permanentment');
-  } catch(e){
-    setSyncing(false,'Parcella eliminada (sessio actual)');
-  }
+    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
+  } catch(e){ /* silent - sheet might not exist */ }
+
+  setSyncing(false,'Parcel·la eliminada (sessio actual)');
 }
+
 
 
 // ── PARTES ──────────────────────────────────────────────
@@ -4614,7 +4463,6 @@ async function addTreball(){
   const parcDetail = horesDistrib.map(p=>p.nom+':'+p.hores+'h('+p.ha+'ha)').join('|');
   const msg = document.getElementById('treball-msg');
   if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
-  if(!qui||!tipus){ msg.className='msg-err'; msg.textContent='Selecciona qui fa la feina i el tipus.'; return; }
   const id = Date.now().toString();
   setSyncing(true,'Desant treball...');
   try {
