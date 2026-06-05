@@ -760,6 +760,8 @@ let movimientos = [];
 let finques = [];
 let components = [];
 let equipaments = [];
+let editingId = null; // ID del registre que s'esta editant
+let editingSheet = null; // Sheet on esta el registre
 let flota = [];
 let userEmail = '';
 
@@ -839,7 +841,7 @@ async function ensureSheets(){
 async function loadFromSheets(){
   setSyncing(true,'Carregant dades...');
   try {
-    const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
+    const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A1:K');
     const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
     flota = (rFlo.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0,moPreu:parseFloat(r[9])||20,moWorkers:parseFloat(r[10])||1}));
@@ -849,11 +851,11 @@ async function loadFromSheets(){
     } catch(e){ finques=[]; }
     setTimeout(refreshAllFincaBtns, 100);
     try {
-      const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
+      const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A1:I');
       components = (rComp.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0,horesVida:parseFloat(r[7])||0,costHora:parseFloat(r[8])||0}));
     } catch(e){ components=[]; }
     try {
-      const rEq = await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A2:D');
+      const rEq = await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A1:D');
       equipaments = (rEq.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',nom:r[1]||'',maquina:r[2]||'',apero:r[3]||''}));
     } catch(e){ equipaments=[]; }
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
@@ -1665,8 +1667,10 @@ function renderFlota(){
           </div>
           <div class="form-row g3" style="margin-bottom:8px">
             <div><label>Hores inicials (abans de l app)</label><input type="number" id="ef-hores-${m.id}" value="${m.horesInicials||''}" placeholder="0" min="0"/></div>
+            ${m.tipo==='maquina' ? `
             <div><label>Preu MO (€/hora)</label><input type="number" id="ef-mo-preu-${m.id}" value="${m.moPreu||20}" placeholder="20" min="0" step="0.5"/></div>
             <div><label>Num. treballadors</label><input type="number" id="ef-mo-workers-${m.id}" value="${m.moWorkers||1}" placeholder="1" min="1" step="1"/></div>
+            ` : `<div></div><div></div>`}
           </div>
           <div style="margin-bottom:8px">
             <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
@@ -1756,7 +1760,7 @@ async function loadRepostatges(){
   const tbody = document.getElementById('rep-list');
   if(!tbody) return;
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:F');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
     const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'Dièsel',litres:row[4]||'',preu:row[5]||'',total:row[6]||''}));
     if(!rows.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Encara no hi ha repostatges registrats.</div></td></tr>'; return; }
     tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
@@ -1844,7 +1848,7 @@ async function loadManteniments(){
   const tbody = document.getElementById('mant-list');
   if(!tbody) return;
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:G');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
     const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'',desc:row[4]||'',cost:row[5]||'0',estat:row[6]||'',fetPer:row[7]||'',qui:row[8]||'',hores:row[9]||'',mecanic:row[10]||''}));
     if(!rows.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha manteniments registrats.</div></td></tr>'; return; }
     const estatColor = {Resolt:'badge-ing',Pendent:'badge-gas','En reparació':'badge-cat'};
@@ -2544,8 +2548,8 @@ async function renderFitxaMaquina(){
   const costDespesesHora = horesTotal > 0 ? costDespesesReals / horesTotal : 0;
 
   // 6. Ma d obra - preu i treballadors configurables, sobre hores totals
-  const MO_PREU = maq.moPreu||20;
-  const MO_WORKERS = maq.moWorkers||1;
+  const MO_PREU = maq.tipo==='maquina' ? (maq.moPreu||20) : 0;
+  const MO_WORKERS = maq.tipo==='maquina' ? (maq.moWorkers||1) : 0;
   const costMO = horesTotal * MO_PREU * MO_WORKERS;
   const costMOHora = MO_PREU * MO_WORKERS;
 
@@ -2714,7 +2718,7 @@ async function desarEditFinca(id){
   // Find row in sheet
   setSyncing(true,'Actualitzant finca...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:E');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A1:E');
     const rows = r.values||[];
     const rowIdx = rows.findIndex(row=>row[0]===id);
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
@@ -2855,6 +2859,137 @@ function showPartesTip(tip, btn){
   if(tip==='factura'){ onAreaChange(); renderMovimientos(); }
 }
 
+
+// ── EDITAR PARTES ────────────────────────────────────────
+
+function editMovimiento(id){
+  const m = movimientos.find(x=>x.id===id);
+  if(!m) return;
+  editingId = id;
+  editingSheet = SHEET_MOV;
+  // Switch to factura subtab
+  showPartesTip('factura', document.getElementById('ptab-factura'));
+  // Fill form
+  setTimeout(()=>{
+    document.getElementById('f-tipo').value = m.tipo||'';
+    onTipoChange();
+    document.getElementById('f-area').value = m.area||'';
+    onAreaChange();
+    setTimeout(()=>{
+      document.getElementById('f-categoria').value = m.categoria||'';
+      onCatChange();
+      document.getElementById('f-concepto').value = m.concepto||'';
+      document.getElementById('f-importe').value = m.importe||'';
+      document.getElementById('f-fecha').value = m.fecha||'';
+      document.getElementById('f-notas').value = m.notas||'';
+      if(m.maquina) document.getElementById('f-maquina').value = m.maquina||'';
+      // Show editing indicator
+      showEditingBanner('factura', id);
+    },100);
+  },50);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function editTreball(id){
+  // Load treballs to find this one
+  sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:L').then(r=>{
+    const rows = (r.values||[]).filter(x=>String(x[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+    if(!rows.length) return;
+    const row = rows[0];
+    editingId = id;
+    editingSheet = SHEET_TREBALLS;
+    showPartesTip('feina', document.getElementById('ptab-feina'));
+    setTimeout(()=>{
+      document.getElementById('t-data').value = row[1]||'';
+      document.getElementById('t-qui').value = row[2]||'';
+      document.getElementById('t-tipus').value = row[3]||'';
+      document.getElementById('t-maquina').value = row[4]||'';
+      document.getElementById('t-apero').value = row[5]||'';
+      document.getElementById('t-hores').value = row[6]||'';
+      document.getElementById('t-notes').value = row[8]||'';
+      showEditingBanner('feina', id);
+    },100);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+}
+
+function editManteniment(id){
+  sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K').then(r=>{
+    const rows = (r.values||[]).filter(x=>String(x[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+    if(!rows.length) return;
+    const row = rows[0];
+    editingId = id;
+    editingSheet = SHEET_MANTENIMENTS;
+    showPartesTip('manteniment', document.getElementById('ptab-manteniment'));
+    setTimeout(()=>{
+      document.getElementById('mant-data').value = row[1]||'';
+      document.getElementById('mant-maquina').value = row[2]||'';
+      document.getElementById('mant-tipus').value = row[3]||'';
+      document.getElementById('mant-desc').value = row[4]||'';
+      document.getElementById('mant-cost').value = row[5]||'';
+      document.getElementById('mant-estat').value = row[6]||'';
+      showEditingBanner('manteniment', id);
+    },100);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+}
+
+function editRepostatge(id){
+  sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G').then(r=>{
+    const rows = (r.values||[]).filter(x=>String(x[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+    if(!rows.length) return;
+    const row = rows[0];
+    editingId = id;
+    editingSheet = SHEET_REPOSTATGES;
+    showPartesTip('repostatge', document.getElementById('ptab-repostatge'));
+    setTimeout(()=>{
+      document.getElementById('rep-data').value = row[1]||'';
+      document.getElementById('rep-maquina').value = row[2]||'';
+      document.getElementById('rep-tipus').value = row[3]||'';
+      document.getElementById('rep-litres').value = row[4]||'';
+      document.getElementById('rep-preu').value = row[5]||'';
+      calcRepostatge();
+      showEditingBanner('repostatge', id);
+    },100);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+}
+
+function showEditingBanner(tip, id){
+  // Add or update editing banner inside the form card
+  const formId = tip==='factura'?'partes-factura':tip==='feina'?'partes-feina':tip==='manteniment'?'partes-manteniment':'partes-repostatge';
+  const card = document.querySelector('#'+formId+' .card');
+  if(!card) return;
+  let banner = document.getElementById('edit-banner-'+tip);
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'edit-banner-'+tip;
+    banner.style.cssText = 'background:var(--azul-claro);color:var(--azul);border-radius:var(--radio-sm);padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center';
+    card.insertBefore(banner, card.firstChild);
+  }
+  banner.innerHTML = `✏️ Mode edicio — modifica els camps i desa<button onclick="cancelarEdicio('${tip}')" class="btn btn-sm" style="font-size:11px;padding:3px 8px">Cancel·lar</button>`;
+  banner.style.display='flex';
+}
+
+function cancelarEdicio(tip){
+  editingId = null;
+  editingSheet = null;
+  const banner = document.getElementById('edit-banner-'+tip);
+  if(banner) banner.style.display='none';
+  if(tip==='factura') clearForm();
+  if(tip==='feina') clearTreball();
+  if(tip==='manteniment'){ ['mant-data','mant-desc','mant-cost','mant-cost-ext','mant-mecanic'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); }
+  if(tip==='repostatge'){ ['rep-data','rep-litres','rep-preu','rep-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); }
+}
+
+async function updateRow(sheet, id, newValues){
+  const r = await sheetsReq('/values/'+encodeURIComponent(sheet)+'!A1:A');
+  const rows = r.values||[];
+  const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+  if(rowIdx<0) throw new Error('Fila no trobada');
+  await sheetsReq('/values/'+encodeURIComponent(sheet)+'!A'+(rowIdx+1)+':'+String.fromCharCode(65+newValues.length-1)+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[newValues]});
+}
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -2905,7 +3040,12 @@ async function addTreball(){
   const id = Date.now().toString();
   setSyncing(true,'Desant treball...');
   try {
-    await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),'',notes,parcNoms,parcHa.toFixed(2),parcDetail]);
+    if(editingId && editingSheet===SHEET_TREBALLS){
+      await updateRow(SHEET_TREBALLS, editingId, [editingId,data,qui,tipus,maquina,apero,hores.toFixed(1),'',notes,parcNoms,parcHa.toFixed(2),parcDetail]);
+      cancelarEdicio('feina');
+    } else {
+      await appendRow(SHEET_TREBALLS,[id,data,qui,tipus,maquina,apero,hores.toFixed(1),'',notes,parcNoms,parcHa.toFixed(2),parcDetail]);
+    }
     setSyncing(false,'Connectat a Google Sheets');
     msg.className='msg-ok'; msg.textContent='✓ Treball desat correctament.';
     setTimeout(()=>msg.textContent='',3000);
@@ -2929,7 +3069,7 @@ async function loadTreballs(){
   const filMaq = document.getElementById('t-fil-maquina')?.value||'';
   if(!tbody) return;
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:L');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:L');
     let treballs = (r.values||[]).map(row=>({
       id:row[0]||'',data:row[1]||'',qui:row[2]||'',tipus:row[3]||'',
       maquina:row[4]||'',apero:row[5]||'',hores:row[6]||'0',
@@ -2967,7 +3107,10 @@ async function loadTreballs(){
       <td style="font-size:12px;color:var(--gris-texto)">${t.maquina||'—'}${t.apero?' / '+t.apero:''}</td>
       <td style="font-size:11px;color:var(--gris-texto);max-width:160px;word-break:break-word">${t.parcNoms||'—'}${t.parcHa?' ('+t.parcHa+'ha)':''}</td>
       <td style="text-align:right;font-weight:600">${t.hores}h</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button></td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="editTreball('${t.id}')" style="color:var(--azul);border-color:var(--azul)">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button>
+      </td>
     </tr>`).join('');
   } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar els treballs.</div></td></tr>'; }
 }
@@ -3596,8 +3739,10 @@ function renderFlota(){
           </div>
           <div class="form-row g3" style="margin-bottom:8px">
             <div><label>Hores inicials (abans de l app)</label><input type="number" id="ef-hores-${m.id}" value="${m.horesInicials||''}" placeholder="0" min="0"/></div>
+            ${m.tipo==='maquina' ? `
             <div><label>Preu MO (€/hora)</label><input type="number" id="ef-mo-preu-${m.id}" value="${m.moPreu||20}" placeholder="20" min="0" step="0.5"/></div>
             <div><label>Num. treballadors</label><input type="number" id="ef-mo-workers-${m.id}" value="${m.moWorkers||1}" placeholder="1" min="1" step="1"/></div>
+            ` : `<div></div><div></div>`}
           </div>
           <div style="margin-bottom:8px">
             <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
@@ -3686,7 +3831,7 @@ async function loadRepostatges(){
   const tbody = document.getElementById('rep-list');
   if(!tbody) return;
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:F');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
     const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'Dièsel',litres:row[4]||'',preu:row[5]||'',total:row[6]||''}));
     if(!rows.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Encara no hi ha repostatges registrats.</div></td></tr>'; return; }
     tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
@@ -3774,7 +3919,7 @@ async function loadManteniments(){
   const tbody = document.getElementById('mant-list');
   if(!tbody) return;
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:G');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
     const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'',desc:row[4]||'',cost:row[5]||'0',estat:row[6]||'',fetPer:row[7]||'',qui:row[8]||'',hores:row[9]||'',mecanic:row[10]||''}));
     if(!rows.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha manteniments registrats.</div></td></tr>'; return; }
     const estatColor = {Resolt:'badge-ing',Pendent:'badge-gas','En reparació':'badge-cat'};
@@ -4120,8 +4265,8 @@ async function renderFitxaMaquina(){
   const costDespesesHora = horesTotal > 0 ? costDespesesReals / horesTotal : 0;
 
   // 6. Ma d obra - preu i treballadors configurables, sobre hores totals
-  const MO_PREU = maq.moPreu||20;
-  const MO_WORKERS = maq.moWorkers||1;
+  const MO_PREU = maq.tipo==='maquina' ? (maq.moPreu||20) : 0;
+  const MO_WORKERS = maq.tipo==='maquina' ? (maq.moWorkers||1) : 0;
   const costMO = horesTotal * MO_PREU * MO_WORKERS;
   const costMOHora = MO_PREU * MO_WORKERS;
 
@@ -4290,7 +4435,7 @@ async function desarEditFinca(id){
   // Find row in sheet
   setSyncing(true,'Actualitzant finca...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:E');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A1:E');
     const rows = r.values||[];
     const rowIdx = rows.findIndex(row=>row[0]===id);
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
@@ -4428,6 +4573,137 @@ function showPartesTip(tip, btn){
   if(tip==='manteniment'){ populateRepMantSelects(); loadManteniments(); }
   if(tip==='repostatge'){ populateRepMantSelects(); loadRepostatges(); }
   if(tip==='factura'){ onAreaChange(); renderMovimientos(); }
+}
+
+
+// ── EDITAR PARTES ────────────────────────────────────────
+
+function editMovimiento(id){
+  const m = movimientos.find(x=>x.id===id);
+  if(!m) return;
+  editingId = id;
+  editingSheet = SHEET_MOV;
+  // Switch to factura subtab
+  showPartesTip('factura', document.getElementById('ptab-factura'));
+  // Fill form
+  setTimeout(()=>{
+    document.getElementById('f-tipo').value = m.tipo||'';
+    onTipoChange();
+    document.getElementById('f-area').value = m.area||'';
+    onAreaChange();
+    setTimeout(()=>{
+      document.getElementById('f-categoria').value = m.categoria||'';
+      onCatChange();
+      document.getElementById('f-concepto').value = m.concepto||'';
+      document.getElementById('f-importe').value = m.importe||'';
+      document.getElementById('f-fecha').value = m.fecha||'';
+      document.getElementById('f-notas').value = m.notas||'';
+      if(m.maquina) document.getElementById('f-maquina').value = m.maquina||'';
+      // Show editing indicator
+      showEditingBanner('factura', id);
+    },100);
+  },50);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function editTreball(id){
+  // Load treballs to find this one
+  sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:L').then(r=>{
+    const rows = (r.values||[]).filter(x=>String(x[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+    if(!rows.length) return;
+    const row = rows[0];
+    editingId = id;
+    editingSheet = SHEET_TREBALLS;
+    showPartesTip('feina', document.getElementById('ptab-feina'));
+    setTimeout(()=>{
+      document.getElementById('t-data').value = row[1]||'';
+      document.getElementById('t-qui').value = row[2]||'';
+      document.getElementById('t-tipus').value = row[3]||'';
+      document.getElementById('t-maquina').value = row[4]||'';
+      document.getElementById('t-apero').value = row[5]||'';
+      document.getElementById('t-hores').value = row[6]||'';
+      document.getElementById('t-notes').value = row[8]||'';
+      showEditingBanner('feina', id);
+    },100);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+}
+
+function editManteniment(id){
+  sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K').then(r=>{
+    const rows = (r.values||[]).filter(x=>String(x[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+    if(!rows.length) return;
+    const row = rows[0];
+    editingId = id;
+    editingSheet = SHEET_MANTENIMENTS;
+    showPartesTip('manteniment', document.getElementById('ptab-manteniment'));
+    setTimeout(()=>{
+      document.getElementById('mant-data').value = row[1]||'';
+      document.getElementById('mant-maquina').value = row[2]||'';
+      document.getElementById('mant-tipus').value = row[3]||'';
+      document.getElementById('mant-desc').value = row[4]||'';
+      document.getElementById('mant-cost').value = row[5]||'';
+      document.getElementById('mant-estat').value = row[6]||'';
+      showEditingBanner('manteniment', id);
+    },100);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+}
+
+function editRepostatge(id){
+  sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G').then(r=>{
+    const rows = (r.values||[]).filter(x=>String(x[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+    if(!rows.length) return;
+    const row = rows[0];
+    editingId = id;
+    editingSheet = SHEET_REPOSTATGES;
+    showPartesTip('repostatge', document.getElementById('ptab-repostatge'));
+    setTimeout(()=>{
+      document.getElementById('rep-data').value = row[1]||'';
+      document.getElementById('rep-maquina').value = row[2]||'';
+      document.getElementById('rep-tipus').value = row[3]||'';
+      document.getElementById('rep-litres').value = row[4]||'';
+      document.getElementById('rep-preu').value = row[5]||'';
+      calcRepostatge();
+      showEditingBanner('repostatge', id);
+    },100);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+}
+
+function showEditingBanner(tip, id){
+  // Add or update editing banner inside the form card
+  const formId = tip==='factura'?'partes-factura':tip==='feina'?'partes-feina':tip==='manteniment'?'partes-manteniment':'partes-repostatge';
+  const card = document.querySelector('#'+formId+' .card');
+  if(!card) return;
+  let banner = document.getElementById('edit-banner-'+tip);
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'edit-banner-'+tip;
+    banner.style.cssText = 'background:var(--azul-claro);color:var(--azul);border-radius:var(--radio-sm);padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center';
+    card.insertBefore(banner, card.firstChild);
+  }
+  banner.innerHTML = `✏️ Mode edicio — modifica els camps i desa<button onclick="cancelarEdicio('${tip}')" class="btn btn-sm" style="font-size:11px;padding:3px 8px">Cancel·lar</button>`;
+  banner.style.display='flex';
+}
+
+function cancelarEdicio(tip){
+  editingId = null;
+  editingSheet = null;
+  const banner = document.getElementById('edit-banner-'+tip);
+  if(banner) banner.style.display='none';
+  if(tip==='factura') clearForm();
+  if(tip==='feina') clearTreball();
+  if(tip==='manteniment'){ ['mant-data','mant-desc','mant-cost','mant-cost-ext','mant-mecanic'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); }
+  if(tip==='repostatge'){ ['rep-data','rep-litres','rep-preu','rep-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';}); }
+}
+
+async function updateRow(sheet, id, newValues){
+  const r = await sheetsReq('/values/'+encodeURIComponent(sheet)+'!A1:A');
+  const rows = r.values||[];
+  const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
+  if(rowIdx<0) throw new Error('Fila no trobada');
+  await sheetsReq('/values/'+encodeURIComponent(sheet)+'!A'+(rowIdx+1)+':'+String.fromCharCode(65+newValues.length-1)+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[newValues]});
 }
 
 document.getElementById('f-fecha').valueAsDate=new Date();
