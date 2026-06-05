@@ -3102,6 +3102,13 @@ function clearMant(){
 // ── MODAL EDITAR FACTURA ────────────────────────────────
 let modalEditId = null;
 
+function emUpdateCats(){
+  const area = document.getElementById('em-area').value;
+  const tipo = document.getElementById('em-tipo').value;
+  const cats = (CATS[area]&&CATS[area][tipo]) ? CATS[area][tipo] : [];
+  document.getElementById('em-categoria').innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
 function obrirModalEdicio(id){
   const m = movimientos.find(x=>String(x.id).replace(/'/g,'')===String(id).replace(/'/g,''));
   if(!m){ console.error('No trobat:', id); return; }
@@ -4214,6 +4221,48 @@ function getTotalComponentsAmort(maqId){
       <button class="btn" onclick="tancarModal()">Cancel·lar</button>
     </div>
     <div id="em-msg" style="margin-top:8px;font-size:13px"></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR FACTURA -->
+<div id="edit-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
+  <div style="background:white;border-radius:12px;max-width:600px;margin:40px auto;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;color:var(--verde)">✏️ Editar factura</h3>
+      <button onclick="tancarModal()" style="background:none;border:none;font-size:24px;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div class="form-row g2" style="margin-bottom:10px">
+      <div><label>Tipus</label>
+        <select id="em-tipo">
+          <option value="ingreso">Ingrés</option>
+          <option value="gasto">Despesa</option>
+        </select>
+      </div>
+      <div><label>Àrea</label>
+        <select id="em-area" onchange="emUpdateCats()">
+          <option value="cultivos">🌾 Cultius</option>
+          <option value="maquinaria">🚜 Maquinària</option>
+          <option value="cerdos">🐷 Porcs</option>
+          <option value="pollos">🐔 Pollastres</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px"><label>Categoria</label><select id="em-categoria"></select></div>
+    <div class="form-row g2" style="margin-bottom:10px">
+      <div><label>Màquina</label><select id="em-maquina"><option value="">— Cap —</option></select></div>
+      <div><label>Apero</label><select id="em-apero"><option value="">— Cap —</option></select></div>
+    </div>
+    <div style="margin-bottom:10px"><label>Concepte</label><input type="text" id="em-concepto" style="width:100%"/></div>
+    <div class="form-row g2" style="margin-bottom:10px">
+      <div><label>Import (€)</label><input type="number" id="em-importe" step="0.01" min="0"/></div>
+      <div><label>Data</label><input type="date" id="em-fecha"/></div>
+    </div>
+    <div style="margin-bottom:16px"><label>Notes</label><input type="text" id="em-notas" style="width:100%"/></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="desarModalEdicio()">✓ Desar canvis</button>
+      <button class="btn" onclick="tancarModal()">Cancel·lar</button>
+    </div>
+    <div id="em-msg" style="margin-top:8px;font-size:13px;min-height:20px"></div>
   </div>
 </div>
 </body>
