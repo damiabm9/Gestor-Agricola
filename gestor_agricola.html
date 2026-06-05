@@ -1210,7 +1210,7 @@ function renderMovimientos(){
     <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
     <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo}</span></td>
     <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
-    <td><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
+    <td style="display:flex;gap:4px"><button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" onclick="editMovimiento('${m.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
   </tr>`).join('');
 }
 
@@ -2898,32 +2898,36 @@ function showPartesTip(tip, btn){
 // ── EDITAR PARTES ────────────────────────────────────────
 
 function editMovimiento(id){
-  const m = movimientos.find(x=>x.id===id);
-  if(!m) return;
-  editingId = id;
+  const m = movimientos.find(x=>String(x.id).replace(/'/g,'')===String(id).replace(/'/g,''));
+  if(!m){ alert('No es troba el moviment.'); return; }
+  editingId = m.id;
   editingSheet = SHEET_MOV;
-  // Switch to factura subtab
+  // Go to factura subtab
   showPartesTip('factura', document.getElementById('ptab-factura'));
-  // Fill form
+  // Show banner
   setTimeout(()=>{
-    document.getElementById('f-tipo').value = m.tipo||'';
+    // Fill fields
+    const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+    setVal('f-tipo', m.tipo);
     onTipoChange();
-    document.getElementById('f-area').value = m.area||'';
-    onAreaChange();
     setTimeout(()=>{
-      document.getElementById('f-categoria').value = m.categoria||'';
-      onCatChange();
-      document.getElementById('f-concepto').value = m.concepto||'';
-      document.getElementById('f-importe').value = m.importe||'';
-      document.getElementById('f-fecha').value = m.fecha||'';
-      document.getElementById('f-notas').value = m.notas||'';
-      if(m.maquina) document.getElementById('f-maquina').value = m.maquina||'';
-      // Show editing indicator
-      showEditingBanner('factura', id);
-    },100);
-  },50);
-  window.scrollTo({top:0, behavior:'smooth'});
+      setVal('f-area', m.area);
+      onAreaChange();
+      setTimeout(()=>{
+        setVal('f-categoria', m.categoria);
+        onCatChange();
+        setVal('f-concepto', m.concepto);
+        setVal('f-importe', m.importe);
+        setVal('f-fecha', m.fecha);
+        setVal('f-notas', m.notas);
+        if(m.maquina) setVal('f-maquina', m.maquina);
+        showEditingBanner('factura', m.id);
+        window.scrollTo({top:0, behavior:'smooth'});
+      }, 150);
+    }, 100);
+  }, 50);
 }
+
 
 function editTreball(id){
   // Load treballs to find this one
@@ -3328,7 +3332,7 @@ function renderMovimientos(){
     <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
     <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo}</span></td>
     <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
-    <td><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
+    <td style="display:flex;gap:4px"><button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" onclick="editMovimiento('${m.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
   </tr>`).join('');
 }
 
