@@ -842,19 +842,19 @@ async function loadFromSheets(){
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
     const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
-    flota = (rFlo.values||[]).map(r=>({id:r[0]||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
+    flota = (rFlo.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
     try {
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
-      finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
+      finques = (rFinq.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
     } catch(e){ finques=[]; }
     setTimeout(refreshAllFincaBtns, 100);
     try {
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
-      components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0,horesVida:parseFloat(r[7])||0,costHora:parseFloat(r[8])||0}));
+      components = (rComp.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0,horesVida:parseFloat(r[7])||0,costHora:parseFloat(r[8])||0}));
     } catch(e){ components=[]; }
     try {
       const rEq = await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A2:D');
-      equipaments = (rEq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',maquina:r[2]||'',apero:r[3]||''}));
+      equipaments = (rEq.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',nom:r[1]||'',maquina:r[2]||'',apero:r[3]||''}));
     } catch(e){ equipaments=[]; }
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
