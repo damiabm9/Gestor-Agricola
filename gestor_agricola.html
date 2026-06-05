@@ -850,7 +850,7 @@ async function loadFromSheets(){
     setTimeout(refreshAllFincaBtns, 100);
     try {
       const rComp = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:G');
-      components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0}));
+      components = (rComp.values||[]).map(r=>({id:r[0]||'',maquinaId:r[1]||'',maquinaNom:r[2]||'',component:r[3]||'',cost:parseFloat(r[4])||0,anys:parseFloat(r[5])||0,amortAnual:parseFloat(r[6])||0,horesVida:parseFloat(r[7])||0,costHora:parseFloat(r[8])||0}));
     } catch(e){ components=[]; }
     try {
       const rEq = await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A2:D');
@@ -1672,7 +1672,7 @@ function renderFlota(){
             <div id="ef-comp-list-${m.id}" style="margin-bottom:6px"></div>
             <button class="btn btn-sm" onclick="afegirComponent('${m.id}')">+ Afegir component</button>
             <div id="ef-comp-form-${m.id}" class="hidden" style="margin-top:8px;padding:8px;background:var(--gris-bg);border-radius:var(--radio-sm)">
-              <div class="form-row g3" style="margin-bottom:6px">
+              <div class="form-row g2" style="margin-bottom:6px">
                 <div><label>Component</label>
                   <select id="ef-comp-nom-${m.id}">
                     <option>Rodes</option>
@@ -1685,7 +1685,15 @@ function renderFlota(){
                   </select>
                 </div>
                 <div><label>Cost (€)</label><input type="number" id="ef-comp-cost-${m.id}" placeholder="0" oninput="calcCompAmort('${m.id}')"/></div>
-                <div><label>Anys vida util</label><input type="number" id="ef-comp-anys-${m.id}" placeholder="5" oninput="calcCompAmort('${m.id}')"/></div>
+              </div>
+              <div class="form-row g3" style="margin-bottom:6px">
+                <div>
+                  <label>Vida util en hores (opcional)</label>
+                  <input type="number" id="ef-comp-hores-${m.id}" placeholder="Ex: 2000" min="0" oninput="calcCompAmort('${m.id}')"/>
+                  <div style="font-size:10px;color:var(--gris-texto);margin-top:2px">Si poses hores, els anys es calculen sols</div>
+                </div>
+                <div><label>O bé, anys vida util</label><input type="number" id="ef-comp-anys-${m.id}" placeholder="5" oninput="calcCompAmort('${m.id}')"/></div>
+                <div id="ef-comp-anys-calc-${m.id}" style="display:flex;align-items:flex-end;padding-bottom:6px;font-size:12px;color:var(--gris-texto)"></div>
               </div>
               <div id="ef-comp-result-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:6px"></div>
               <div style="display:flex;gap:6px">
@@ -2355,10 +2363,29 @@ function afegirComponent(maqId){
 
 function calcCompAmort(maqId){
   const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
-  const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
+  const horesVida = parseFloat(document.getElementById('ef-comp-hores-'+maqId)?.value)||0;
+  let anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
   const div = document.getElementById('ef-comp-result-'+maqId);
+  const calcdiv = document.getElementById('ef-comp-anys-calc-'+maqId);
+  
+  // If hours specified, calculate years based on machine annual hours
+  if(horesVida > 0 && maqId){
+    // Get annual hours from treballs for this machine
+    const maq = flota.find(f=>f.id===maqId);
+    const horesAnuals = maq ? (maq.horesInicials||0) : 0; // fallback
+    // Try to estimate from treballs (simplified: use 400h/year as default if unknown)
+    const horesAnualsEstim = horesAnuals > 0 ? Math.min(horesAnuals, 2000) : 400;
+    anys = horesVida / horesAnualsEstim;
+    const anysInput = document.getElementById('ef-comp-anys-'+maqId);
+    if(anysInput) anysInput.value = anys.toFixed(1);
+    if(calcdiv) calcdiv.innerHTML = '<span class="amort-badge" style="font-size:10px">'+horesVida+'h ÷ '+Math.round(horesAnualsEstim)+'h/any = '+anys.toFixed(1)+' anys</span>';
+  } else {
+    if(calcdiv) calcdiv.textContent='';
+  }
+  
   if(div && cost>0 && anys>0){
-    div.innerHTML = '<span class="amort-badge">'+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes</span>';
+    const costHora = horesVida>0 ? cost/horesVida : 0;
+    div.innerHTML = '<span class="amort-badge">'+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes'+(costHora>0?' · '+fmt(costHora)+'/hora':'')+'</span>';
   } else if(div) div.textContent='';
 }
 
@@ -2367,17 +2394,20 @@ async function desarComponent(maqId){
   if(!maq) return;
   const nom = document.getElementById('ef-comp-nom-'+maqId)?.value||'';
   const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
+  const horesVida = parseFloat(document.getElementById('ef-comp-hores-'+maqId)?.value)||0;
   const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
-  if(!nom||cost<=0||anys<=0){ alert('Omple tots els camps del component.'); return; }
+  if(!nom||cost<=0||anys<=0){ alert('Omple nom, cost i anys (o hores).'); return; }
   const amortAnual = cost/anys;
+  const costHora = horesVida>0 ? cost/horesVida : 0;
   const id = Date.now().toString();
   setSyncing(true,'Desant component...');
   try {
-    await appendRow(SHEET_COMPONENTS,[id,maqId,maq.nombre,nom,cost.toFixed(2),anys.toFixed(1),amortAnual.toFixed(2)]);
-    components.push({id,maquinaId:maqId,maquinaNom:maq.nombre,component:nom,cost,anys,amortAnual});
+    await appendRow(SHEET_COMPONENTS,[id,maqId,maq.nombre,nom,cost.toFixed(2),anys.toFixed(1),amortAnual.toFixed(2),horesVida.toFixed(0),costHora.toFixed(4)]);
+    components.push({id,maquinaId:maqId,maquinaNom:maq.nombre,component:nom,cost,anys,amortAnual,horesVida,costHora});
     setSyncing(false,'Connectat a Google Sheets');
     // Reset form
     if(document.getElementById('ef-comp-cost-'+maqId)) document.getElementById('ef-comp-cost-'+maqId).value='';
+    if(document.getElementById('ef-comp-hores-'+maqId)) document.getElementById('ef-comp-hores-'+maqId).value='';
     if(document.getElementById('ef-comp-anys-'+maqId)) document.getElementById('ef-comp-anys-'+maqId).value='';
     if(document.getElementById('ef-comp-result-'+maqId)) document.getElementById('ef-comp-result-'+maqId).textContent='';
     document.getElementById('ef-comp-form-'+maqId)?.classList.add('hidden');
@@ -2411,9 +2441,9 @@ function renderCompList(maqId){
   if(!comps.length){ el.innerHTML='<div style="font-size:12px;color:var(--gris-texto)">Sense components registrats.</div>'; return; }
   const total = comps.reduce((s,c)=>s+c.amortAnual,0);
   el.innerHTML = comps.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
-    <span><strong>${c.component}</strong> — ${fmt(c.cost)} / ${c.anys}anys</span>
+    <span><strong>${c.component}</strong> — ${fmt(c.cost)} / ${c.anys}anys${c.horesVida>0?' ('+c.horesVida+'h)':''}</span>
     <span style="display:flex;align-items:center;gap:8px">
-      <span class="amort-badge">${fmt(c.amortAnual)}/any</span>
+      <span class="amort-badge">${fmt(c.amortAnual)}/any${c.costHora>0?' · '+fmt(c.costHora)+'/h':''}</span>
       <button class="btn btn-sm btn-danger" data-cid="${c.id}" style="padding:2px 6px;font-size:11px">✕</button>
     </span>
   </div>`).join('')+
@@ -3559,7 +3589,7 @@ function renderFlota(){
             <div id="ef-comp-list-${m.id}" style="margin-bottom:6px"></div>
             <button class="btn btn-sm" onclick="afegirComponent('${m.id}')">+ Afegir component</button>
             <div id="ef-comp-form-${m.id}" class="hidden" style="margin-top:8px;padding:8px;background:var(--gris-bg);border-radius:var(--radio-sm)">
-              <div class="form-row g3" style="margin-bottom:6px">
+              <div class="form-row g2" style="margin-bottom:6px">
                 <div><label>Component</label>
                   <select id="ef-comp-nom-${m.id}">
                     <option>Rodes</option>
@@ -3572,7 +3602,15 @@ function renderFlota(){
                   </select>
                 </div>
                 <div><label>Cost (€)</label><input type="number" id="ef-comp-cost-${m.id}" placeholder="0" oninput="calcCompAmort('${m.id}')"/></div>
-                <div><label>Anys vida util</label><input type="number" id="ef-comp-anys-${m.id}" placeholder="5" oninput="calcCompAmort('${m.id}')"/></div>
+              </div>
+              <div class="form-row g3" style="margin-bottom:6px">
+                <div>
+                  <label>Vida util en hores (opcional)</label>
+                  <input type="number" id="ef-comp-hores-${m.id}" placeholder="Ex: 2000" min="0" oninput="calcCompAmort('${m.id}')"/>
+                  <div style="font-size:10px;color:var(--gris-texto);margin-top:2px">Si poses hores, els anys es calculen sols</div>
+                </div>
+                <div><label>O bé, anys vida util</label><input type="number" id="ef-comp-anys-${m.id}" placeholder="5" oninput="calcCompAmort('${m.id}')"/></div>
+                <div id="ef-comp-anys-calc-${m.id}" style="display:flex;align-items:flex-end;padding-bottom:6px;font-size:12px;color:var(--gris-texto)"></div>
               </div>
               <div id="ef-comp-result-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:6px"></div>
               <div style="display:flex;gap:6px">
@@ -3887,10 +3925,29 @@ function afegirComponent(maqId){
 
 function calcCompAmort(maqId){
   const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
-  const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
+  const horesVida = parseFloat(document.getElementById('ef-comp-hores-'+maqId)?.value)||0;
+  let anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
   const div = document.getElementById('ef-comp-result-'+maqId);
+  const calcdiv = document.getElementById('ef-comp-anys-calc-'+maqId);
+  
+  // If hours specified, calculate years based on machine annual hours
+  if(horesVida > 0 && maqId){
+    // Get annual hours from treballs for this machine
+    const maq = flota.find(f=>f.id===maqId);
+    const horesAnuals = maq ? (maq.horesInicials||0) : 0; // fallback
+    // Try to estimate from treballs (simplified: use 400h/year as default if unknown)
+    const horesAnualsEstim = horesAnuals > 0 ? Math.min(horesAnuals, 2000) : 400;
+    anys = horesVida / horesAnualsEstim;
+    const anysInput = document.getElementById('ef-comp-anys-'+maqId);
+    if(anysInput) anysInput.value = anys.toFixed(1);
+    if(calcdiv) calcdiv.innerHTML = '<span class="amort-badge" style="font-size:10px">'+horesVida+'h ÷ '+Math.round(horesAnualsEstim)+'h/any = '+anys.toFixed(1)+' anys</span>';
+  } else {
+    if(calcdiv) calcdiv.textContent='';
+  }
+  
   if(div && cost>0 && anys>0){
-    div.innerHTML = '<span class="amort-badge">'+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes</span>';
+    const costHora = horesVida>0 ? cost/horesVida : 0;
+    div.innerHTML = '<span class="amort-badge">'+fmt(cost/anys)+'/any · '+fmt(cost/anys/12)+'/mes'+(costHora>0?' · '+fmt(costHora)+'/hora':'')+'</span>';
   } else if(div) div.textContent='';
 }
 
@@ -3899,17 +3956,20 @@ async function desarComponent(maqId){
   if(!maq) return;
   const nom = document.getElementById('ef-comp-nom-'+maqId)?.value||'';
   const cost = parseFloat(document.getElementById('ef-comp-cost-'+maqId)?.value)||0;
+  const horesVida = parseFloat(document.getElementById('ef-comp-hores-'+maqId)?.value)||0;
   const anys = parseFloat(document.getElementById('ef-comp-anys-'+maqId)?.value)||0;
-  if(!nom||cost<=0||anys<=0){ alert('Omple tots els camps del component.'); return; }
+  if(!nom||cost<=0||anys<=0){ alert('Omple nom, cost i anys (o hores).'); return; }
   const amortAnual = cost/anys;
+  const costHora = horesVida>0 ? cost/horesVida : 0;
   const id = Date.now().toString();
   setSyncing(true,'Desant component...');
   try {
-    await appendRow(SHEET_COMPONENTS,[id,maqId,maq.nombre,nom,cost.toFixed(2),anys.toFixed(1),amortAnual.toFixed(2)]);
-    components.push({id,maquinaId:maqId,maquinaNom:maq.nombre,component:nom,cost,anys,amortAnual});
+    await appendRow(SHEET_COMPONENTS,[id,maqId,maq.nombre,nom,cost.toFixed(2),anys.toFixed(1),amortAnual.toFixed(2),horesVida.toFixed(0),costHora.toFixed(4)]);
+    components.push({id,maquinaId:maqId,maquinaNom:maq.nombre,component:nom,cost,anys,amortAnual,horesVida,costHora});
     setSyncing(false,'Connectat a Google Sheets');
     // Reset form
     if(document.getElementById('ef-comp-cost-'+maqId)) document.getElementById('ef-comp-cost-'+maqId).value='';
+    if(document.getElementById('ef-comp-hores-'+maqId)) document.getElementById('ef-comp-hores-'+maqId).value='';
     if(document.getElementById('ef-comp-anys-'+maqId)) document.getElementById('ef-comp-anys-'+maqId).value='';
     if(document.getElementById('ef-comp-result-'+maqId)) document.getElementById('ef-comp-result-'+maqId).textContent='';
     document.getElementById('ef-comp-form-'+maqId)?.classList.add('hidden');
@@ -3943,9 +4003,9 @@ function renderCompList(maqId){
   if(!comps.length){ el.innerHTML='<div style="font-size:12px;color:var(--gris-texto)">Sense components registrats.</div>'; return; }
   const total = comps.reduce((s,c)=>s+c.amortAnual,0);
   el.innerHTML = comps.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
-    <span><strong>${c.component}</strong> — ${fmt(c.cost)} / ${c.anys}anys</span>
+    <span><strong>${c.component}</strong> — ${fmt(c.cost)} / ${c.anys}anys${c.horesVida>0?' ('+c.horesVida+'h)':''}</span>
     <span style="display:flex;align-items:center;gap:8px">
-      <span class="amort-badge">${fmt(c.amortAnual)}/any</span>
+      <span class="amort-badge">${fmt(c.amortAnual)}/any${c.costHora>0?' · '+fmt(c.costHora)+'/h':''}</span>
       <button class="btn btn-sm btn-danger" data-cid="${c.id}" style="padding:2px 6px;font-size:11px">✕</button>
     </span>
   </div>`).join('')+
