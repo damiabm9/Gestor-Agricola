@@ -2383,14 +2383,17 @@ function calcCompAmort(maqId){
     const maq = flota.find(f=>f.id===maqId);
     let horesAnualsEstim = 400;
     let horesAnualsInfo = 'estimat 400h/any';
-    if(maq && maq.horesInicials > 0 && maq.dataCompra){
-      const anyCompra = new Date(maq.dataCompra).getFullYear();
+    // Read from open form fields (more reliable than maq object)
+    const dataCompraField = document.getElementById('ef-data-'+maqId)?.value || (maq&&maq.dataCompra) || '';
+    const horesInicialsField = parseFloat(document.getElementById('ef-hores-'+maqId)?.value) || (maq&&maq.horesInicials) || 0;
+    if(horesInicialsField > 0 && dataCompraField){
+      const anyCompra = new Date(dataCompraField).getFullYear();
       const anysEnUs = Math.max(new Date().getFullYear() - anyCompra, 1);
-      horesAnualsEstim = Math.round(maq.horesInicials / anysEnUs);
-      horesAnualsInfo = maq.horesInicials+'h ÷ '+anysEnUs+' anys = '+horesAnualsEstim+'h/any';
-    } else if(maq && maq.horesInicials > 0){
-      horesAnualsEstim = Math.round(maq.horesInicials / 10);
-      horesAnualsInfo = maq.horesInicials+'h (anys desconeguts, estimat)';
+      horesAnualsEstim = Math.round(horesInicialsField / anysEnUs);
+      horesAnualsInfo = horesInicialsField+'h ÷ '+anysEnUs+' anys = '+horesAnualsEstim+'h/any';
+    } else if(horesInicialsField > 0){
+      horesAnualsEstim = Math.round(horesInicialsField / 10);
+      horesAnualsInfo = horesInicialsField+'h (sense data de compra, estimat)';
     }
     anys = Math.round(horesVida / horesAnualsEstim * 10) / 10;
     const anysInput = document.getElementById('ef-comp-anys-'+maqId);
@@ -4035,14 +4038,17 @@ function calcCompAmort(maqId){
     const maq = flota.find(f=>f.id===maqId);
     let horesAnualsEstim = 400;
     let horesAnualsInfo = 'estimat 400h/any';
-    if(maq && maq.horesInicials > 0 && maq.dataCompra){
-      const anyCompra = new Date(maq.dataCompra).getFullYear();
+    // Read from open form fields (more reliable than maq object)
+    const dataCompraField = document.getElementById('ef-data-'+maqId)?.value || (maq&&maq.dataCompra) || '';
+    const horesInicialsField = parseFloat(document.getElementById('ef-hores-'+maqId)?.value) || (maq&&maq.horesInicials) || 0;
+    if(horesInicialsField > 0 && dataCompraField){
+      const anyCompra = new Date(dataCompraField).getFullYear();
       const anysEnUs = Math.max(new Date().getFullYear() - anyCompra, 1);
-      horesAnualsEstim = Math.round(maq.horesInicials / anysEnUs);
-      horesAnualsInfo = maq.horesInicials+'h ÷ '+anysEnUs+' anys = '+horesAnualsEstim+'h/any';
-    } else if(maq && maq.horesInicials > 0){
-      horesAnualsEstim = Math.round(maq.horesInicials / 10);
-      horesAnualsInfo = maq.horesInicials+'h (anys desconeguts, estimat)';
+      horesAnualsEstim = Math.round(horesInicialsField / anysEnUs);
+      horesAnualsInfo = horesInicialsField+'h ÷ '+anysEnUs+' anys = '+horesAnualsEstim+'h/any';
+    } else if(horesInicialsField > 0){
+      horesAnualsEstim = Math.round(horesInicialsField / 10);
+      horesAnualsInfo = horesInicialsField+'h (sense data de compra, estimat)';
     }
     anys = Math.round(horesVida / horesAnualsEstim * 10) / 10;
     const anysInput = document.getElementById('ef-comp-anys-'+maqId);
