@@ -1202,6 +1202,15 @@ function renderMovimientos(){
   if(tipo) data=data.filter(m=>m.tipo===tipo);
   if(cat) data=data.filter(m=>m.categoria===cat);
   const tbody=document.getElementById('mov-list');
+  if(!tbody._rl){
+    tbody.addEventListener('click',function(e){
+      const editBtn=e.target.closest('[data-edit-id]');
+      const delBtn=e.target.closest('[data-del-id]');
+      if(editBtn) editMovimiento(editBtn.getAttribute('data-edit-id'));
+      if(delBtn) deleteMovimiento(delBtn.getAttribute('data-del-id'));
+    });
+    tbody._rl=true;
+  }
   if(!data.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hay movimientos con este filtro.</div></td></tr>';return;}
   tbody.innerHTML=data.map(m=>`<tr>
     <td style="color:var(--gris-texto);white-space:nowrap">${m.fecha}</td>
@@ -1210,7 +1219,7 @@ function renderMovimientos(){
     <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
     <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo}</span></td>
     <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
-    <td style="display:flex;gap:4px"><button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" onclick="editMovimiento('${m.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
+    <td style="display:flex;gap:4px"><button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" data-edit-id="${m.id}">✏️</button><button class="btn btn-sm btn-danger" data-del-id="${m.id}">✕</button></td>
   </tr>`).join('');
 }
 
@@ -1656,8 +1665,8 @@ function renderFlota(){
             ${amortInfo}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
-            <button class="btn btn-sm" onclick="editarFlota('${m.id}')" style="color:var(--azul);border-color:var(--azul)">✏️</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteFlota('${m.id}')">✕</button>
+            <button class="btn btn-sm" data-edit-flota="${m.id}" style="color:var(--azul);border-color:var(--azul)">✏️</button>
+            <button class="btn btn-sm btn-danger" data-del-flota="${m.id}">✕</button>
           </div>
         </div>
         <div id="edit-flota-${m.id}" class="hidden" style="margin-top:10px;width:100%;padding:10px;background:var(--blanco);border-radius:var(--radio-sm);border:1px solid var(--gris-borde)">
@@ -1676,7 +1685,7 @@ function renderFlota(){
           <div style="margin-bottom:8px">
             <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
             <div id="ef-comp-list-${m.id}" style="margin-bottom:6px"></div>
-            <button class="btn btn-sm" onclick="afegirComponent('${m.id}')">+ Afegir component</button>
+            <button class="btn btn-sm" data-add-comp="${m.id}">+ Afegir component</button>
             <div id="ef-comp-form-${m.id}" class="hidden" style="margin-top:8px;padding:8px;background:var(--gris-bg);border-radius:var(--radio-sm)">
               <div class="form-row g2" style="margin-bottom:6px">
                 <div><label>Component</label>
@@ -1703,15 +1712,15 @@ function renderFlota(){
               </div>
               <div id="ef-comp-result-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:6px"></div>
               <div style="display:flex;gap:6px">
-                <button class="btn btn-sm btn-primary" onclick="desarComponent('${m.id}')">✓ Afegir</button>
+                <button class="btn btn-sm btn-primary" data-save-comp="${m.id}">✓ Afegir</button>
                 <button class="btn btn-sm" onclick="document.getElementById('ef-comp-form-${m.id}').classList.add('hidden')">Cancel·lar</button>
               </div>
             </div>
           </div>
           <div id="ef-amort-${m.id}" style="font-size:12px;color:var(--gris-texto);margin-bottom:8px"></div>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-sm btn-primary" onclick="desarEditFlota('${m.id}')">✓ Desar</button>
-            <button class="btn btn-sm" onclick="editarFlota('${m.id}')">Cancel·lar</button>
+            <button class="btn btn-sm btn-primary" data-save-flota="${m.id}">✓ Desar</button>
+            <button class="btn btn-sm" data-edit-flota="${m.id}">Cancel·lar</button>
           </div>
           <div id="ef-msg-${m.id}" style="font-size:12px;margin-top:4px"></div>
         </div>
@@ -1720,6 +1729,22 @@ function renderFlota(){
   });
   populateRepMantSelects();
   populateFitxaSel();
+  // Add event delegation for flota buttons
+  ['flota-maquinas','flota-aperos'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el._rl){
+      el.addEventListener('click',function(e){
+        const b=e.target.closest('button');
+        if(!b) return;
+        if(b.dataset.editFlota) editarFlota(b.dataset.editFlota);
+        if(b.dataset.delFlota) deleteFlota(b.dataset.delFlota);
+        if(b.dataset.addComp) afegirComponent(b.dataset.addComp);
+        if(b.dataset.saveComp) desarComponent(b.dataset.saveComp);
+        if(b.dataset.saveFlota) desarEditFlota(b.dataset.saveFlota);
+      });
+      el._rl=true;
+    }
+  });
 }
 
 // Repostatges
@@ -2902,30 +2927,47 @@ function editMovimiento(id){
   if(!m){ alert('No es troba el moviment.'); return; }
   editingId = m.id;
   editingSheet = SHEET_MOV;
-  // Go to factura subtab
+
+  const setVal = (fieldId, val) => { const el=document.getElementById(fieldId); if(el) el.value=val||''; };
+
+  // Switch to Partes tab first if needed
+  const partesTab = Array.from(document.querySelectorAll('.tab')).find(t=>t.getAttribute('onclick')&&t.getAttribute('onclick').includes('partes'));
+  if(partesTab && !document.getElementById('tab-partes')?.classList.contains('visible')){
+    partesTab.click();
+  }
+
+  // Switch to Factura subtab
   showPartesTip('factura', document.getElementById('ptab-factura'));
-  // Show banner
-  setTimeout(()=>{
-    // Fill fields
-    const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
-    setVal('f-tipo', m.tipo);
-    onTipoChange();
-    setTimeout(()=>{
-      setVal('f-area', m.area);
-      onAreaChange();
-      setTimeout(()=>{
-        setVal('f-categoria', m.categoria);
-        onCatChange();
-        setVal('f-concepto', m.concepto);
-        setVal('f-importe', m.importe);
-        setVal('f-fecha', m.fecha);
-        setVal('f-notas', m.notas);
-        if(m.maquina) setVal('f-maquina', m.maquina);
-        showEditingBanner('factura', m.id);
-        window.scrollTo({top:0, behavior:'smooth'});
-      }, 150);
-    }, 100);
-  }, 50);
+
+  // Fill all fields directly - no timeouts needed since we fill before any DOM changes
+  setVal('f-tipo', m.tipo);
+  setVal('f-area', m.area);
+
+  // Populate categories for this area+tipo
+  populateCat(m.area, m.tipo);
+
+  setVal('f-categoria', m.categoria);
+  setVal('f-concepto', m.concepto);
+  setVal('f-importe', m.importe);
+  setVal('f-fecha', m.fecha);
+  setVal('f-notas', m.notas);
+
+  // Show machine selector if maquinaria
+  if(m.area==='maquinaria'){
+    document.getElementById('f-maq-wrap')?.classList.remove('hidden');
+    populateMaqSelects();
+    if(m.maquina) setVal('f-maquina', m.maquina);
+    if(m.apero) setVal('f-apero', m.apero);
+  }
+
+  // Show/hide other wraps
+  onAreaChange();
+  setVal('f-tipo', m.tipo);
+  setVal('f-area', m.area);
+  setVal('f-categoria', m.categoria);
+
+  showEditingBanner('factura', m.id);
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 
@@ -3151,6 +3193,15 @@ async function loadTreballs(){
       tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha treballs registrats.</div></td></tr>';
       return;
     }
+    if(!tbody._rl){
+      tbody.addEventListener('click',function(e){
+        const b=e.target.closest('button');
+        if(!b) return;
+        if(b.dataset.editTreb) editTreball(b.dataset.editTreb);
+        if(b.dataset.delTreb) deleteTreball(b.dataset.delTreb);
+      });
+      tbody._rl=true;
+    }
     tbody.innerHTML=[...treballs].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(t=>`<tr>
       <td style="color:var(--gris-texto);white-space:nowrap">${t.data}</td>
       <td><span class="badge badge-area">${t.qui}</span></td>
@@ -3159,8 +3210,8 @@ async function loadTreballs(){
       <td style="font-size:11px;color:var(--gris-texto);max-width:160px;word-break:break-word">${t.parcNoms||'—'}${t.parcHa?' ('+t.parcHa+'ha)':''}</td>
       <td style="text-align:right;font-weight:600">${t.hores}h</td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-sm" onclick="editTreball('${t.id}')" style="color:var(--azul);border-color:var(--azul)">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteTreball('${t.id}')">✕</button>
+        <button class="btn btn-sm" data-edit-treb="${t.id}" style="color:var(--azul);border-color:var(--azul)">✏️</button>
+        <button class="btn btn-sm btn-danger" data-del-treb="${t.id}">✕</button>
       </td>
     </tr>`).join('');
   } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar els treballs.</div></td></tr>'; }
@@ -3324,6 +3375,15 @@ function renderMovimientos(){
   if(tipo) data=data.filter(m=>m.tipo===tipo);
   if(cat) data=data.filter(m=>m.categoria===cat);
   const tbody=document.getElementById('mov-list');
+  if(!tbody._rl){
+    tbody.addEventListener('click',function(e){
+      const editBtn=e.target.closest('[data-edit-id]');
+      const delBtn=e.target.closest('[data-del-id]');
+      if(editBtn) editMovimiento(editBtn.getAttribute('data-edit-id'));
+      if(delBtn) deleteMovimiento(delBtn.getAttribute('data-del-id'));
+    });
+    tbody._rl=true;
+  }
   if(!data.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hay movimientos con este filtro.</div></td></tr>';return;}
   tbody.innerHTML=data.map(m=>`<tr>
     <td style="color:var(--gris-texto);white-space:nowrap">${m.fecha}</td>
@@ -3332,7 +3392,7 @@ function renderMovimientos(){
     <td><span class="badge badge-cat" style="font-size:10px">${m.categoria||'—'}</span></td>
     <td><span class="badge ${m.tipo==='ingreso'?'badge-ing':'badge-gas'}">${m.tipo}</span></td>
     <td style="text-align:right;font-weight:600;color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">${fmt(m.importe)}</td>
-    <td style="display:flex;gap:4px"><button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" onclick="editMovimiento('${m.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteMovimiento('${m.id}')">✕</button></td>
+    <td style="display:flex;gap:4px"><button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" data-edit-id="${m.id}">✏️</button><button class="btn btn-sm btn-danger" data-del-id="${m.id}">✕</button></td>
   </tr>`).join('');
 }
 
