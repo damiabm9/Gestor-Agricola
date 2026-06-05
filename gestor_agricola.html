@@ -1045,6 +1045,7 @@ function clearForm(){
 }
 
 async function deleteMovimiento(id){
+  id = String(id).replace(/'/g,'');
   if(!confirm('Vols eliminar aquest moviment?')) return;
   const idx = movimientos.findIndex(m=>m.id===id);
   if(idx<0) return;
@@ -1796,12 +1797,25 @@ async function loadRepostatges(){
       <td style="text-align:right">${r.litres}L</td>
       <td style="text-align:right">${r.preu}€/L</td>
       <td style="text-align:right;font-weight:600;color:var(--rojo)">${r.total?fmt(parseFloat(r.total)):'-'}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteRepostatge('${r.id}')">✕</button></td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-sm" style="color:var(--azul);border-color:var(--azul)" data-edit-rep="${r.id}">✏️</button>
+        <button class="btn btn-sm btn-danger" data-del-rep="${r.id}">✕</button>
+      </td>
     </tr>`).join('');
+    if(!tbody._rl2){
+      tbody.addEventListener('click',function(e){
+        const b=e.target.closest('button');
+        if(!b) return;
+        if(b.dataset.editRep) editRepostatge(b.dataset.editRep);
+        if(b.dataset.delRep) deleteRepostatge(b.dataset.delRep);
+      });
+      tbody._rl2=true;
+    }
   } catch(e){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Error en carregar.</div></td></tr>'; }
 }
 
 async function deleteRepostatge(id){
+  id = String(id).replace(/'/g,'');
   if(!confirm('Vols eliminar aquest repostatge?')) return;
   setSyncing(true,'Eliminant...');
   try {
@@ -1892,6 +1906,7 @@ async function loadManteniments(){
 }
 
 async function deleteManteniment(id){
+  id = String(id).replace(/'/g,'');
   if(!confirm('Vols eliminar aquest manteniment?')) return;
   setSyncing(true,'Eliminant...');
   try {
@@ -2218,7 +2233,7 @@ async function eliminarFinca(id){
   try {
     const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:A');
     const rows = r.values||[];
-    const rowIdx = rows.findIndex(row=>row[0]===id);
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
     if(rowIdx>=0) await deleteRow(SHEET_FINQUES, rowIdx+1);
     finques.splice(idx,1);
     setSyncing(false,'Connectat a Google Sheets');
@@ -2470,7 +2485,7 @@ async function eliminarComponent(id){
   try {
     const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:A');
     const rows = r.values||[];
-    const rowIdx = rows.findIndex(row=>row[0]===id);
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
     if(rowIdx>=0) await deleteRow(SHEET_COMPONENTS, rowIdx+1);
     components.splice(idx,1);
     setSyncing(false,'Connectat a Google Sheets');
@@ -2780,7 +2795,7 @@ async function desarEditFinca(id){
   try {
     const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A1:E');
     const rows = r.values||[];
-    const rowIdx = rows.findIndex(row=>row[0]===id);
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
     
     const row = rows[rowIdx];
@@ -3301,6 +3316,7 @@ async function loadTreballs(){
 }
 
 async function deleteTreball(id){
+  id = String(id).replace(/'/g,'');
   if(!confirm('Vols eliminar aquest treball?')) return;
   setSyncing(true,'Eliminant...');
   try {
@@ -3808,26 +3824,9 @@ async function addRepostatge(){
   } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
 }
 
-async function loadRepostatges(){
-  const tbody = document.getElementById('rep-list');
-  if(!tbody) return;
-  try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
-    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'Dièsel',litres:row[4]||'',preu:row[5]||'',total:row[6]||''}));
-    if(!rows.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Encara no hi ha repostatges registrats.</div></td></tr>'; return; }
-    tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
-      <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
-      <td><span class="badge badge-area">${r.maquina}</span></td>
-      <td><span class="badge ${r.tipus==='AdBlue'?'badge-cat':'badge-gas'}">${r.tipus||'Dièsel'}</span></td>
-      <td style="text-align:right">${r.litres}L</td>
-      <td style="text-align:right">${r.preu}€/L</td>
-      <td style="text-align:right;font-weight:600;color:var(--rojo)">${r.total?fmt(parseFloat(r.total)):'-'}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteRepostatge('${r.id}')">✕</button></td>
-    </tr>`).join('');
-  } catch(e){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">Error en carregar.</div></td></tr>'; }
-}
 
 async function deleteRepostatge(id){
+  id = String(id).replace(/'/g,'');
   if(!confirm('Vols eliminar aquest repostatge?')) return;
   setSyncing(true,'Eliminant...');
   try {
@@ -3896,28 +3895,9 @@ async function addManteniment(){
   } catch(e){ setSyncing(false,'Error',true); msg.className='msg-err'; msg.textContent='Error en desar.'; }
 }
 
-async function loadManteniments(){
-  const tbody = document.getElementById('mant-list');
-  if(!tbody) return;
-  try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
-    const rows = (r.values||[]).map(row=>({id:row[0]||'',data:row[1]||'',maquina:row[2]||'',tipus:row[3]||'',desc:row[4]||'',cost:row[5]||'0',estat:row[6]||'',fetPer:row[7]||'',qui:row[8]||'',hores:row[9]||'',mecanic:row[10]||''}));
-    if(!rows.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Encara no hi ha manteniments registrats.</div></td></tr>'; return; }
-    const estatColor = {Resolt:'badge-ing',Pendent:'badge-gas','En reparació':'badge-cat'};
-    tbody.innerHTML=[...rows].sort((a,b)=>String(b.data).localeCompare(String(a.data))).map(r=>`<tr>
-      <td style="color:var(--gris-texto);white-space:nowrap">${r.data}</td>
-      <td><span class="badge badge-area">${r.maquina}</span></td>
-      <td><span class="badge badge-cat">${r.tipus}</span></td>
-      <td style="font-size:12px">${r.desc}</td>
-      <td style="font-size:12px;color:var(--gris-texto)">${r.fetPer==='Nosaltres'?(r.qui+(r.hores?', '+r.hores+'h':'')):(r.mecanic||'Mecànic extern')}</td>
-      <td><span class="badge ${estatColor[r.estat]||'badge-area'}">${r.estat}</span></td>
-      <td style="text-align:right;font-weight:600;color:var(--rojo)">${fmt(parseFloat(r.cost)||0)}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteManteniment('${r.id}')">✕</button></td>
-    </tr>`).join('');
-  } catch(e){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">Error en carregar.</div></td></tr>'; }
-}
 
 async function deleteManteniment(id){
+  id = String(id).replace(/'/g,'');
   if(!confirm('Vols eliminar aquest manteniment?')) return;
   setSyncing(true,'Eliminant...');
   try {
@@ -4142,7 +4122,7 @@ async function eliminarComponent(id){
   try {
     const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_COMPONENTS)+'!A2:A');
     const rows = r.values||[];
-    const rowIdx = rows.findIndex(row=>row[0]===id);
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
     if(rowIdx>=0) await deleteRow(SHEET_COMPONENTS, rowIdx+1);
     components.splice(idx,1);
     setSyncing(false,'Connectat a Google Sheets');
