@@ -840,9 +840,9 @@ async function loadFromSheets(){
   setSyncing(true,'Carregant dades...');
   try {
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
-    const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
+    const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
-    flota = (rFlo.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
+    flota = (rFlo.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0,moPreu:parseFloat(r[9])||20,moWorkers:parseFloat(r[10])||1}));
     try {
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
       finques = (rFinq.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
@@ -1663,9 +1663,10 @@ function renderFlota(){
             <div><label>Cost de compra (€)</label><input type="number" id="ef-cost-${m.id}" value="${m.cost||''}" placeholder="0" oninput="calcEditAmort('${m.id}')"/></div>
             <div><label>Anys amortitzacio</label><input type="number" id="ef-anys-${m.id}" value="${m.amortAnys||''}" placeholder="10" oninput="calcEditAmort('${m.id}')"/></div>
           </div>
-          <div class="form-row g2" style="margin-bottom:8px">
+          <div class="form-row g3" style="margin-bottom:8px">
             <div><label>Hores inicials (abans de l app)</label><input type="number" id="ef-hores-${m.id}" value="${m.horesInicials||''}" placeholder="0" min="0"/></div>
-            <div></div>
+            <div><label>Preu MO (€/hora)</label><input type="number" id="ef-mo-preu-${m.id}" value="${m.moPreu||20}" placeholder="20" min="0" step="0.5"/></div>
+            <div><label>Num. treballadors</label><input type="number" id="ef-mo-workers-${m.id}" value="${m.moWorkers||1}" placeholder="1" min="1" step="1"/></div>
           </div>
           <div style="margin-bottom:8px">
             <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
@@ -2277,12 +2278,14 @@ async function desarEditFlota(id){
   const amortAnys = document.getElementById('ef-anys-'+id)?.value||'';
   const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0)?(parseFloat(cost)/parseFloat(amortAnys)).toFixed(2):'';
   const horesInicials = document.getElementById('ef-hores-'+id)?.value||'';
+  const moPreu = document.getElementById('ef-mo-preu-'+id)?.value||'20';
+  const moWorkers = document.getElementById('ef-mo-workers-'+id)?.value||'1';
   const msg = document.getElementById('ef-msg-'+id);
   
   // Find row index in sheet
   setSyncing(true,'Actualitzant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
     const rows = r.values||[];
     const rowIdx = rows.findIndex(row=>row[0]===id);
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
@@ -2298,7 +2301,7 @@ async function desarEditFlota(id){
     while(row.length<9) row.push('');
     row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
     
-    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':I'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':K'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ renderFlota(); },800);
@@ -2506,7 +2509,7 @@ async function renderFitxaMaquina(){
     const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:G');
     repoRows = (rR.values||[]).filter(r=>r[2]===maq.nombre);
     costRepostatges = repoRows.reduce((s,r)=>s+(parseFloat(r[6])||parseFloat(r[5])||0),0);
-    litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[3])||0),0);
+    litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[4])||0),0);
   } catch(e){}
 
   // 2. Manteniments + avaries
@@ -2522,22 +2525,33 @@ async function renderFitxaMaquina(){
   const despesesMov = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(m.maquina===maq.nombre||m.apero===maq.nombre)&&m.notas!=='Auto-generat');
   const costMov = despesesMov.reduce((s,m)=>s+m.importe,0);
 
-  // 4. Amortitzacio maquina
+  // 4. Amortitzacio maquina - dividida per hores ANUALS, no totals
   const amortMaq = parseFloat(maq.amortAnual)||0;
-
-  // 5. Components amortitzables
+  const amortComp = components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
   const compsArr = components.filter(c=>c.maquinaId===maqId);
-  const amortComp = compsArr.reduce((s,c)=>s+c.amortAnual,0);
-
-  // 6. Ma d obra
-  const MO_HORA = 20;
-  const costMO = horesApp * MO_HORA;
-
-  // Totals
-  const costDespesesReals = costRepostatges + costMant + costMov;
   const costAmortAnual = amortMaq + amortComp;
+  
+  // Calcular hores anuals reals
+  const dataCompra = maq.dataCompra||'';
+  const anyCompra = dataCompra ? new Date(dataCompra).getFullYear() : null;
+  const anyActual = new Date().getFullYear();
+  const anysEnUs = anyCompra ? Math.max(anyActual - anyCompra, 1) : null;
+  const horesAnuals = (anysEnUs && horesTotal > 0) ? Math.round(horesTotal / anysEnUs) : (horesTotal > 0 ? 400 : 0);
+  const costAmortHora = horesAnuals > 0 ? costAmortAnual / horesAnuals : 0;
+
+  // 5. Despeses reals - dividides per hores TOTALS de vida
+  const costDespesesReals = costRepostatges + costMant + costMov;
+  const costDespesesHora = horesTotal > 0 ? costDespesesReals / horesTotal : 0;
+
+  // 6. Ma d obra - preu i treballadors configurables, sobre hores totals
+  const MO_PREU = maq.moPreu||20;
+  const MO_WORKERS = maq.moWorkers||1;
+  const costMO = horesTotal * MO_PREU * MO_WORKERS;
+  const costMOHora = MO_PREU * MO_WORKERS;
+
+  // Cost/hora REAL = amort/hora + despeses/hora + MO/hora
+  const costHora = costAmortHora + costDespesesHora + costMOHora;
   const costTotal = costDespesesReals + costAmortAnual + costMO;
-  const costHora = horesTotal > 0 ? costTotal / horesTotal : 0;
 
   setSyncing(false,'Connectat a Google Sheets');
 
@@ -2546,11 +2560,10 @@ async function renderFitxaMaquina(){
 
   // KPIs
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem">';
-  html += '<div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">'+fmt(costDespesesReals)+'</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Amortitzacio anual</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costAmortAnual)+'</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Ma d obra</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costMO)+'</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Cost total</div><div class="kpi-value neg">'+fmt(costTotal)+'</div></div>';
-  html += '<div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white;font-size:18px">'+fmt(costHora)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Despeses reals totals</div><div class="kpi-value neg">'+fmt(costDespesesReals)+'</div><div style="font-size:10px;color:var(--gris-texto)">÷ '+horesTotal.toFixed(0)+'h totals = '+fmt(costDespesesHora)+'/h</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Amortitzacio anual</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costAmortAnual)+'/any</div><div style="font-size:10px;color:var(--gris-texto)">÷ '+horesAnuals+'h/any = '+fmt(costAmortHora)+'/h</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Ma d obra ('+MO_WORKERS+'×'+MO_PREU+'€/h)</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costMOHora)+'/h</div></div>';
+  html += '<div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora REAL</div><div class="kpi-value" style="color:white;font-size:18px">'+fmt(costHora)+'</div><div style="font-size:10px;color:rgba(255,255,255,0.7)">'+fmt(costDespesesHora)+' + '+fmt(costAmortHora)+' + '+fmt(costMOHora)+'</div></div>';
   html += '</div>';
 
   // Desglose amortitzacio
@@ -2570,7 +2583,7 @@ async function renderFitxaMaquina(){
     html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">⛽ Repostatges ('+litresTot.toFixed(0)+'L — '+fmt(costRepostatges)+')</div>';
     html += '<table class="mov-table"><thead><tr><th>Data</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">Total</th></tr></thead><tbody>';
     [...repoRows].sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).forEach(r=>{
-      html += '<tr><td>'+r[1]+'</td><td>'+r[3]+'</td><td style="text-align:right">'+(r[3]||0)+'L</td><td style="text-align:right;color:var(--rojo)">'+fmt(parseFloat(r[6])||parseFloat(r[5])||0)+'</td></tr>';
+      html += '<tr><td>'+r[1]+'</td><td>'+(r[3]||'')+'</td><td style="text-align:right">'+(parseFloat(r[4])||0).toFixed(1)+'L</td><td style="text-align:right;color:var(--rojo)">'+fmt(parseFloat(r[6])||parseFloat(r[5])||0)+'</td></tr>';
     });
     html += '</tbody></table></div>';
   }
@@ -3581,9 +3594,10 @@ function renderFlota(){
             <div><label>Cost de compra (€)</label><input type="number" id="ef-cost-${m.id}" value="${m.cost||''}" placeholder="0" oninput="calcEditAmort('${m.id}')"/></div>
             <div><label>Anys amortitzacio</label><input type="number" id="ef-anys-${m.id}" value="${m.amortAnys||''}" placeholder="10" oninput="calcEditAmort('${m.id}')"/></div>
           </div>
-          <div class="form-row g2" style="margin-bottom:8px">
+          <div class="form-row g3" style="margin-bottom:8px">
             <div><label>Hores inicials (abans de l app)</label><input type="number" id="ef-hores-${m.id}" value="${m.horesInicials||''}" placeholder="0" min="0"/></div>
-            <div></div>
+            <div><label>Preu MO (€/hora)</label><input type="number" id="ef-mo-preu-${m.id}" value="${m.moPreu||20}" placeholder="20" min="0" step="0.5"/></div>
+            <div><label>Num. treballadors</label><input type="number" id="ef-mo-workers-${m.id}" value="${m.moWorkers||1}" placeholder="1" min="1" step="1"/></div>
           </div>
           <div style="margin-bottom:8px">
             <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:6px">🔩 Components amortitzables</div>
@@ -3840,12 +3854,14 @@ async function desarEditFlota(id){
   const amortAnys = document.getElementById('ef-anys-'+id)?.value||'';
   const amortAnual = (parseFloat(cost)>0&&parseFloat(amortAnys)>0)?(parseFloat(cost)/parseFloat(amortAnys)).toFixed(2):'';
   const horesInicials = document.getElementById('ef-hores-'+id)?.value||'';
+  const moPreu = document.getElementById('ef-mo-preu-'+id)?.value||'20';
+  const moWorkers = document.getElementById('ef-mo-workers-'+id)?.value||'1';
   const msg = document.getElementById('ef-msg-'+id);
   
   // Find row index in sheet
   setSyncing(true,'Actualitzant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
     const rows = r.values||[];
     const rowIdx = rows.findIndex(row=>row[0]===id);
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
@@ -3861,7 +3877,7 @@ async function desarEditFlota(id){
     while(row.length<9) row.push('');
     row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
     
-    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':I'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':K'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ renderFlota(); },800);
@@ -4069,7 +4085,7 @@ async function renderFitxaMaquina(){
     const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:G');
     repoRows = (rR.values||[]).filter(r=>r[2]===maq.nombre);
     costRepostatges = repoRows.reduce((s,r)=>s+(parseFloat(r[6])||parseFloat(r[5])||0),0);
-    litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[3])||0),0);
+    litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[4])||0),0);
   } catch(e){}
 
   // 2. Manteniments + avaries
@@ -4085,22 +4101,33 @@ async function renderFitxaMaquina(){
   const despesesMov = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(m.maquina===maq.nombre||m.apero===maq.nombre)&&m.notas!=='Auto-generat');
   const costMov = despesesMov.reduce((s,m)=>s+m.importe,0);
 
-  // 4. Amortitzacio maquina
+  // 4. Amortitzacio maquina - dividida per hores ANUALS, no totals
   const amortMaq = parseFloat(maq.amortAnual)||0;
-
-  // 5. Components amortitzables
+  const amortComp = components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
   const compsArr = components.filter(c=>c.maquinaId===maqId);
-  const amortComp = compsArr.reduce((s,c)=>s+c.amortAnual,0);
-
-  // 6. Ma d obra
-  const MO_HORA = 20;
-  const costMO = horesApp * MO_HORA;
-
-  // Totals
-  const costDespesesReals = costRepostatges + costMant + costMov;
   const costAmortAnual = amortMaq + amortComp;
+  
+  // Calcular hores anuals reals
+  const dataCompra = maq.dataCompra||'';
+  const anyCompra = dataCompra ? new Date(dataCompra).getFullYear() : null;
+  const anyActual = new Date().getFullYear();
+  const anysEnUs = anyCompra ? Math.max(anyActual - anyCompra, 1) : null;
+  const horesAnuals = (anysEnUs && horesTotal > 0) ? Math.round(horesTotal / anysEnUs) : (horesTotal > 0 ? 400 : 0);
+  const costAmortHora = horesAnuals > 0 ? costAmortAnual / horesAnuals : 0;
+
+  // 5. Despeses reals - dividides per hores TOTALS de vida
+  const costDespesesReals = costRepostatges + costMant + costMov;
+  const costDespesesHora = horesTotal > 0 ? costDespesesReals / horesTotal : 0;
+
+  // 6. Ma d obra - preu i treballadors configurables, sobre hores totals
+  const MO_PREU = maq.moPreu||20;
+  const MO_WORKERS = maq.moWorkers||1;
+  const costMO = horesTotal * MO_PREU * MO_WORKERS;
+  const costMOHora = MO_PREU * MO_WORKERS;
+
+  // Cost/hora REAL = amort/hora + despeses/hora + MO/hora
+  const costHora = costAmortHora + costDespesesHora + costMOHora;
   const costTotal = costDespesesReals + costAmortAnual + costMO;
-  const costHora = horesTotal > 0 ? costTotal / horesTotal : 0;
 
   setSyncing(false,'Connectat a Google Sheets');
 
@@ -4109,11 +4136,10 @@ async function renderFitxaMaquina(){
 
   // KPIs
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem">';
-  html += '<div class="kpi"><div class="kpi-label">Despeses reals</div><div class="kpi-value neg">'+fmt(costDespesesReals)+'</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Amortitzacio anual</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costAmortAnual)+'</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Ma d obra</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costMO)+'</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Cost total</div><div class="kpi-value neg">'+fmt(costTotal)+'</div></div>';
-  html += '<div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora</div><div class="kpi-value" style="color:white;font-size:18px">'+fmt(costHora)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Despeses reals totals</div><div class="kpi-value neg">'+fmt(costDespesesReals)+'</div><div style="font-size:10px;color:var(--gris-texto)">÷ '+horesTotal.toFixed(0)+'h totals = '+fmt(costDespesesHora)+'/h</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Amortitzacio anual</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costAmortAnual)+'/any</div><div style="font-size:10px;color:var(--gris-texto)">÷ '+horesAnuals+'h/any = '+fmt(costAmortHora)+'/h</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Ma d obra ('+MO_WORKERS+'×'+MO_PREU+'€/h)</div><div class="kpi-value" style="color:var(--naranja)">'+fmt(costMOHora)+'/h</div></div>';
+  html += '<div class="kpi" style="background:var(--verde);color:white"><div class="kpi-label" style="color:rgba(255,255,255,0.8)">Cost/hora REAL</div><div class="kpi-value" style="color:white;font-size:18px">'+fmt(costHora)+'</div><div style="font-size:10px;color:rgba(255,255,255,0.7)">'+fmt(costDespesesHora)+' + '+fmt(costAmortHora)+' + '+fmt(costMOHora)+'</div></div>';
   html += '</div>';
 
   // Desglose amortitzacio
@@ -4133,7 +4159,7 @@ async function renderFitxaMaquina(){
     html += '<div style="margin-bottom:1rem"><div style="font-size:13px;font-weight:600;margin-bottom:6px">⛽ Repostatges ('+litresTot.toFixed(0)+'L — '+fmt(costRepostatges)+')</div>';
     html += '<table class="mov-table"><thead><tr><th>Data</th><th>Tipus</th><th style="text-align:right">Litres</th><th style="text-align:right">Total</th></tr></thead><tbody>';
     [...repoRows].sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).forEach(r=>{
-      html += '<tr><td>'+r[1]+'</td><td>'+r[3]+'</td><td style="text-align:right">'+(r[3]||0)+'L</td><td style="text-align:right;color:var(--rojo)">'+fmt(parseFloat(r[6])||parseFloat(r[5])||0)+'</td></tr>';
+      html += '<tr><td>'+r[1]+'</td><td>'+(r[3]||'')+'</td><td style="text-align:right">'+(parseFloat(r[4])||0).toFixed(1)+'L</td><td style="text-align:right;color:var(--rojo)">'+fmt(parseFloat(r[6])||parseFloat(r[5])||0)+'</td></tr>';
     });
     html += '</tbody></table></div>';
   }
