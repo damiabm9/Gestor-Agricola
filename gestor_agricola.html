@@ -1206,7 +1206,7 @@ function renderMovimientos(){
     tbody.addEventListener('click',function(e){
       const editBtn=e.target.closest('[data-edit-id]');
       const delBtn=e.target.closest('[data-del-id]');
-      if(editBtn) editMovimiento(editBtn.getAttribute('data-edit-id'));
+      if(editBtn) obrirModalEdicio(editBtn.getAttribute('data-edit-id'));
       if(delBtn) deleteMovimiento(delBtn.getAttribute('data-del-id'));
     });
     tbody._rl=true;
@@ -3083,6 +3083,89 @@ function clearMant(){
   const msg=document.getElementById('mant-msg'); if(msg) msg.textContent='';
 }
 
+
+// ── MODAL EDITAR FACTURA ────────────────────────────────
+let modalEditId = null;
+
+function obrirModalEdicio(id){
+  const m = movimientos.find(x=>String(x.id).replace(/'/g,'')===String(id).replace(/'/g,''));
+  if(!m){ console.error('No trobat:', id); return; }
+  modalEditId = String(m.id).replace(/'/g,'');
+
+  // Fill modal fields
+  document.getElementById('em-tipo').value = m.tipo||'ingreso';
+  document.getElementById('em-area').value = m.area||'cultivos';
+
+  // Populate categories
+  const cats = CATS[m.area]?.[m.tipo]||[];
+  document.getElementById('em-categoria').innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('em-categoria').value = m.categoria||'';
+
+  // Populate machines
+  const maquines = flota.filter(f=>f.tipo==='maquina');
+  const aperos = flota.filter(f=>f.tipo==='apero');
+  document.getElementById('em-maquina').innerHTML = '<option value="">— Cap —</option>'+maquines.map(f=>`<option value="${f.nombre}">${f.nombre}</option>`).join('');
+  document.getElementById('em-apero').innerHTML = '<option value="">— Cap —</option>'+aperos.map(f=>`<option value="${f.nombre}">${f.nombre}</option>`).join('');
+
+  document.getElementById('em-maquina').value = m.maquina||'';
+  document.getElementById('em-apero').value = m.apero||'';
+  document.getElementById('em-concepto').value = m.concepto||'';
+  document.getElementById('em-importe').value = m.importe||'';
+  document.getElementById('em-fecha').value = m.fecha||'';
+  document.getElementById('em-notas').value = m.notas||'';
+  document.getElementById('em-msg').textContent = '';
+
+  document.getElementById('edit-modal').style.display = 'block';
+}
+
+function tancarModal(){
+  document.getElementById('edit-modal').style.display = 'none';
+  modalEditId = null;
+}
+
+async function desarModalEdicio(){
+  const msg = document.getElementById('em-msg');
+  const tipo = document.getElementById('em-tipo').value;
+  const area = document.getElementById('em-area').value;
+  const categoria = document.getElementById('em-categoria').value;
+  const concepto = document.getElementById('em-concepto').value.trim();
+  const importe = parseFloat(document.getElementById('em-importe').value)||0;
+  const fecha = document.getElementById('em-fecha').value;
+  const notas = document.getElementById('em-notas').value.trim();
+  const maquina = document.getElementById('em-maquina').value;
+  const apero = document.getElementById('em-apero').value;
+
+  if(!concepto||!fecha||importe<=0){
+    msg.style.color='var(--rojo)'; msg.textContent='Omple concepte, import i data.'; return;
+  }
+
+  msg.style.color='var(--gris-texto)'; msg.textContent='Desant...';
+  try {
+    // Find row in sheet
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A1:A');
+    const rows = r.values||[];
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(modalEditId).replace(/'/g,''));
+    if(rowIdx<0){ msg.style.color='var(--rojo)'; msg.textContent='Error: fila no trobada.'; return; }
+
+    const newRow = [modalEditId, fecha, area, tipo, categoria, concepto, importe.toFixed(2), maquina, apero, '', '', notas];
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A'+(rowIdx+1)+':L'+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[newRow]});
+
+    // Update local data
+    const idx = movimientos.findIndex(x=>String(x.id).replace(/'/g,'')===String(modalEditId).replace(/'/g,''));
+    if(idx>=0) movimientos[idx] = {...movimientos[idx], tipo, area, categoria, concepto, importe, fecha, notas, maquina, apero};
+
+    msg.style.color='var(--verde)'; msg.textContent='✓ Desat!';
+    setTimeout(()=>{ tancarModal(); renderMovimientos(); }, 800);
+  } catch(e){
+    msg.style.color='var(--rojo)'; msg.textContent='Error en desar: '+e.message;
+  }
+}
+
+// Close modal clicking outside - use event delegation on document
+document.addEventListener('click', function(e){
+  if(e.target && e.target.id==='edit-modal') tancarModal();
+});
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -3379,7 +3462,7 @@ function renderMovimientos(){
     tbody.addEventListener('click',function(e){
       const editBtn=e.target.closest('[data-edit-id]');
       const delBtn=e.target.closest('[data-del-id]');
-      if(editBtn) editMovimiento(editBtn.getAttribute('data-edit-id'));
+      if(editBtn) obrirModalEdicio(editBtn.getAttribute('data-edit-id'));
       if(delBtn) deleteMovimiento(delBtn.getAttribute('data-del-id'));
     });
     tbody._rl=true;
@@ -4218,5 +4301,60 @@ function getTotalComponentsAmort(maqId){
 
 
 </script>
+
+<!-- MODAL EDITAR FACTURA -->
+<div id="edit-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto">
+  <div style="background:white;border-radius:12px;max-width:600px;margin:40px auto;padding:24px;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;color:var(--verde)">✏️ Editar factura</h3>
+      <button onclick="tancarModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#666">×</button>
+    </div>
+    <div class="form-row g2" style="margin-bottom:10px">
+      <div><label>Tipus</label>
+        <select id="em-tipo">
+          <option value="ingreso">Ingrés</option>
+          <option value="gasto">Despesa</option>
+        </select>
+      </div>
+      <div><label>Àrea</label>
+        <select id="em-area">
+          <option value="cultivos">🌾 Cultius</option>
+          <option value="maquinaria">🚜 Maquinària</option>
+          <option value="cerdos">🐷 Porcs</option>
+          <option value="pollos">🐔 Pollastres</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label>Categoria</label>
+      <select id="em-categoria"></select>
+    </div>
+    <div class="form-row g2" style="margin-bottom:10px">
+      <div><label>Màquina (si aplica)</label>
+        <select id="em-maquina"><option value="">— Cap —</option></select>
+      </div>
+      <div><label>Apero (si aplica)</label>
+        <select id="em-apero"><option value="">— Cap —</option></select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label>Concepte / descripció</label>
+      <input type="text" id="em-concepto" placeholder="Descripció..."/>
+    </div>
+    <div class="form-row g2" style="margin-bottom:10px">
+      <div><label>Import (€)</label><input type="number" id="em-importe" step="0.01"/></div>
+      <div><label>Data</label><input type="date" id="em-fecha"/></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>Notes</label>
+      <input type="text" id="em-notas" placeholder="Observacions..."/>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="desarModalEdicio()">✓ Desar canvis</button>
+      <button class="btn" onclick="tancarModal()">Cancel·lar</button>
+    </div>
+    <div id="em-msg" style="margin-top:8px;font-size:13px"></div>
+  </div>
+</div>
 </body>
 </html>
