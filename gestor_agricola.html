@@ -2550,7 +2550,22 @@ async function renderFitxaMaquina(){
   const costMov = despesesMov.reduce((s,m)=>s+m.importe,0);
 
   // 4. Amortitzacio maquina - dividida per hores ANUALS, no totals
-  const amortMaq = parseFloat(maq.amortAnual)||0;
+  // Check if machine amortization has ended
+  const amortMaqBrut = parseFloat(maq.amortAnual)||0;
+  let amortMaq = amortMaqBrut;
+  let amortMaqNote = '';
+  if(amortMaqBrut > 0 && maq.dataCompra && maq.amortAnys){
+    const anyCompra = new Date(maq.dataCompra).getFullYear();
+    const anysEnUs = new Date().getFullYear() - anyCompra;
+    const amortAnys = parseFloat(maq.amortAnys)||0;
+    if(anysEnUs >= amortAnys){
+      amortMaq = 0;
+      amortMaqNote = ' (ja amortitzada — '+anysEnUs+' anys en us, '+amortAnys+' anys amortitzacio)';
+    } else {
+      amortMaqNote = ' ('+anysEnUs+'/'+amortAnys+' anys)';
+    }
+  }
+  // Components always apply regardless of machine amortization
   const amortComp = components.filter(c=>c.maquinaId===maqId).reduce((s,c)=>s+c.amortAnual,0);
   const compsArr = components.filter(c=>c.maquinaId===maqId);
   const costAmortAnual = amortMaq + amortComp;
@@ -2594,7 +2609,7 @@ async function renderFitxaMaquina(){
   if(amortMaq > 0 || compsArr.length > 0){
     html += '<div style="margin-bottom:1rem;padding:10px;background:var(--amarillo-claro);border-radius:var(--radio);border:1px solid #ffe08a">';
     html += '<div style="font-size:12px;font-weight:600;color:#7a5800;margin-bottom:6px">📉 Amortitzacions</div>';
-    if(amortMaq>0) html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>Maquina ('+maq.nombre+')</span><span>'+fmt(amortMaq)+'/any</span></div>';
+    if(amortMaqBrut>0) html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>Maquina ('+maq.nombre+')'+amortMaqNote+'</span><span>'+(amortMaq>0?fmt(amortMaq)+'/any':'<span style="color:var(--verde)">✓ Amortitzada</span>')+'</span></div>';
     compsArr.forEach(c=>{
       html += '<div style="font-size:12px;display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #ffe08a"><span>'+c.component+'</span><span>'+fmt(c.amortAnual)+'/any</span></div>';
     });
