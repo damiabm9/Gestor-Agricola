@@ -840,9 +840,9 @@ async function loadFromSheets(){
   setSyncing(true,'Carregant dades...');
   try {
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A2:K');
-    const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:D');
+    const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
-    flota = (rFlo.values||[]).map(r=>({id:r[0],tipo:r[1],nombre:r[2],ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
+    flota = (rFlo.values||[]).map(r=>({id:r[0]||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0}));
     try {
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
       finques = (rFinq.values||[]).map(r=>({id:r[0]||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
@@ -2282,7 +2282,7 @@ async function desarEditFlota(id){
   // Find row index in sheet
   setSyncing(true,'Actualitzant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:H');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
     const rows = r.values||[];
     const rowIdx = rows.findIndex(row=>row[0]===id);
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
@@ -2292,12 +2292,13 @@ async function desarEditFlota(id){
     if(floatItem){
       floatItem.dataCompra=dataCompra; floatItem.cost=cost;
       floatItem.amortAnys=amortAnys; floatItem.amortAnual=amortAnual;
+      floatItem.horesInicials=parseFloat(horesInicials)||0;
     }
     const row = rows[rowIdx];
-    while(row.length<8) row.push('');
-    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual;
+    while(row.length<9) row.push('');
+    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
     
-    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':H'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':I'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ renderFlota(); },800);
@@ -3844,7 +3845,7 @@ async function desarEditFlota(id){
   // Find row index in sheet
   setSyncing(true,'Actualitzant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:H');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:I');
     const rows = r.values||[];
     const rowIdx = rows.findIndex(row=>row[0]===id);
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
@@ -3854,12 +3855,13 @@ async function desarEditFlota(id){
     if(floatItem){
       floatItem.dataCompra=dataCompra; floatItem.cost=cost;
       floatItem.amortAnys=amortAnys; floatItem.amortAnual=amortAnual;
+      floatItem.horesInicials=parseFloat(horesInicials)||0;
     }
     const row = rows[rowIdx];
-    while(row.length<8) row.push('');
-    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual;
+    while(row.length<9) row.push('');
+    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
     
-    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':H'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':I'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ renderFlota(); },800);
