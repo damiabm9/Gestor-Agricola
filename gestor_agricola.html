@@ -2303,8 +2303,9 @@ async function desarEditFlota(id){
       floatItem.horesInicials=parseFloat(horesInicials)||0;
     }
     const row = rows[rowIdx];
-    while(row.length<9) row.push('');
-    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
+    while(row.length<11) row.push('');
+    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials; row[9]=moPreu; row[10]=moWorkers;
+    if(floatItem){ floatItem.moPreu=parseFloat(moPreu)||20; floatItem.moWorkers=parseFloat(moWorkers)||1; }
     
     await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+1)+':K'+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
@@ -3947,8 +3948,9 @@ async function desarEditFlota(id){
       floatItem.horesInicials=parseFloat(horesInicials)||0;
     }
     const row = rows[rowIdx];
-    while(row.length<9) row.push('');
-    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
+    while(row.length<11) row.push('');
+    row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials; row[9]=moPreu; row[10]=moWorkers;
+    if(floatItem){ floatItem.moPreu=parseFloat(moPreu)||20; floatItem.moWorkers=parseFloat(moWorkers)||1; }
     
     await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+1)+':K'+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
