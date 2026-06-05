@@ -1797,7 +1797,7 @@ async function deleteRepostatge(id){
   if(!confirm('Vols eliminar aquest repostatge?')) return;
   setSyncing(true,'Eliminant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:A');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:A');
     const rows = r.values||[];
     const idx = rows.findIndex(row=>row[0]===id);
     if(idx>=0) await deleteRow(SHEET_REPOSTATGES, idx+1);
@@ -1897,7 +1897,7 @@ async function deleteManteniment(id){
   if(!confirm('Vols eliminar aquest manteniment?')) return;
   setSyncing(true,'Eliminant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:A');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:A');
     const rows = r.values||[];
     const idx = rows.findIndex(row=>row[0]===id);
     if(idx>=0) await deleteRow(SHEET_MANTENIMENTS, idx+1);
@@ -2549,7 +2549,7 @@ async function renderFitxaMaquina(){
   let costRepostatges = 0; let litresTot = 0;
   let repoRows = [];
   try {
-    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:G');
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
     repoRows = (rR.values||[]).filter(r=>String(r[2]).replace(/'/g,'')===String(maq.nombre).replace(/'/g,''));
     costRepostatges = repoRows.reduce((s,r)=>s+(parseFloat(r[6])||parseFloat(r[5])||0),0);
     litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[4])||0),0);
@@ -3320,7 +3320,7 @@ async function deleteTreball(id){
   if(!confirm('Vols eliminar aquest treball?')) return;
   setSyncing(true,'Eliminant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A2:A');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:A');
     const rows = r.values||[];
     const idx = rows.findIndex(row=>row[0]===id);
     if(idx>=0) await deleteRow(SHEET_TREBALLS, idx+1);
@@ -3830,7 +3830,7 @@ async function deleteRepostatge(id){
   if(!confirm('Vols eliminar aquest repostatge?')) return;
   setSyncing(true,'Eliminant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:A');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:A');
     const rows = r.values||[];
     const idx = rows.findIndex(row=>row[0]===id);
     if(idx>=0) await deleteRow(SHEET_REPOSTATGES, idx+1);
@@ -3901,7 +3901,7 @@ async function deleteManteniment(id){
   if(!confirm('Vols eliminar aquest manteniment?')) return;
   setSyncing(true,'Eliminant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:A');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:A');
     const rows = r.values||[];
     const idx = rows.findIndex(row=>row[0]===id);
     if(idx>=0) await deleteRow(SHEET_MANTENIMENTS, idx+1);
