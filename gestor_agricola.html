@@ -638,25 +638,6 @@
     </div>
   </div>
 
-  <!-- MOVIMIENTOS -->
-  <div id="tab-movimientos" class="section">
-    <div class="card">
-      <div class="card-title">🔍 Filtrar</div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr auto">
-        <div><label>Àrea</label><select id="fil-area" onchange="renderMovimientos()"><option value="">Totes</option><option value="cultivos">🌾 Cultius</option><option value="maquinaria">🚜 Maquinària</option><option value="cerdos">🐷 Porcs</option><option value="pollos">🐔 Pollastres</option></select></div>
-        <div><label>Tipus</label><select id="fil-tipo" onchange="renderMovimientos()"><option value="">Tots</option><option value="ingreso">Ingressos</option><option value="gasto">Despeses</option></select></div>
-        <div><label>Categoria</label><select id="fil-cat" onchange="renderMovimientos()"><option value="">Totes</option></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="loadFromSheets()">↺ Recarregar</button></div>
-      </div>
-    </div>
-    <div class="card">
-      <table class="mov-table">
-        <thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Importe</th><th></th></tr></thead>
-        <tbody id="mov-list"></tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- FLOTA -->
   <div id="tab-flota" class="section">
 
@@ -1203,15 +1184,12 @@ function renderMovimientos(){
   if(tipo) data=data.filter(m=>m.tipo===tipo);
   if(cat) data=data.filter(m=>m.categoria===cat);
   const tbody=document.getElementById('mov-list');
-  if(!tbody._rl){
-    tbody.addEventListener('click',function(e){
-      const editBtn=e.target.closest('[data-edit-id]');
-      const delBtn=e.target.closest('[data-del-id]');
-      if(editBtn) obrirModalEdicio(editBtn.getAttribute('data-edit-id'));
-      if(delBtn) deleteMovimiento(delBtn.getAttribute('data-del-id'));
-    });
-    tbody._rl=true;
-  }
+  tbody.onclick = function(e){
+    const editBtn = e.target.closest('[data-edit-id]');
+    const delBtn  = e.target.closest('[data-del-id]');
+    if(editBtn) obrirModalEdicio(editBtn.getAttribute('data-edit-id'));
+    if(delBtn)  deleteMovimiento(delBtn.getAttribute('data-del-id'));
+  };
   if(!data.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No hay movimientos con este filtro.</div></td></tr>';return;}
   tbody.innerHTML=data.map(m=>`<tr>
     <td style="color:var(--gris-texto);white-space:nowrap">${m.fecha}</td>
