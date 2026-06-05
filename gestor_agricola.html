@@ -2527,7 +2527,15 @@ async function renderFitxaMaquina(){
   } catch(e){}
 
   // 3. Despeses de maquinaria assignades a aquesta maquina (factures)
-  const despesesMov = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(m.maquina===maq.nombre||m.apero===maq.nombre)&&m.notas!=='Auto-generat');
+  // Exclude categories already shown in Repostatges and Manteniments sections
+  const EXCL_CATS = ['Reparacions','Dièsel / combustible','Diesel / combustible'];
+  const despesesMov = movimientos.filter(m=>
+    m.area==='maquinaria' &&
+    m.tipo==='gasto' &&
+    (String(m.maquina).replace(/'/g,'')===String(maq.nombre).replace(/'/g,'') || String(m.apero).replace(/'/g,'')===String(maq.nombre).replace(/'/g,'')) &&
+    !EXCL_CATS.includes(m.categoria) &&
+    !(m.notas||'').includes('Auto-generat')
+  );
   const costMov = despesesMov.reduce((s,m)=>s+m.importe,0);
 
   // 4. Amortitzacio maquina - dividida per hores ANUALS, no totals
