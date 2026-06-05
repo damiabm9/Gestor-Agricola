@@ -860,6 +860,7 @@ async function loadFromSheets(){
     } catch(e){ equipaments=[]; }
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
+    renderEquipList(); populateFitxaSel(); populateTreballSelects(); refreshAllFincaBtns();
   } catch(e){ setSyncing(false,'Error en carregar',true); }
 }
 
@@ -2289,9 +2290,9 @@ async function desarEditFlota(id){
   // Find row index in sheet
   setSyncing(true,'Actualitzant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A1:K');
     const rows = r.values||[];
-    const rowIdx = rows.findIndex(row=>row[0]===id);
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
     
     // Update the row
@@ -2305,7 +2306,7 @@ async function desarEditFlota(id){
     while(row.length<9) row.push('');
     row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
     
-    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':K'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+1)+':K'+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ renderFlota(); },800);
@@ -2511,7 +2512,7 @@ async function renderFitxaMaquina(){
   let repoRows = [];
   try {
     const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A2:G');
-    repoRows = (rR.values||[]).filter(r=>r[2]===maq.nombre);
+    repoRows = (rR.values||[]).filter(r=>String(r[2]).replace(/'/g,'')===String(maq.nombre).replace(/'/g,''));
     costRepostatges = repoRows.reduce((s,r)=>s+(parseFloat(r[6])||parseFloat(r[5])||0),0);
     litresTot = repoRows.reduce((s,r)=>s+(parseFloat(r[4])||0),0);
   } catch(e){}
@@ -2521,7 +2522,7 @@ async function renderFitxaMaquina(){
   let mantRows = [];
   try {
     const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A2:K');
-    mantRows = (rM.values||[]).filter(r=>r[2]===maq.nombre);
+    mantRows = (rM.values||[]).filter(r=>String(r[2]).replace(/'/g,'')===String(maq.nombre).replace(/'/g,''));
     costMant = mantRows.reduce((s,r)=>s+(parseFloat(r[5])||0),0);
   } catch(e){}
 
@@ -3925,9 +3926,9 @@ async function desarEditFlota(id){
   // Find row index in sheet
   setSyncing(true,'Actualitzant...');
   try {
-    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
+    const r = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A1:K');
     const rows = r.values||[];
-    const rowIdx = rows.findIndex(row=>row[0]===id);
+    const rowIdx = rows.findIndex(row=>String(row[0]).replace(/'/g,'')===String(id).replace(/'/g,''));
     if(rowIdx<0){ setSyncing(false,'Error',true); return; }
     
     // Update the row
@@ -3941,7 +3942,7 @@ async function desarEditFlota(id){
     while(row.length<9) row.push('');
     row[4]=dataCompra; row[5]=cost; row[6]=amortAnys; row[7]=amortAnual; row[8]=horesInicials;
     
-    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+2)+':K'+(rowIdx+2)+'?valueInputOption=RAW','PUT',{values:[row]});
+    await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A'+(rowIdx+1)+':K'+(rowIdx+1)+'?valueInputOption=RAW','PUT',{values:[row]});
     setSyncing(false,'Connectat a Google Sheets');
     if(msg){ msg.style.color='var(--verde)'; msg.textContent='✓ Desat!'; }
     setTimeout(()=>{ renderFlota(); },800);
