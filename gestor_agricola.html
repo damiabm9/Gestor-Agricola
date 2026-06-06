@@ -891,7 +891,7 @@ function showTab(t, btn){
   if(!tabEl) return;
   tabEl.classList.add('visible');
   if(btn) btn.classList.add('active');
-  if(t==='resumen'){ if(accessToken) renderResumen(); if(accessToken) renderRentabilitat(); }
+  if(t==='resumen'){ if(accessToken){ renderResumen(); renderRentabilitat(); } }
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
   if(t==='flota'){ renderFlota(); loadRepostatges(); populateFitxaSel(); renderEquipList(); }
@@ -1090,6 +1090,7 @@ function showResArea(area, btn){
 }
 
 function renderResAreaCards(){
+  if(!document.getElementById('area-cards')) return;
   const data = getMovFiltrats();
   if(resAreaActiva === 'total'){
     const cards = Object.entries(AREAS).map(([key,a])=>{
@@ -1129,6 +1130,7 @@ function renderResAreaCards(){
 
 function renderResAreaDetall(){
   const detall = document.getElementById('area-detall');
+  if(!detall) return;
   if(resAreaActiva==='total'){ detall.style.display='none'; return; }
   const data = getMovFiltrats().filter(m=>m.area===resAreaActiva);
   const a = AREAS[resAreaActiva];
@@ -3706,6 +3708,7 @@ function showResArea(area, btn){
 }
 
 function renderResAreaCards(){
+  if(!document.getElementById('area-cards')) return;
   const data = getMovFiltrats();
   if(resAreaActiva === 'total'){
     const cards = Object.entries(AREAS).map(([key,a])=>{
@@ -3745,6 +3748,7 @@ function renderResAreaCards(){
 
 function renderResAreaDetall(){
   const detall = document.getElementById('area-detall');
+  if(!detall) return;
   if(resAreaActiva==='total'){ detall.style.display='none'; return; }
   const data = getMovFiltrats().filter(m=>m.area===resAreaActiva);
   const a = AREAS[resAreaActiva];
