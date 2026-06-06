@@ -1033,34 +1033,37 @@ async function addMovimiento(){
   // Save parcelles/finca info with proportional amounts per finca
   let parcInfo = '';
 
-  // Get ALL selected finca buttons (supports multiple finques)
-  const selectedFincaBtns = document.querySelectorAll('.finca-btn.selected');
-  const selectedFinques = Array.from(selectedFincaBtns).map(b=>{
-    const fid = b.dataset.fid;
-    return finques.find(x=>x.id===fid);
-  }).filter(Boolean);
+  // Determine which parcel/finca arrays to use based on area+tipo
+  const esIngres = (area==='cultivos'&&tipo==='ingreso');
+  const esGasto = (area==='cultivos'&&tipo==='gasto');
 
-  const parcelles = (area==='cultivos'&&tipo==='ingreso') ? vendaParcelles : gastoParcelles;
+  if(esIngres || esGasto){
+    // Get selected finca buttons from the correct container
+    const containerId = esIngres ? 'f-venda-finca-btns' : 'f-gasto-finca-btns';
+    const container = document.getElementById(containerId);
+    const selBtns = container ? container.querySelectorAll('.finca-btn.selected') : [];
+    const selFinques = Array.from(selBtns).map(b=>finques.find(x=>x.id===b.dataset.fid)).filter(Boolean);
 
-  if(selectedFinques.length>0 || parcelles.length>0){
-    if(selectedFinques.length>0){
-      // Multiple finques: save each with proportional amount
-      const totalHa = selectedFinques.reduce((s,f)=>s+f.ha, 0);
-      const fincaDetail = selectedFinques.map(f=>{
-        const proporcio = totalHa>0 ? f.ha/totalHa : 1/selectedFinques.length;
+    // Also check parcelles arrays (for individual parcel mode)
+    const parcelles = esIngres ? vendaParcelles : gastoParcelles;
+
+    if(selFinques.length>0){
+      // Finca mode: distribute proportionally by ha
+      const totalHa = selFinques.reduce((s,f)=>s+f.ha, 0);
+      const fincaDetail = selFinques.map(f=>{
+        const proporcio = totalHa>0 ? f.ha/totalHa : 1/selFinques.length;
         const importProp = (importe * proporcio).toFixed(2);
         return f.nom+':'+importProp+'€('+f.ha+'ha)';
       }).join(';');
-      const fincaNoms = selectedFinques.map(f=>f.nom).join(', ');
-      const totalHaStr = totalHa.toFixed(2);
+      const fincaNoms = selFinques.map(f=>f.nom).join(', ');
       const kg = document.getElementById('f-kg')?.value||'0';
-      parcInfo = 'Finques:'+fincaNoms+'|FincaDetail:'+fincaDetail+'|Ha:'+totalHaStr+(kg!=='0'?'|Kg:'+kg:'');
+      parcInfo = 'Finques:'+fincaNoms+'|FincaDetail:'+fincaDetail+'|Ha:'+totalHa.toFixed(2)+(kg&&kg!=='0'?'|Kg:'+kg:'');
     } else if(parcelles.length>0){
-      // Individual parcelles
+      // Parcel mode
       const totalHa = parcelles.reduce((s,p)=>s+p.ha,0);
       const parcNoms = parcelles.map(p=>p.nom).join(', ');
       const kg = document.getElementById('f-kg')?.value||'0';
-      parcInfo = 'Parcel·les:'+parcNoms+'|Ha:'+totalHa.toFixed(2)+(kg!=='0'?'|Kg:'+kg:'');
+      parcInfo = 'Parcel·les:'+parcNoms+'|Ha:'+totalHa.toFixed(2)+(kg&&kg!=='0'?'|Kg:'+kg:'');
     }
   }
   const notasFinal = [notas, parcInfo].filter(Boolean).join(' | ');
