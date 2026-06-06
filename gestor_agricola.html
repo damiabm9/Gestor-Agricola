@@ -857,7 +857,7 @@ async function loadFromSheets(){
     movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
     flota = (rFlo.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0,moPreu:parseFloat(r[9])||20,moWorkers:parseFloat(r[10])||1}));
     try {
-      const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A2:D');
+      const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A1:E');
       finques = (rFinq.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',nom:r[1]||'',parcellesIds:(r[2]||'').split(',').filter(Boolean),ha:parseFloat(r[3])||0,arrendament:parseFloat(r[4])||0}));
     } catch(e){ finques=[]; }
     setTimeout(refreshAllFincaBtns, 100);
@@ -869,6 +869,15 @@ async function loadFromSheets(){
       const rEq = await sheetsReq('/values/'+encodeURIComponent(SHEET_EQUIP)+'!A1:D');
       equipaments = (rEq.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',nom:r[1]||'',maquina:r[2]||'',apero:r[3]||''}));
     } catch(e){ equipaments=[]; }
+    // Load deleted parcels and apply
+    let parcellesEliminadesIds = [];
+    try {
+      const rElim = await sheetsReq('/values/'+encodeURIComponent(SHEET_ELIMINADES)+'!A1:A');
+      parcellesEliminadesIds = (rElim.values||[]).map(r=>String(r[0]).replace(/'/g,'')).filter(Boolean);
+    } catch(e){}
+    // Apply to PARC_DATA when it loads
+    window._parcellesEliminades = parcellesEliminadesIds;
+
     setSyncing(false,'Connectat · '+movimientos.length+' movimientos');
     renderResumen(); renderMovimientos(); renderRentabilidad(); renderFlota();
     renderEquipList(); populateFitxaSel(); populateTreballSelects(); refreshAllFincaBtns();
@@ -2017,6 +2026,10 @@ async function initParcelMap(){
   if(parcMap){ setTimeout(()=>parcMap.invalidateSize(),100); return; }
   await loadParcData();
   if(!PARC_DATA){document.getElementById("parc-map").innerHTML="<div class='empty'>Error carregant les parcel·les.</div>";return;}
+  // Filter out deleted parcels
+  if(window._parcellesEliminades && window._parcellesEliminades.length>0){
+    PARC_DATA.features = PARC_DATA.features.filter(f=>!window._parcellesEliminades.includes(String(f.properties.id)));
+  }
   setTimeout(()=>{
     parcMap=L.map('parc-map').setView([41.825,1.578],13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap',maxZoom:19}).addTo(parcMap);
@@ -2962,7 +2975,7 @@ async function eliminarParcel·la(id){
   // Save updated geojson to GitHub Pages is not possible directly
   // But we can save a list of deleted IDs to Sheets
   try {
-    await appendRow('Eliminades',[id, nom, new Date().toISOString().split('T')[0]]);
+    await appendRow(SHEET_ELIMINADES,[id, nom, new Date().toISOString().split('T')[0]]);
   } catch(e){ /* silent - sheet might not exist */ }
 
   setSyncing(false,'Parcel·la eliminada (sessio actual)');
