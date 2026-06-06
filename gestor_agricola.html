@@ -1104,11 +1104,33 @@ async function deleteMovimiento(id){
 // ── RENDER RESUMEN ─────────────────────────────────────
 let resAreaActiva = 'total';
 
-function populateAnyFilter(){
-  const anys = [...new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean))].sort().reverse();
+async function populateAnyFilter(){
   const sel = document.getElementById('res-any');
   if(!sel) return;
   const cur = sel.value;
+
+  // Collect years from all sheets
+  const anySet = new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean));
+
+  // Add years from repostatges
+  try {
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!B1:B');
+    (rR.values||[]).forEach(r=>{ const y=(r[0]||'').substring(0,4); if(y.match(/^20\d\d$/)) anySet.add(y); });
+  } catch(e){}
+
+  // Add years from manteniments
+  try {
+    const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!B1:B');
+    (rM.values||[]).forEach(r=>{ const y=(r[0]||'').substring(0,4); if(y.match(/^20\d\d$/)) anySet.add(y); });
+  } catch(e){}
+
+  // Add years from treballs
+  try {
+    const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!B1:B');
+    (rT.values||[]).forEach(r=>{ const y=(r[0]||'').substring(0,4); if(y.match(/^20\d\d$/)) anySet.add(y); });
+  } catch(e){}
+
+  const anys = [...anySet].sort().reverse();
   sel.innerHTML='<option value="">Tots els anys</option>'+anys.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
 }
 
@@ -3770,11 +3792,33 @@ async function deleteTreball(id){
 // ── RENDER RESUMEN ─────────────────────────────────────
 resAreaActiva = 'total';
 
-function populateAnyFilter(){
-  const anys = [...new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean))].sort().reverse();
+async function populateAnyFilter(){
   const sel = document.getElementById('res-any');
   if(!sel) return;
   const cur = sel.value;
+
+  // Collect years from all sheets
+  const anySet = new Set(movimientos.map(m=>m.fecha?m.fecha.substring(0,4):'').filter(Boolean));
+
+  // Add years from repostatges
+  try {
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!B1:B');
+    (rR.values||[]).forEach(r=>{ const y=(r[0]||'').substring(0,4); if(y.match(/^20\d\d$/)) anySet.add(y); });
+  } catch(e){}
+
+  // Add years from manteniments
+  try {
+    const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!B1:B');
+    (rM.values||[]).forEach(r=>{ const y=(r[0]||'').substring(0,4); if(y.match(/^20\d\d$/)) anySet.add(y); });
+  } catch(e){}
+
+  // Add years from treballs
+  try {
+    const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!B1:B');
+    (rT.values||[]).forEach(r=>{ const y=(r[0]||'').substring(0,4); if(y.match(/^20\d\d$/)) anySet.add(y); });
+  } catch(e){}
+
+  const anys = [...anySet].sort().reverse();
   sel.innerHTML='<option value="">Tots els anys</option>'+anys.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
 }
 
