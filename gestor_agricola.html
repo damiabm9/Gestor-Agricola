@@ -179,6 +179,7 @@
       <div id="area-detall-body"></div>
     </div>
 
+    <div id="resumen-list" style="display:none"></div>
     <!-- Activitat global -->
     <div class="card" style="margin-top:1rem">
       <div class="card-title" style="justify-content:space-between;display:flex">
@@ -195,6 +196,9 @@
       </div>
       <div id="activitat-list" style="max-height:400px;overflow-y:auto"></div>
     </div>
+
+    <!-- Rendibilitat integrada -->
+    
 
     <!-- Rendibilitat integrada -->
     <div class="card" style="margin-top:1rem">
@@ -1204,6 +1208,7 @@ function renderResumen(){
   // Últims moviments
   const recents=[...data].sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,6);
   const list=document.getElementById('resumen-list');
+  if(!list) return;
   if(!recents.length){list.innerHTML='<div class="empty">Encara no hi ha moviments registrats.</div>';return;}
   list.innerHTML='<table class="mov-table"><thead><tr><th>Data</th><th>Concepte</th><th>Àrea</th><th>Categoria</th><th>Tipus</th><th style="text-align:right">Import</th></tr></thead><tbody>'+
     recents.map(m=>`<tr>
