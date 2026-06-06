@@ -1281,7 +1281,7 @@ function showRentArea(area, btn){
 
 function renderRentabilitat(){
   const maqSel = document.getElementById('rent-maq-sel')?.value||'';
-  let data = movimientos;
+  let data = getMovFiltrats(); // respecta el filtre d'any
 
   if(rentAreaActiva!=='totes') data = data.filter(m=>m.area===rentAreaActiva);
 
@@ -1575,7 +1575,15 @@ function renderAmortitzacions(){
   html+='</tbody></table>';
 
   // Summary box
-  const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
+  // Despeses maquinaria: llegeix de les fonts originals (sense duplicats)
+  const anyFilter = document.getElementById('res-any')?.value||'';
+  const despesesMov = getMovFiltrats().filter(m=>
+    m.area==='maquinaria'&&m.tipo==='gasto'&&
+    !['Reparacions','Dièsel / combustible','Diesel / combustible'].includes(m.categoria)&&
+    !(m.notas||'').includes('Auto-generat')&&
+    (maqSel?m.maquina===maqSel||m.apero===maqSel:true)
+  ).reduce((s,m)=>s+m.importe,0);
+  const despesesReals = despesesMov; // repostatges i manteniments es llegiran a la fitxa
   const costTotal = despesesReals + totalAmortAnual;
 
   // Components amortitzables per maquina
@@ -1800,15 +1808,8 @@ async function addRepostatge(){
   setSyncing(true,'Desant...');
   try {
     await appendRow(SHEET_REPOSTATGES,[id,data,maquina,tipus_rep,litres,preu,total]);
-    // Crear despesa automàtica a Maquinària
-    const idDespesa = (Date.now()+1).toString();
-    const totalNum = parseFloat(total)||0;
-    if(totalNum>0){
-      await appendRow(SHEET_MOV,[idDespesa,data,'maquinaria','gasto','Dièsel / combustible',`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,totalNum.toFixed(2),maquina,'','','','Auto-generat des de repostatge']);
-      movimientos.push({id:idDespesa,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Dièsel / combustible',concepto:`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,importe:totalNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
-    }
     setSyncing(false,'Connectat a Google Sheets');
-    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat i comptabilitzat a Maquinària.'; setTimeout(()=>msg.textContent='',3000);
+    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat.'; setTimeout(()=>msg.textContent='',3000);
     ['rep-litres','rep-preu','rep-total'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('rep-data').valueAsDate=new Date();
     loadRepostatges();
@@ -1901,15 +1902,8 @@ async function addManteniment(){
   setSyncing(true,'Desant...');
   try {
     await appendRow(SHEET_MANTENIMENTS,[id,data,maquina,tipus,desc,cost,estat,fetPer,qui,hores,mecanic]);
-    const costNum = parseFloat(cost)||0;
-    if(costNum>0){
-      const idDespesa2 = (Date.now()+2).toString();
-      const concepte = fetPer==='Nosaltres' ? `${tipus}: ${desc} (${maquina} — ${qui})` : `${tipus}: ${desc} (${maquina} — ${mecanic||'Mecànic extern'})`;
-      await appendRow(SHEET_MOV,[idDespesa2,data,'maquinaria','gasto','Reparacions',concepte,costNum.toFixed(2),maquina,'','','','Auto-generat des de manteniment']);
-      movimientos.push({id:idDespesa2,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Reparacions',concepto:concepte,importe:costNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
-    }
     setSyncing(false,'Connectat a Google Sheets');
-    msg.className='msg-ok'; msg.textContent=costNum>0?'✓ Manteniment desat i comptabilitzat a Maquinària.':'✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',3000);
+    msg.className='msg-ok'; msg.textContent='✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',3000);
     ['mant-desc','mant-hores','mant-cost','mant-cost-ext','mant-mecanic'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mant-data').valueAsDate=new Date();
     loadManteniments();
@@ -4062,7 +4056,15 @@ function renderAmortitzacions(){
   html+='</tbody></table>';
 
   // Summary box
-  const despesesReals = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&(maqSel?m.maquina===maqSel||m.apero===maqSel:true)).reduce((s,m)=>s+m.importe,0);
+  // Despeses maquinaria: llegeix de les fonts originals (sense duplicats)
+  const anyFilter = document.getElementById('res-any')?.value||'';
+  const despesesMov = getMovFiltrats().filter(m=>
+    m.area==='maquinaria'&&m.tipo==='gasto'&&
+    !['Reparacions','Dièsel / combustible','Diesel / combustible'].includes(m.categoria)&&
+    !(m.notas||'').includes('Auto-generat')&&
+    (maqSel?m.maquina===maqSel||m.apero===maqSel:true)
+  ).reduce((s,m)=>s+m.importe,0);
+  const despesesReals = despesesMov; // repostatges i manteniments es llegiran a la fitxa
   const costTotal = despesesReals + totalAmortAnual;
 
   // Components amortitzables per maquina
@@ -4177,15 +4179,8 @@ async function addRepostatge(){
   setSyncing(true,'Desant...');
   try {
     await appendRow(SHEET_REPOSTATGES,[id,data,maquina,tipus_rep,litres,preu,total]);
-    // Crear despesa automàtica a Maquinària
-    const idDespesa = (Date.now()+1).toString();
-    const totalNum = parseFloat(total)||0;
-    if(totalNum>0){
-      await appendRow(SHEET_MOV,[idDespesa,data,'maquinaria','gasto','Dièsel / combustible',`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,totalNum.toFixed(2),maquina,'','','','Auto-generat des de repostatge']);
-      movimientos.push({id:idDespesa,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Dièsel / combustible',concepto:`Repostatge ${tipus_rep} ${maquina} (${litres}L)`,importe:totalNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
-    }
     setSyncing(false,'Connectat a Google Sheets');
-    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat i comptabilitzat a Maquinària.'; setTimeout(()=>msg.textContent='',3000);
+    msg.className='msg-ok'; msg.textContent='✓ Repostatge desat.'; setTimeout(()=>msg.textContent='',3000);
     ['rep-litres','rep-preu','rep-total'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('rep-data').valueAsDate=new Date();
     loadRepostatges();
@@ -4248,15 +4243,8 @@ async function addManteniment(){
   setSyncing(true,'Desant...');
   try {
     await appendRow(SHEET_MANTENIMENTS,[id,data,maquina,tipus,desc,cost,estat,fetPer,qui,hores,mecanic]);
-    const costNum = parseFloat(cost)||0;
-    if(costNum>0){
-      const idDespesa2 = (Date.now()+2).toString();
-      const concepte = fetPer==='Nosaltres' ? `${tipus}: ${desc} (${maquina} — ${qui})` : `${tipus}: ${desc} (${maquina} — ${mecanic||'Mecànic extern'})`;
-      await appendRow(SHEET_MOV,[idDespesa2,data,'maquinaria','gasto','Reparacions',concepte,costNum.toFixed(2),maquina,'','','','Auto-generat des de manteniment']);
-      movimientos.push({id:idDespesa2,fecha:data,area:'maquinaria',tipo:'gasto',categoria:'Reparacions',concepto:concepte,importe:costNum,maquina:maquina,apero:'',hores:'',notas:'Auto-generat'});
-    }
     setSyncing(false,'Connectat a Google Sheets');
-    msg.className='msg-ok'; msg.textContent=costNum>0?'✓ Manteniment desat i comptabilitzat a Maquinària.':'✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',3000);
+    msg.className='msg-ok'; msg.textContent='✓ Manteniment desat.'; setTimeout(()=>msg.textContent='',3000);
     ['mant-desc','mant-hores','mant-cost','mant-cost-ext','mant-mecanic'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     document.getElementById('mant-data').valueAsDate=new Date();
     loadManteniments();
