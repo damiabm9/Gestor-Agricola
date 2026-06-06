@@ -142,7 +142,7 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('resumen',this)">📊 Resum</button>
+    <button class="tab active" onclick="showTab('resumen',this)">📈 Rendibilitat</button>
     <button class="tab" onclick="showTab('partes',this)">📋 Partes</button>
     <button class="tab" onclick="showTab('parcelles',this)">🗺️ Parcel·les</button>
     <button class="tab" onclick="showTab('flota',this)">🚜 Flota</button>
@@ -216,6 +216,13 @@
       <div id="cat-breakdown" style="margin-top:1rem"></div>
       <div id="rent-amort-card" style="margin-top:1rem"></div>
       <div id="rent-parcelles-card" style="margin-top:1rem"></div>
+
+      <!-- Rendibilitat per finca (cultius + maquinaria integrats) -->
+      <div id="rent-finca-integrada" class="hidden" style="margin-top:1rem">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">🏡 Rendibilitat per finca — Cultius + Mecanització</div>
+        <div id="rent-finca-integrada-body"></div>
+      </div>
+
       <!-- Fitxa màquina dins Resum -->
       <div id="res-fitxa-wrap" class="hidden" style="margin-top:1rem">
         <div class="card-title" style="margin-bottom:.75rem">📊 Fitxa de màquina</div>
@@ -906,9 +913,13 @@ function showTab(t, btn){
 // ── FORMULARIO ─────────────────────────────────────────
 function onTipoChange(){ onAreaChange(); }
 function onAreaChange(){
-  const area = document.getElementById('f-area').value;
-  const tipo = document.getElementById('f-tipo').value;
-  document.getElementById('f-cat-wrap').classList.remove('hidden');
+  const areaEl = document.getElementById('f-area');
+  const tipoEl = document.getElementById('f-tipo');
+  if(!areaEl||!tipoEl) return;
+  const area = areaEl.value;
+  const tipo = tipoEl.value;
+  const catWrap = document.getElementById('f-cat-wrap');
+  if(catWrap) catWrap.classList.remove('hidden');
   populateCat(area, tipo);
   document.getElementById('f-maq-wrap').classList.add('hidden');
   document.getElementById('f-amort-wrap').classList.add('hidden');
@@ -1236,7 +1247,7 @@ function showRentArea(area, btn){
       fitxaWrap.classList.remove('hidden');
       // Populate selector
       const sel = document.getElementById('res-fitxa-sel');
-      if(sel && flota.length){
+      if(sel){
         const cur = sel.value;
         sel.innerHTML = '<option value="">— Selecciona —</option>'+
           flota.map(f=>'<option value="'+f.id+'">'+(f.tipo==='maquina'?'🚜':'🔧')+' '+f.nombre+'</option>').join('');
@@ -1244,6 +1255,15 @@ function showRentArea(area, btn){
       }
     } else {
       fitxaWrap.classList.add('hidden');
+    }
+  }
+  // Show finca integrada for cultivos or totes
+  const fincaIntegrada = document.getElementById('rent-finca-integrada');
+  if(fincaIntegrada){
+    if(area==='cultivos'||area==='totes'){
+      fincaIntegrada.classList.remove('hidden');
+    } else {
+      fincaIntegrada.classList.add('hidden');
     }
   }
   rentAreaActiva = area;
@@ -1321,6 +1341,7 @@ function renderRentabilitat(){
   document.getElementById('cat-breakdown').innerHTML=html||'<div class="empty">Registra despeses per veure el desglossament.</div>';
   renderAmortitzacions();
   renderParcRendibilitat();
+  if(rentAreaActiva==='cultivos'||rentAreaActiva==='totes') renderFincaRendibilitat();
 }
 
 async function renderCostHora(maqSel, despesesReals, totalAmortAnual){
@@ -3309,6 +3330,180 @@ async function renderActivitatGlobal(){
   }
 }
 
+// ── RENDIBILITAT PER FINCA (CULTIUS + MECANITZACIÓ) ──────
+async function renderFincaRendibilitat(){
+  const body = document.getElementById('rent-finca-integrada-body');
+  if(!body || !finques.length) {
+    if(body) body.innerHTML='<div class="empty">Crea finques a la pestanya Parcel·les per veure la rendibilitat per finca.</div>';
+    return;
+  }
+  body.innerHTML='<div class="empty">Calculant...</div>';
+
+  try {
+    // Load treballs to get machine hours per finca
+    const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:L');
+    const treballs = (rT.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({
+      id:String(r[0]).replace(/'/g,''), data:r[1]||'', maquina:r[4]||'', apero:r[5]||'',
+      hores:parseFloat(r[6])||0, parcNoms:(r[9]||'').split(',').map(s=>s.trim()).filter(Boolean),
+      parcHa:parseFloat(r[10])||0, parcDetail:r[11]||''
+    }));
+
+    // Build cost/hora per màquina from flota data
+    const costHoraMap = {};
+    flota.filter(f=>f.tipo==='maquina').forEach(maq=>{
+      const amortMaqBrut = parseFloat(maq.amortAnual)||0;
+      let amortMaq = amortMaqBrut;
+      if(amortMaqBrut > 0 && maq.dataCompra && maq.amortAnys){
+        const anyCompra = new Date(maq.dataCompra).getFullYear();
+        const anysEnUs = new Date().getFullYear() - anyCompra;
+        if(anysEnUs >= parseFloat(maq.amortAnys)) amortMaq = 0;
+      }
+      const amortComp = components.filter(c=>c.maquinaId===maq.id).reduce((s,c)=>s+c.amortAnual,0);
+      const horesInicials = maq.horesInicials||0;
+      const anyCompra2 = maq.dataCompra ? new Date(maq.dataCompra).getFullYear() : null;
+      const anysEnUs2 = anyCompra2 ? Math.max(new Date().getFullYear()-anyCompra2,1) : null;
+      const horesAnuals = (anysEnUs2 && horesInicials>0) ? Math.round(horesInicials/anysEnUs2) : 400;
+      
+      const costAmortHora = horesAnuals>0 ? (amortMaq+amortComp)/horesAnuals : 0;
+      const MO_PREU = maq.moPreu||20;
+      const MO_WORKERS = maq.moWorkers||1;
+      const despesesReals = movimientos.filter(m=>
+        m.area==='maquinaria'&&m.tipo==='gasto'&&
+        (String(m.maquina).replace(/'/g,'')===String(maq.nombre).replace(/'/g,'')||
+         String(m.apero).replace(/'/g,'')===String(maq.nombre).replace(/'/g,''))&&
+        !['Reparacions','Dièsel / combustible'].includes(m.categoria)&&
+        !(m.notas||'').includes('Auto-generat')
+      ).reduce((s,m)=>s+m.importe,0);
+      // Get repostatges and manteniments costs
+      // Simplified: use total despeses / hores totals
+      const despesesHora = horesInicials>0 ? 0 : 0; // will add repostatges below
+      costHoraMap[maq.nombre] = costAmortHora + MO_PREU*MO_WORKERS;
+    });
+
+    // Simplified: use default 45€/h if not calculated
+    // Better: use the fitxa cost/hora for each machine
+    // For now use amort+MO calculation above
+
+    // Per each finca, calculate:
+    // INGRESSOS: factures cultius ingres assignades a parcel·les de la finca
+    // COSTOS INSUMS: factures cultius gasto assignades a parcel·les de la finca
+    // COSTOS MECANITZACIÓ: treballs × cost/hora màquina per parcel·les de la finca
+    // ARRENDAMENT: finca.arrendament
+    
+    const results = [];
+    
+    for(const finca of finques){
+      // Get parcel names for this finca
+      const parcNoms = finca.parcellesIds.map(pid=>{
+        if(!PARC_DATA) return '';
+        const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+        return feat ? feat.properties.nom : '';
+      }).filter(Boolean);
+      
+      // INGRESSOS cultius assignats a aquesta finca
+      let ingCultius = 0;
+      movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='ingreso').forEach(m=>{
+        // Check if any parcel of this finca is in the movement's notas/extres
+        const notes = (m.notas||'').toLowerCase();
+        const parcMatch = parcNoms.some(nom=>notes.includes(nom.toLowerCase()));
+        const fincaNomMatch = notes.includes(finca.nom.toLowerCase());
+        if(fincaNomMatch||parcMatch) ingCultius += m.importe;
+      });
+      
+      // COSTOS insums cultius assignats a aquesta finca
+      let costInsums = 0;
+      movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='gasto').forEach(m=>{
+        const notes = (m.notas||'').toLowerCase();
+        const parcMatch = parcNoms.some(nom=>notes.includes(nom.toLowerCase()));
+        const fincaNomMatch = notes.includes(finca.nom.toLowerCase());
+        if(fincaNomMatch||parcMatch) costInsums += m.importe;
+      });
+      
+      // COSTOS mecanització: treballs a parcel·les d'aquesta finca
+      let costMecanitzacio = 0;
+      let horesMecanitzacio = 0;
+      treballs.forEach(t=>{
+        // Check if treball is on any parcel of this finca
+        const trebParcNoms = t.parcNoms;
+        const matchedParcNoms = trebParcNoms.filter(pn=>parcNoms.includes(pn));
+        if(!matchedParcNoms.length) return;
+        
+        // Calculate proportion of hours for this finca
+        const proporcio = t.parcHa > 0 ? 
+          matchedParcNoms.reduce((s,pn)=>{
+            if(!PARC_DATA) return s + t.hores/trebParcNoms.length;
+            const feat = PARC_DATA.features.find(f=>f.properties.nom===pn);
+            return s + (feat ? (feat.properties.ha/t.parcHa)*t.hores : 0);
+          }, 0) : t.hores/Math.max(trebParcNoms.length,1)*matchedParcNoms.length;
+        
+        horesMecanitzacio += proporcio;
+        
+        // Get cost per hour for this machine
+        const costH = costHoraMap[t.maquina] || 35; // default 35€/h
+        costMecanitzacio += proporcio * costH;
+      });
+      
+      const arrendament = finca.arrendament||0;
+      const costTotal = costInsums + costMecanitzacio + arrendament;
+      const marge = ingCultius - costTotal;
+      const margePerHa = finca.ha > 0 ? marge/finca.ha : 0;
+      
+      results.push({finca, ingCultius, costInsums, costMecanitzacio, horesMecanitzacio, arrendament, costTotal, marge, margePerHa});
+    }
+    
+    if(!results.length){
+      body.innerHTML='<div class="empty">Sense dades per calcular. Registra factures i treballs assignats a finques.</div>';
+      return;
+    }
+    
+    let html = '<div style="overflow-x:auto"><table class="mov-table">';
+    html += '<thead><tr>';
+    html += '<th>Finca</th><th style="text-align:right">Ha</th>';
+    html += '<th style="text-align:right">Ingressos</th>';
+    html += '<th style="text-align:right">Insums</th>';
+    html += '<th style="text-align:right">Mecanització</th>';
+    html += '<th style="text-align:right">Arrendament</th>';
+    html += '<th style="text-align:right">Marge</th>';
+    html += '<th style="text-align:right">€/ha</th>';
+    html += '</tr></thead><tbody>';
+    
+    results.sort((a,b)=>b.marge-a.marge).forEach(r=>{
+      const color = r.marge>=0?'var(--verde)':'var(--rojo)';
+      html += `<tr>
+        <td><strong>${r.finca.nom}</strong></td>
+        <td style="text-align:right">${r.finca.ha}</td>
+        <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(r.ingCultius)}</td>
+        <td style="text-align:right;color:var(--rojo)">${fmt(r.costInsums)}</td>
+        <td style="text-align:right;color:var(--rojo)">${fmt(r.costMecanitzacio)}<div style="font-size:10px;color:var(--gris-texto)">${r.horesMecanitzacio.toFixed(1)}h</div></td>
+        <td style="text-align:right;color:var(--rojo)">${r.arrendament>0?fmt(r.arrendament):'—'}</td>
+        <td style="text-align:right;font-weight:700;color:${color}">${fmt(r.marge)}</td>
+        <td style="text-align:right;font-weight:700;color:${color}">${fmt(r.margePerHa)}</td>
+      </tr>`;
+    });
+    
+    // Totals row
+    const totIng = results.reduce((s,r)=>s+r.ingCultius,0);
+    const totCost = results.reduce((s,r)=>s+r.costTotal,0);
+    const totMarge = results.reduce((s,r)=>s+r.marge,0);
+    const totHa = results.reduce((s,r)=>s+r.finca.ha,0);
+    html += `<tr style="border-top:2px solid #ddd;font-weight:600;background:var(--gris-bg)">
+      <td>TOTAL</td><td style="text-align:right">${totHa.toFixed(2)}</td>
+      <td style="text-align:right;color:var(--verde)">${fmt(totIng)}</td>
+      <td colspan="3" style="text-align:right;color:var(--rojo)">${fmt(totCost)}</td>
+      <td style="text-align:right;color:${totMarge>=0?'var(--verde)':'var(--rojo)'}">${fmt(totMarge)}</td>
+      <td style="text-align:right;color:${totMarge>=0?'var(--verde)':'var(--rojo)'}">${totHa>0?fmt(totMarge/totHa):'—'}</td>
+    </tr>`;
+    
+    html += '</tbody></table></div>';
+    html += '<div style="font-size:11px;color:var(--gris-texto);margin-top:8px">💡 Mecanització = hores de treball a la finca × cost/hora de cada màquina (amortització + MO). Assigna treballs a finques/parcel·les per veure el desglossament complet.</div>';
+    
+    body.innerHTML = html;
+  } catch(e){
+    body.innerHTML='<div class="empty">Error calculant la rendibilitat per finca: '+e.message+'</div>';
+    console.error(e);
+  }
+}
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -3576,7 +3771,7 @@ function showRentArea(area, btn){
       fitxaWrap.classList.remove('hidden');
       // Populate selector
       const sel = document.getElementById('res-fitxa-sel');
-      if(sel && flota.length){
+      if(sel){
         const cur = sel.value;
         sel.innerHTML = '<option value="">— Selecciona —</option>'+
           flota.map(f=>'<option value="'+f.id+'">'+(f.tipo==='maquina'?'🚜':'🔧')+' '+f.nombre+'</option>').join('');
@@ -3584,6 +3779,15 @@ function showRentArea(area, btn){
       }
     } else {
       fitxaWrap.classList.add('hidden');
+    }
+  }
+  // Show finca integrada for cultivos or totes
+  const fincaIntegrada = document.getElementById('rent-finca-integrada');
+  if(fincaIntegrada){
+    if(area==='cultivos'||area==='totes'){
+      fincaIntegrada.classList.remove('hidden');
+    } else {
+      fincaIntegrada.classList.add('hidden');
     }
   }
   rentAreaActiva = area;
