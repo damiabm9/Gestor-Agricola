@@ -834,7 +834,7 @@ async function loadFromSheets(){
   try {
     const rMov = await sheetsReq('/values/'+encodeURIComponent(SHEET_MOV)+'!A1:K');
     const rFlo = await sheetsReq('/values/'+encodeURIComponent(SHEET_FLOTA)+'!A2:K');
-    movimientos = (rMov.values||[]).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
+    movimientos = (rMov.values||[]).filter(r=>r[0]&&!(r[10]||'').includes('Auto-generat')).map(r=>({id:r[0],fecha:r[1],area:r[2],tipo:r[3],categoria:r[4],concepto:r[5],importe:parseFloat(r[6])||0,maquina:r[7]||'',apero:r[8]||'',horas:r[9]||'',notas:r[10]||''}));
     flota = (rFlo.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).map(r=>({id:String(r[0]).replace(/'/g,'')||'',tipo:r[1]||'',nombre:r[2]||'',ref:r[3]||'',dataCompra:r[4]||'',cost:r[5]||'',amortAnys:r[6]||'',amortAnual:r[7]||'',horesInicials:parseFloat(r[8])||0,moPreu:parseFloat(r[9])||20,moWorkers:parseFloat(r[10])||1}));
     try {
       const rFinq = await sheetsReq('/values/'+encodeURIComponent(SHEET_FINQUES)+'!A1:E');
@@ -1279,9 +1279,9 @@ function showRentArea(area, btn){
   renderRentabilitat();
 }
 
-function renderRentabilitat(){
+async function renderRentabilitat(){
   const maqSel = document.getElementById('rent-maq-sel')?.value||'';
-  let data = getMovFiltrats(); // respecta el filtre d'any
+  let data = getMovFiltrats(); // respecta el filtre d'any (factures pures)
 
   if(rentAreaActiva!=='totes') data = data.filter(m=>m.area===rentAreaActiva);
 
@@ -1297,6 +1297,7 @@ function renderRentabilitat(){
     const a = AREAS[key];
     const aData = rentAreaActiva==='totes' ? data.filter(m=>m.area===key) : data;
     const ing = aData.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.importe,0);
+    // Per maquinaria: afegir repostatges i manteniments (llegits a renderAmortitzacions)
     const gas = aData.filter(m=>m.tipo==='gasto').reduce((s,m)=>s+m.importe,0);
     const res = ing-gas;
     const pct = ing>0?Math.round((res/ing)*100):(gas>0?-100:0);
@@ -1523,7 +1524,7 @@ function renderFincaBreakdown(){
 
 function renderRentabilidad(){ renderRentabilitat(); }
 
-function renderAmortitzacions(){
+async function renderAmortitzacions(){
   const card = document.getElementById('rent-amort-card');
   const body = document.getElementById('rent-amort-body');
   if(!card||!body) return;
@@ -1575,15 +1576,29 @@ function renderAmortitzacions(){
   html+='</tbody></table>';
 
   // Summary box
-  // Despeses maquinaria: llegeix de les fonts originals (sense duplicats)
+  // Llegir despeses de les fonts originals (sense duplicats)
   const anyFilter = document.getElementById('res-any')?.value||'';
-  const despesesMov = getMovFiltrats().filter(m=>
+  let costRepost = 0, costMant = 0;
+  try {
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
+    costRepost = (rR.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5)
+      .filter(r=>!anyFilter||String(r[1]||'').startsWith(anyFilter))
+      .filter(r=>!maqSel||String(r[2]).replace(/'/g,'')===(maqSel))
+      .reduce((s,r)=>s+(parseFloat(r[6])||0),0);
+  } catch(e){}
+  try {
+    const rM2 = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
+    costMant = (rM2.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5)
+      .filter(r=>!anyFilter||String(r[1]||'').startsWith(anyFilter))
+      .filter(r=>!maqSel||String(r[2]).replace(/'/g,'')===(maqSel))
+      .reduce((s,r)=>s+(parseFloat(r[5])||0),0);
+  } catch(e){}
+  const despesesFact = getMovFiltrats().filter(m=>
     m.area==='maquinaria'&&m.tipo==='gasto'&&
     !['Reparacions','Dièsel / combustible','Diesel / combustible'].includes(m.categoria)&&
-    !(m.notas||'').includes('Auto-generat')&&
     (maqSel?m.maquina===maqSel||m.apero===maqSel:true)
   ).reduce((s,m)=>s+m.importe,0);
-  const despesesReals = despesesMov; // repostatges i manteniments es llegiran a la fitxa
+  const despesesReals = costRepost + costMant + despesesFact;
   const costTotal = despesesReals + totalAmortAnual;
 
   // Components amortitzables per maquina
@@ -4004,7 +4019,7 @@ function renderFincaBreakdown(){
 
 function renderRentabilidad(){ renderRentabilitat(); }
 
-function renderAmortitzacions(){
+async function renderAmortitzacions(){
   const card = document.getElementById('rent-amort-card');
   const body = document.getElementById('rent-amort-body');
   if(!card||!body) return;
@@ -4056,15 +4071,29 @@ function renderAmortitzacions(){
   html+='</tbody></table>';
 
   // Summary box
-  // Despeses maquinaria: llegeix de les fonts originals (sense duplicats)
+  // Llegir despeses de les fonts originals (sense duplicats)
   const anyFilter = document.getElementById('res-any')?.value||'';
-  const despesesMov = getMovFiltrats().filter(m=>
+  let costRepost = 0, costMant = 0;
+  try {
+    const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
+    costRepost = (rR.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5)
+      .filter(r=>!anyFilter||String(r[1]||'').startsWith(anyFilter))
+      .filter(r=>!maqSel||String(r[2]).replace(/'/g,'')===(maqSel))
+      .reduce((s,r)=>s+(parseFloat(r[6])||0),0);
+  } catch(e){}
+  try {
+    const rM2 = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
+    costMant = (rM2.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5)
+      .filter(r=>!anyFilter||String(r[1]||'').startsWith(anyFilter))
+      .filter(r=>!maqSel||String(r[2]).replace(/'/g,'')===(maqSel))
+      .reduce((s,r)=>s+(parseFloat(r[5])||0),0);
+  } catch(e){}
+  const despesesFact = getMovFiltrats().filter(m=>
     m.area==='maquinaria'&&m.tipo==='gasto'&&
     !['Reparacions','Dièsel / combustible','Diesel / combustible'].includes(m.categoria)&&
-    !(m.notas||'').includes('Auto-generat')&&
     (maqSel?m.maquina===maqSel||m.apero===maqSel:true)
   ).reduce((s,m)=>s+m.importe,0);
-  const despesesReals = despesesMov; // repostatges i manteniments es llegiran a la fitxa
+  const despesesReals = costRepost + costMant + despesesFact;
   const costTotal = despesesReals + totalAmortAnual;
 
   // Components amortitzables per maquina
