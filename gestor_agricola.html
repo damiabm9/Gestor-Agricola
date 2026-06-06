@@ -1032,17 +1032,33 @@ async function addMovimiento(){
   }
   // Save parcelles/finca info
   let parcInfo = '';
-  if(area==='cultivos'&&tipo==='ingreso'&&vendaParcelles.length>0){
-    const parcNoms = vendaParcelles.map(p=>p.nom).join(', ');
-    const parcHa = vendaParcelles.reduce((s,p)=>s+p.ha,0).toFixed(2);
-    const kg = document.getElementById('f-kg')?.value||'0';
-    parcInfo = 'Parcel·les:'+parcNoms+'|Ha:'+parcHa+'|Kg:'+kg;
-  } else if(area==='cultivos'&&tipo==='gasto'&&gastoParcelles.length>0){
-    const parcNoms = gastoParcelles.map(p=>p.nom).join(', ');
-    const parcHa = gastoParcelles.reduce((s,p)=>s+p.ha,0).toFixed(2);
-    parcInfo = 'Parcel·les:'+parcNoms+'|Ha:'+parcHa;
+  // Get selected finca names from buttons
+  const selectedFincaBtns = document.querySelectorAll('.finca-btn.selected');
+  const selectedFincaNoms = Array.from(selectedFincaBtns).map(b=>{
+    const fid = b.dataset.fid;
+    const f = finques.find(x=>x.id===fid);
+    return f?f.nom:'';
+  }).filter(Boolean);
+
+  if(area==='cultivos'&&tipo==='ingreso'){
+    const parcells = vendaParcelles.length>0 ? vendaParcelles : [];
+    if(parcells.length>0||selectedFincaNoms.length>0){
+      const noms = parcells.length>0 ? parcells.map(p=>p.nom).join(', ') : selectedFincaNoms.join(', ');
+      const ha = parcells.length>0 ? parcells.reduce((s,p)=>s+p.ha,0).toFixed(2) : '';
+      const kg = document.getElementById('f-kg')?.value||'0';
+      const finques_str = selectedFincaNoms.length>0 ? selectedFincaNoms.join(', ') : '';
+      parcInfo = (finques_str?'Finca:'+finques_str+'|':'')+'Parcel·les:'+noms+(ha?'|Ha:'+ha:'')+'|Kg:'+kg;
+    }
+  } else if(area==='cultivos'&&tipo==='gasto'){
+    const parcells = gastoParcelles.length>0 ? gastoParcelles : [];
+    if(parcells.length>0||selectedFincaNoms.length>0){
+      const noms = parcells.length>0 ? parcells.map(p=>p.nom).join(', ') : selectedFincaNoms.join(', ');
+      const ha = parcells.length>0 ? parcells.reduce((s,p)=>s+p.ha,0).toFixed(2) : '';
+      const finques_str = selectedFincaNoms.length>0 ? selectedFincaNoms.join(', ') : '';
+      parcInfo = (finques_str?'Finca:'+finques_str+'|':'')+'Parcel·les:'+noms+(ha?'|Ha:'+ha:'');
+    }
   }
-  const notasFinal = notas + (parcInfo?'|'+parcInfo:'');
+  const notasFinal = [notas, parcInfo].filter(Boolean).join(' | ');
   setSyncing(true,'Desant...');
   msg.className=''; msg.textContent='';
   try {
@@ -2918,13 +2934,21 @@ function applyFincesToParcelles(selIds, mode){
   const parcelles = [];
   selIds.forEach(fid=>{
     const finca = finques.find(f=>f.id===fid);
-    if(!finca||!PARC_DATA) return;
-    finca.parcellesIds.forEach(pid=>{
-      const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
-      if(feat && !parcelles.find(p=>p.id===pid)){
-        parcelles.push({id:feat.properties.id,nom:feat.properties.nom,ha:feat.properties.ha});
+    if(!finca) return;
+    if(PARC_DATA && finca.parcellesIds.length>0){
+      // Use real parcel data
+      finca.parcellesIds.forEach(pid=>{
+        const feat = PARC_DATA.features.find(f=>f.properties.id===pid);
+        if(feat && !parcelles.find(p=>p.id===pid)){
+          parcelles.push({id:feat.properties.id, nom:feat.properties.nom, ha:feat.properties.ha});
+        }
+      });
+    } else {
+      // Fallback: use finca directly (ha from finca object)
+      if(!parcelles.find(p=>p.id===finca.id)){
+        parcelles.push({id:finca.id, nom:finca.nom, ha:finca.ha, esFinca:true});
       }
-    });
+    }
   });
   if(mode==='treball'){ treballParcelles=parcelles; updateTreballParcChips(); }
   else if(mode==='venda'){ vendaParcelles=parcelles; updateVendaChips(); }
@@ -2998,6 +3022,8 @@ function showPartesTip(tip, btn){
   const el = document.getElementById('partes-'+tip);
   if(el) el.classList.remove('hidden');
   if(btn) btn.classList.add('active');
+  // Ensure PARC_DATA is loaded for finca/parcel selection
+  if(!PARC_DATA) loadParcData().then(()=>{ refreshAllFincaBtns(); populateTrebFinquesSel(); });
   if(tip==='feina'){ populateTreballSelects(); loadTreballs(); onTrebParcModeChange(); populateTrebFinquesSel(); }
   if(tip==='manteniment'){ populateRepMantSelects(); loadManteniments(); }
   if(tip==='repostatge'){ populateRepMantSelects(); loadRepostatges(); }
@@ -3579,9 +3605,22 @@ async function addTreball(){
   const msg = document.getElementById('treball-msg');
   if(!data||hores<=0){ msg.className='msg-err'; msg.textContent='Omple la data i les hores.'; return; }
 
+  // Get selected finca names
+  const treb_fincaBtns = document.querySelectorAll('#t-finques-btns .finca-btn.selected');
+  const treb_fincaNoms = Array.from(treb_fincaBtns).map(b=>{
+    const fid = b.dataset.fid;
+    const f = finques.find(x=>x.id===fid);
+    return f?f.nom:'';
+  }).filter(Boolean);
+
   const parcHaTot = treballParcelles.reduce((s,p)=>s+p.ha,0);
-  const parcNoms = treballParcelles.map(p=>p.nom).join(', ');
-  const parcHa = parcHaTot;
+  // If no parcelles but finca selected, use finca data
+  let parcNoms = treballParcelles.length>0 ? treballParcelles.map(p=>p.nom).join(', ') : treb_fincaNoms.join(', ');
+  let parcHa = treballParcelles.length>0 ? parcHaTot : (treb_fincaNoms.length>0 ? finques.filter(f=>treb_fincaNoms.includes(f.nom)).reduce((s,f)=>s+f.ha,0) : 0);
+  if(treb_fincaNoms.length>0 && treballParcelles.length===0){
+    // Use finca ha
+    parcHa = finques.filter(f=>treb_fincaNoms.includes(f.nom)).reduce((s,f)=>s+f.ha,0);
+  }
   // Distribute hours proportionally by ha
   const horesDistrib = treballParcelles.map(p=>({
     id:p.id, nom:p.nom, ha:p.ha,
