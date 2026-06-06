@@ -179,10 +179,21 @@
       <div id="area-detall-body"></div>
     </div>
 
-    <!-- Últims moviments -->
-    <div class="card">
-      <div class="card-title">⏱ Últims moviments</div>
-      <div id="resumen-list"></div>
+    <!-- Activitat global -->
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title" style="justify-content:space-between;display:flex">
+        <span>⏱ Activitat global</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="res-fil-tipus" onchange="renderActivitatGlobal()" style="font-size:12px;padding:3px 8px">
+            <option value="">Tot</option>
+            <option value="factura">🧾 Factures</option>
+            <option value="treball">👷 Feines</option>
+            <option value="manteniment">🔩 Manteniments</option>
+            <option value="repostatge">⛽ Repostatges</option>
+          </select>
+        </div>
+      </div>
+      <div id="activitat-list" style="max-height:400px;overflow-y:auto"></div>
     </div>
 
     <!-- Rendibilitat integrada -->
@@ -205,6 +216,18 @@
       <div id="cat-breakdown" style="margin-top:1rem"></div>
       <div id="rent-amort-card" style="margin-top:1rem"></div>
       <div id="rent-parcelles-card" style="margin-top:1rem"></div>
+      <!-- Fitxa màquina dins Resum -->
+      <div id="res-fitxa-wrap" class="hidden" style="margin-top:1rem">
+        <div class="card-title" style="margin-bottom:.75rem">📊 Fitxa de màquina</div>
+        <div class="form-row g2" style="margin-bottom:1rem">
+          <div>
+            <label>Selecciona màquina o apero</label>
+            <select id="res-fitxa-sel" onchange="renderFitxaMaquina('res-fitxa-sel','res-fitxa-body','res-fitxa-hores')"></select>
+          </div>
+          <div id="res-fitxa-hores" style="display:flex;align-items:flex-end;font-size:13px;color:var(--gris-texto);padding-bottom:6px"></div>
+        </div>
+        <div id="res-fitxa-body"></div>
+      </div>
     </div>
   </div>
 
@@ -1206,6 +1229,23 @@ function renderMovimientos(){
 let rentAreaActiva = 'totes';
 
 function showRentArea(area, btn){
+  // Show/hide fitxa for maquinaria
+  const fitxaWrap = document.getElementById('res-fitxa-wrap');
+  if(fitxaWrap){
+    if(area==='maquinaria'){
+      fitxaWrap.classList.remove('hidden');
+      // Populate selector
+      const sel = document.getElementById('res-fitxa-sel');
+      if(sel && flota.length){
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— Selecciona —</option>'+
+          flota.map(f=>'<option value="'+f.id+'">'+(f.tipo==='maquina'?'🚜':'🔧')+' '+f.nombre+'</option>').join('');
+        if(cur) sel.value = cur;
+      }
+    } else {
+      fitxaWrap.classList.add('hidden');
+    }
+  }
   rentAreaActiva = area;
   document.querySelectorAll('#tab-rentabilidad .tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -2520,10 +2560,11 @@ function populateFitxaSel(){
   if(cur) sel.value = cur;
 }
 
-async function renderFitxaMaquina(){
-  const maqId = document.getElementById('fitxa-sel').value;
-  const body = document.getElementById('fitxa-body');
-  const horesDiv = document.getElementById('fitxa-hores-total');
+async function renderFitxaMaquina(selId, bodyId, horesId){
+  selId = selId||'fitxa-sel'; bodyId = bodyId||'fitxa-body'; horesId = horesId||'fitxa-hores-total';
+  const maqId = document.getElementById(selId)?.value||'';
+  const body = document.getElementById(bodyId);
+  const horesDiv = document.getElementById(horesId);
   if(!maqId){ body.innerHTML=''; horesDiv.textContent=''; return; }
 
   const maq = flota.find(f=>f.id===maqId);
@@ -3175,6 +3216,99 @@ document.addEventListener('click', function(e){
   if(e.target && e.target.id==='edit-modal') tancarModal();
 });
 
+
+// ── ACTIVITAT GLOBAL (RESUM) ─────────────────────────────
+async function renderActivitatGlobal(){
+  const container = document.getElementById('activitat-list');
+  if(!container) return;
+  const filTipus = document.getElementById('res-fil-tipus')?.value||'';
+  container.innerHTML = '<div class="empty" style="padding:1rem">Carregant...</div>';
+
+  try {
+    const items = [];
+
+    // Factures
+    if(!filTipus||filTipus==='factura'){
+      movimientos.filter(m=>!(m.notas||'').includes('Auto-generat')).forEach(m=>{
+        items.push({
+          tipus:'factura', data:m.fecha||'', icon:'🧾',
+          desc:m.concepto||(m.categoria||'Factura'),
+          sub:(AREA_LABELS?.[m.area]||m.area)+' · '+(m.tipo==='ingreso'?'Ingrés':'Despesa'),
+          import:m.importe, tipus_mov:m.tipo,
+          badge:'badge-'+(m.tipo==='ingreso'?'ing':'gas')
+        });
+      });
+    }
+
+    // Treballs
+    if(!filTipus||filTipus==='treball'){
+      try {
+        const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:K');
+        (rT.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).forEach(r=>{
+          items.push({
+            tipus:'treball', data:r[1]||'', icon:'👷',
+            desc:(r[3]||'Feina')+(r[4]?' · '+r[4]:''),
+            sub:(r[2]||'')+(r[9]?' · '+r[9]:''),
+            import:null, hores:r[6]||'0'
+          });
+        });
+      } catch(e){}
+    }
+
+    // Manteniments
+    if(!filTipus||filTipus==='manteniment'){
+      try {
+        const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
+        (rM.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).forEach(r=>{
+          items.push({
+            tipus:'manteniment', data:r[1]||'', icon:'🔩',
+            desc:(r[4]||r[3]||'Manteniment'),
+            sub:(r[2]||'')+(r[6]?' · '+r[6]:''),
+            import:parseFloat(r[5])||null, tipus_mov:'gasto'
+          });
+        });
+      } catch(e){}
+    }
+
+    // Repostatges
+    if(!filTipus||filTipus==='repostatge'){
+      try {
+        const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
+        (rR.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5).forEach(r=>{
+          items.push({
+            tipus:'repostatge', data:r[1]||'', icon:'⛽',
+            desc:(r[3]||'Repostatge')+' · '+(r[2]||''),
+            sub:(parseFloat(r[4])||0).toFixed(1)+'L',
+            import:parseFloat(r[6])||null, tipus_mov:'gasto'
+          });
+        });
+      } catch(e){}
+    }
+
+    // Sort by date desc
+    items.sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+
+    if(!items.length){
+      container.innerHTML = '<div class="empty" style="padding:1rem">Sense registres.</div>';
+      return;
+    }
+
+    container.innerHTML = items.map(item=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--gris-bg)">
+        <span style="font-size:18px;width:28px;text-align:center;flex-shrink:0">${item.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.desc}</div>
+          <div style="font-size:11px;color:var(--gris-texto)">${item.data} · ${item.sub}</div>
+        </div>
+        ${item.import!=null?`<span style="font-size:13px;font-weight:600;flex-shrink:0;color:${item.tipus_mov==='ingreso'?'var(--verde)':'var(--rojo)'}">${item.tipus_mov==='ingreso'?'+':'−'}${fmt(item.import)}</span>`:''}
+        ${item.hores!=null?`<span style="font-size:12px;color:var(--gris-texto);flex-shrink:0">${item.hores}h</span>`:''}
+      </div>`).join('');
+
+  } catch(e){
+    container.innerHTML = '<div class="empty" style="padding:1rem">Error carregant activitat.</div>';
+  }
+}
+
 document.getElementById('f-fecha').valueAsDate=new Date();
 document.getElementById('t-data').valueAsDate=new Date();
 // Init treballs form to show correct fields
@@ -3435,6 +3569,23 @@ function renderResAreaDetall(){
 rentAreaActiva = 'totes';
 
 function showRentArea(area, btn){
+  // Show/hide fitxa for maquinaria
+  const fitxaWrap = document.getElementById('res-fitxa-wrap');
+  if(fitxaWrap){
+    if(area==='maquinaria'){
+      fitxaWrap.classList.remove('hidden');
+      // Populate selector
+      const sel = document.getElementById('res-fitxa-sel');
+      if(sel && flota.length){
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— Selecciona —</option>'+
+          flota.map(f=>'<option value="'+f.id+'">'+(f.tipo==='maquina'?'🚜':'🔧')+' '+f.nombre+'</option>').join('');
+        if(cur) sel.value = cur;
+      }
+    } else {
+      fitxaWrap.classList.add('hidden');
+    }
+  }
   rentAreaActiva = area;
   document.querySelectorAll('#tab-rentabilidad .tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
