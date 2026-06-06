@@ -3549,11 +3549,18 @@ async function renderFincaRendibilitat(){
       treballs.forEach(t=>{
         // Check if treball is on any parcel of this finca
         const trebParcNoms = t.parcNoms;
-        const matchedParcNoms = trebParcNoms.filter(pn=>parcNoms.includes(pn));
-        if(!matchedParcNoms.length) return;
+        // Match by individual parcel names OR by finca name directly
+        const fincaDirectMatch = trebParcNoms.includes(finca.nom);
+        const matchedParcNoms = fincaDirectMatch ? trebParcNoms : trebParcNoms.filter(pn=>parcNoms.includes(pn));
+        if(!fincaDirectMatch && !matchedParcNoms.length) return;
         
+        // If finca direct match, use all hours for this finca
+        let proporcio;
+        if(fincaDirectMatch){
+          proporcio = t.hores; // all hours belong to this finca
+        } else
         // Calculate proportion of hours for this finca
-        const proporcio = t.parcHa > 0 ? 
+        proporcio = t.parcHa > 0 ? 
           matchedParcNoms.reduce((s,pn)=>{
             if(!PARC_DATA) return s + t.hores/trebParcNoms.length;
             const feat = PARC_DATA.features.find(f=>f.properties.nom===pn);
