@@ -751,8 +751,9 @@ let movimientos = [];
 let finques = [];
 let components = [];
 let equipaments = [];
-let editingId = null; // ID del registre que s'esta editant
-let editingSheet = null; // Sheet on esta el registre
+let editingId = null;
+let editingSheet = null;
+let lastPartesTip = 'factura'; // track last active subtab // Sheet on esta el registre
 let flota = [];
 let userEmail = '';
 
@@ -3047,6 +3048,7 @@ async function eliminarParcel·la(id){
 
 // ── PARTES ──────────────────────────────────────────────
 function showPartesTip(tip, btn){
+  if(tip&&tip!=='undefined') lastPartesTip = tip;
   document.querySelectorAll('.partes-sub').forEach(s=>s.classList.add('hidden'));
   document.querySelectorAll('[id^="ptab-"]').forEach(b=>b.classList.remove('active'));
   const el = document.getElementById('partes-'+tip);
@@ -3054,7 +3056,7 @@ function showPartesTip(tip, btn){
   if(btn) btn.classList.add('active');
   // Ensure PARC_DATA is loaded for finca/parcel selection
   if(!PARC_DATA) loadParcData().then(()=>{ refreshAllFincaBtns(); populateTrebFinquesSel(); });
-  if(tip==='feina'){ populateTreballSelects(); loadTreballs(); onTrebParcModeChange(); populateTrebFinquesSel(); }
+  if(tip==='feina'){ populateTreballSelects(); loadTreballs(); populateTrebFinquesSel(); updateTreballParcChips(); }
   if(tip==='manteniment'){ populateRepMantSelects(); loadManteniments(); }
   if(tip==='repostatge'){ populateRepMantSelects(); loadRepostatges(); }
   if(tip==='factura'){ onAreaChange(); renderMovimientos(); }
@@ -3425,44 +3427,60 @@ async function renderFincaRendibilitat(){
       parcHa:parseFloat(r[10])||0, parcDetail:r[11]||''
     }));
 
-    // Build cost/hora per màquina from flota data
+    // Build cost/hora per màquina - same logic as renderFitxaMaquina
     const costHoraMap = {};
-    flota.filter(f=>f.tipo==='maquina').forEach(maq=>{
+
+    // Load repostatges and manteniments once for all machines
+    let allRepost = [], allMant = [];
+    try {
+      const rR = await sheetsReq('/values/'+encodeURIComponent(SHEET_REPOSTATGES)+'!A1:G');
+      allRepost = (rR.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5);
+    } catch(e){}
+    try {
+      const rM = await sheetsReq('/values/'+encodeURIComponent(SHEET_MANTENIMENTS)+'!A1:K');
+      allMant = (rM.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5);
+    } catch(e){}
+
+    // Also load treballs to get horesApp per machine
+    let allTreb = [];
+    try {
+      const rT = await sheetsReq('/values/'+encodeURIComponent(SHEET_TREBALLS)+'!A1:G');
+      allTreb = (rT.values||[]).filter(r=>r[0]&&String(r[0]).replace(/'/g,'').length>5);
+    } catch(e){}
+
+    flota.forEach(maq=>{
       const amortMaqBrut = parseFloat(maq.amortAnual)||0;
       let amortMaq = amortMaqBrut;
-      if(amortMaqBrut > 0 && maq.dataCompra && maq.amortAnys){
+      if(amortMaqBrut>0 && maq.dataCompra && maq.amortAnys){
         const anyCompra = new Date(maq.dataCompra).getFullYear();
-        const anysEnUs = new Date().getFullYear() - anyCompra;
-        if(anysEnUs >= parseFloat(maq.amortAnys)) amortMaq = 0;
+        if(new Date().getFullYear()-anyCompra >= parseFloat(maq.amortAnys)) amortMaq=0;
       }
       const amortComp = components.filter(c=>c.maquinaId===maq.id).reduce((s,c)=>s+c.amortAnual,0);
       const horesInicials = maq.horesInicials||0;
       const anyCompra2 = maq.dataCompra ? new Date(maq.dataCompra).getFullYear() : null;
       const anysEnUs2 = anyCompra2 ? Math.max(new Date().getFullYear()-anyCompra2,1) : null;
-      const horesAnuals = (anysEnUs2 && horesInicials>0) ? Math.round(horesInicials/anysEnUs2) : 400;
-      
+      const horesAnuals = (anysEnUs2&&horesInicials>0) ? Math.round(horesInicials/anysEnUs2) : 400;
+      const horesApp = allTreb.filter(r=>r[4]===maq.nombre||r[5]===maq.nombre).reduce((s,r)=>s+(parseFloat(r[6])||0),0);
+      const horesTotal = horesInicials + horesApp;
+
+      // Amort cost/hora (annual / annual hours)
       const costAmortHora = horesAnuals>0 ? (amortMaq+amortComp)/horesAnuals : 0;
-      const MO_PREU = maq.moPreu||20;
-      const MO_WORKERS = maq.moWorkers||1;
-      const despesesReals = movimientos.filter(m=>
-        m.area==='maquinaria'&&m.tipo==='gasto'&&
-        (String(m.maquina).replace(/'/g,'')===String(maq.nombre).replace(/'/g,'')||
-         String(m.apero).replace(/'/g,'')===String(maq.nombre).replace(/'/g,''))&&
-        !['Reparacions','Dièsel / combustible'].includes(m.categoria)&&
-        !(m.notas||'').includes('Auto-generat')
-      ).reduce((s,m)=>s+m.importe,0);
-      // Get repostatges and manteniments costs
-      // Simplified: use total despeses / hores totals
-      const despesesHora = horesInicials>0 ? 0 : 0; // will add repostatges below
+
+      // Despeses reals cost/hora (total expenses / total hours)
+      const costRepost = allRepost.filter(r=>String(r[2]).replace(/'/g,'')===(maq.nombre)).reduce((s,r)=>s+(parseFloat(r[6])||0),0);
+      const costMant = allMant.filter(r=>String(r[2]).replace(/'/g,'')===(maq.nombre)).reduce((s,r)=>s+(parseFloat(r[5])||0),0);
+      const costAltres = movimientos.filter(m=>m.area==='maquinaria'&&m.tipo==='gasto'&&String(m.maquina).replace(/'/g,'')===(maq.nombre)&&!['Reparacions','Dièsel / combustible'].includes(m.categoria)).reduce((s,m)=>s+m.importe,0);
+      const costDespesesHora = horesTotal>0 ? (costRepost+costMant+costAltres)/horesTotal : 0;
+
+      // MO
+      const MO_PREU = maq.tipo==='maquina' ? (maq.moPreu||20) : 0;
+      const MO_WORKERS = maq.tipo==='maquina' ? (maq.moWorkers||1) : 0;
+
       costHoraMap[maq.nombre] = {
-        ambMO: costAmortHora + MO_PREU*MO_WORKERS,
-        senseMO: costAmortHora
+        senseMO: costAmortHora + costDespesesHora,
+        ambMO: costAmortHora + costDespesesHora + MO_PREU*MO_WORKERS
       };
     });
-
-    // Simplified: use default 45€/h if not calculated
-    // Better: use the fitxa cost/hora for each machine
-    // For now use amort+MO calculation above
 
     // Per each finca, calculate:
     // INGRESSOS: factures cultius ingres assignades a parcel·les de la finca
@@ -3545,9 +3563,11 @@ async function renderFincaRendibilitat(){
         horesMecanitzacio += proporcio;
         
         // Get cost per hour for this machine
-        const costH = costHoraMap[t.maquina] || {ambMO:35, senseMO:20};
-        costMecanitzacioAmbMO += proporcio * costH.ambMO;
-        costMecanitzacioSenseMO += proporcio * costH.senseMO;
+        const costMaq = costHoraMap[t.maquina] || {ambMO:0, senseMO:0};
+        const costApe = t.apero ? (costHoraMap[t.apero] || {ambMO:0, senseMO:0}) : {ambMO:0, senseMO:0};
+        // Sum maquina + apero costs per hour
+        costMecanitzacioAmbMO += proporcio * (costMaq.ambMO + costApe.ambMO);
+        costMecanitzacioSenseMO += proporcio * (costMaq.senseMO + costApe.senseMO);
       });
       
       const arrendament = finca.arrendament||0;
