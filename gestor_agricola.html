@@ -3455,19 +3455,22 @@ async function renderFincaRendibilitat(){
       const anyF = document.getElementById('res-any')?.value||'';
       movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='ingreso'&&(!anyF||String(m.fecha||'').startsWith(anyF))).forEach(m=>{
         const notes = m.notas||'';
-        // Check Parcel·les field in notas
-        const parcMatch = parcNoms.some(nom=>notes.includes(nom));
-        const fincaNomMatch = notes.toLowerCase().includes(finca.nom.toLowerCase());
-        if(fincaNomMatch||parcMatch) ingCultius += m.importe;
+        // Exact match: look for "Finca:NomFinca" in notes
+        const fincaExact = notes.includes('Finca:'+finca.nom);
+        // Or match individual parcel names listed after "Parcel·les:"
+        const parcSection = notes.match(/Parcel·les:([^|]+)/)?.[1]||'';
+        const parcMatch = parcNoms.length>0 && parcNoms.some(nom=>parcSection.split(', ').includes(nom));
+        if(fincaExact||parcMatch) ingCultius += m.importe;
       });
       
       // COSTOS insums cultius assignats a aquesta finca
       let costInsums = 0;
       movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='gasto'&&(!anyF||String(m.fecha||'').startsWith(anyF))).forEach(m=>{
         const notes = m.notas||'';
-        const parcMatch = parcNoms.some(nom=>notes.includes(nom));
-        const fincaNomMatch = notes.toLowerCase().includes(finca.nom.toLowerCase());
-        if(fincaNomMatch||parcMatch) costInsums += m.importe;
+        const fincaExact = notes.includes('Finca:'+finca.nom);
+        const parcSection = notes.match(/Parcel·les:([^|]+)/)?.[1]||'';
+        const parcMatch = parcNoms.length>0 && parcNoms.some(nom=>parcSection.split(', ').includes(nom));
+        if(fincaExact||parcMatch) costInsums += m.importe;
       });
       
       // COSTOS mecanització: treballs a parcel·les d'aquesta finca
