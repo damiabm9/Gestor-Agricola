@@ -1025,16 +1025,29 @@ async function addMovimiento(){
   }
   const id = Date.now().toString();
   let maquina='', apero='', horas='';
-  if(area==='maquinaria'&&tipo==='gasto'&&['Dièsel / combustible','Reparacions','Assegurances'].includes(categoria)){
-    maquina = document.getElementById('f-maquina').value;
-    apero = document.getElementById('f-apero').value;
-    horas = document.getElementById('f-horas').value||'';
+  if(area==='maquinaria'&&tipo==='gasto'){
+    maquina = document.getElementById('f-maquina')?.value||'';
+    apero = document.getElementById('f-apero')?.value||'';
+    horas = document.getElementById('f-horas')?.value||'';
   }
+  // Save parcelles/finca info
+  let parcInfo = '';
+  if(area==='cultivos'&&tipo==='ingreso'&&vendaParcelles.length>0){
+    const parcNoms = vendaParcelles.map(p=>p.nom).join(', ');
+    const parcHa = vendaParcelles.reduce((s,p)=>s+p.ha,0).toFixed(2);
+    const kg = document.getElementById('f-kg')?.value||'0';
+    parcInfo = 'Parcel·les:'+parcNoms+'|Ha:'+parcHa+'|Kg:'+kg;
+  } else if(area==='cultivos'&&tipo==='gasto'&&gastoParcelles.length>0){
+    const parcNoms = gastoParcelles.map(p=>p.nom).join(', ');
+    const parcHa = gastoParcelles.reduce((s,p)=>s+p.ha,0).toFixed(2);
+    parcInfo = 'Parcel·les:'+parcNoms+'|Ha:'+parcHa;
+  }
+  const notasFinal = notas + (parcInfo?'|'+parcInfo:'');
   setSyncing(true,'Desant...');
   msg.className=''; msg.textContent='';
   try {
-    await appendRow(SHEET_MOV,[id,fecha,area,tipo,categoria,concepto,importe.toFixed(2),maquina,apero,horas,notas]);
-    movimientos.push({id,fecha,area,tipo,categoria,concepto,importe,maquina,apero,horas,notas});
+    await appendRow(SHEET_MOV,[id,fecha,area,tipo,categoria,concepto,importe.toFixed(2),maquina,apero,horas,notasFinal]);
+    movimientos.push({id,fecha,area,tipo,categoria,concepto,importe,maquina,apero,horas,notas:notasFinal});
     setSyncing(false,'Desat a Google Sheets ✓');
     msg.className='msg-ok'; msg.textContent='✓ Desat correctament al teu Google Sheets.';
     setTimeout(()=>msg.textContent='',3000);
@@ -3413,20 +3426,21 @@ async function renderFincaRendibilitat(){
       
       // INGRESSOS cultius assignats a aquesta finca
       let ingCultius = 0;
-      movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='ingreso').forEach(m=>{
-        // Check if any parcel of this finca is in the movement's notas/extres
-        const notes = (m.notas||'').toLowerCase();
-        const parcMatch = parcNoms.some(nom=>notes.includes(nom.toLowerCase()));
-        const fincaNomMatch = notes.includes(finca.nom.toLowerCase());
+      const anyF = document.getElementById('res-any')?.value||'';
+      movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='ingreso'&&(!anyF||String(m.fecha||'').startsWith(anyF))).forEach(m=>{
+        const notes = m.notas||'';
+        // Check Parcel·les field in notas
+        const parcMatch = parcNoms.some(nom=>notes.includes(nom));
+        const fincaNomMatch = notes.toLowerCase().includes(finca.nom.toLowerCase());
         if(fincaNomMatch||parcMatch) ingCultius += m.importe;
       });
       
       // COSTOS insums cultius assignats a aquesta finca
       let costInsums = 0;
-      movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='gasto').forEach(m=>{
-        const notes = (m.notas||'').toLowerCase();
-        const parcMatch = parcNoms.some(nom=>notes.includes(nom.toLowerCase()));
-        const fincaNomMatch = notes.includes(finca.nom.toLowerCase());
+      movimientos.filter(m=>m.area==='cultivos'&&m.tipo==='gasto'&&(!anyF||String(m.fecha||'').startsWith(anyF))).forEach(m=>{
+        const notes = m.notas||'';
+        const parcMatch = parcNoms.some(nom=>notes.includes(nom));
+        const fincaNomMatch = notes.toLowerCase().includes(finca.nom.toLowerCase());
         if(fincaNomMatch||parcMatch) costInsums += m.importe;
       });
       
