@@ -911,7 +911,7 @@ function showTab(t, btn){
   if(!tabEl) return;
   tabEl.classList.add('visible');
   if(btn) btn.classList.add('active');
-  if(t==='resumen'){ renderResumen(); renderRentabilitat(); }
+  if(t==='resumen'){ if(accessToken) renderResumen(); if(accessToken) renderRentabilitat(); }
   if(t==='movimientos') renderMovimientos();
   if(t==='rentabilidad') renderRentabilitat();
   if(t==='flota'){ renderFlota(); loadRepostatges(); populateFitxaSel(); renderEquipList(); }
@@ -974,7 +974,9 @@ function showTercersWrap(){
 }
 function populateCat(area, tipo){
   const sel = document.getElementById('f-categoria');
-  sel.innerHTML = (CATS[area][tipo]||[]).map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(!sel) return;
+  const cats = (CATS[area]&&CATS[area][tipo]) ? CATS[area][tipo] : [];
+  sel.innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
   onCatChange();
 }
 function onCatChange(){
@@ -1182,6 +1184,7 @@ function renderResAreaDetall(){
 }
 
 function renderResumen(){
+  if(!document.getElementById('kpi-grid')) return;
   populateAnyFilter();
   const any = document.getElementById('res-any')?.value||'';
   const periode = document.getElementById('res-periode');
@@ -3390,7 +3393,10 @@ async function renderFincaRendibilitat(){
       // Get repostatges and manteniments costs
       // Simplified: use total despeses / hores totals
       const despesesHora = horesInicials>0 ? 0 : 0; // will add repostatges below
-      costHoraMap[maq.nombre] = costAmortHora + MO_PREU*MO_WORKERS;
+      costHoraMap[maq.nombre] = {
+        ambMO: costAmortHora + MO_PREU*MO_WORKERS,
+        senseMO: costAmortHora
+      };
     });
 
     // Simplified: use default 45€/h if not calculated
@@ -3433,7 +3439,8 @@ async function renderFincaRendibilitat(){
       });
       
       // COSTOS mecanització: treballs a parcel·les d'aquesta finca
-      let costMecanitzacio = 0;
+      let costMecanitzacioAmbMO = 0;
+      let costMecanitzacioSenseMO = 0;
       let horesMecanitzacio = 0;
       treballs.forEach(t=>{
         // Check if treball is on any parcel of this finca
@@ -3452,16 +3459,19 @@ async function renderFincaRendibilitat(){
         horesMecanitzacio += proporcio;
         
         // Get cost per hour for this machine
-        const costH = costHoraMap[t.maquina] || 35; // default 35€/h
-        costMecanitzacio += proporcio * costH;
+        const costH = costHoraMap[t.maquina] || {ambMO:35, senseMO:20};
+        costMecanitzacioAmbMO += proporcio * costH.ambMO;
+        costMecanitzacioSenseMO += proporcio * costH.senseMO;
       });
       
       const arrendament = finca.arrendament||0;
-      const costTotal = costInsums + costMecanitzacio + arrendament;
-      const marge = ingCultius - costTotal;
-      const margePerHa = finca.ha > 0 ? marge/finca.ha : 0;
+      const costTotalSenseMO = costInsums + costMecanitzacioSenseMO + arrendament;
+      const costTotalAmbMO = costInsums + costMecanitzacioAmbMO + arrendament;
+      const margeSenseMO = ingCultius - costTotalSenseMO;
+      const margeAmbMO = ingCultius - costTotalAmbMO;
+      const margePerHa = finca.ha > 0 ? margeSenseMO/finca.ha : 0;
       
-      results.push({finca, ingCultius, costInsums, costMecanitzacio, horesMecanitzacio, arrendament, costTotal, marge, margePerHa});
+      results.push({finca, ingCultius, costInsums, costMecanitzacioSenseMO, costMecanitzacioAmbMO, horesMecanitzacio, arrendament, costTotalSenseMO, margeSenseMO, margeAmbMO, margePerHa});
     }
     
     if(!results.length){
@@ -3474,41 +3484,50 @@ async function renderFincaRendibilitat(){
     html += '<th>Finca</th><th style="text-align:right">Ha</th>';
     html += '<th style="text-align:right">Ingressos</th>';
     html += '<th style="text-align:right">Insums</th>';
-    html += '<th style="text-align:right">Mecanització</th>';
+    html += '<th style="text-align:right" title="Amortització màquina + components. Sense MO.">Mec. sense MO</th>';
+    html += '<th style="text-align:right" title="Amortitzacio + Ma obra inclosa">Mec. amb MO</th>';
     html += '<th style="text-align:right">Arrendament</th>';
-    html += '<th style="text-align:right">Marge</th>';
+    html += '<th style="text-align:right">Marge (sense MO)</th>';
     html += '<th style="text-align:right">€/ha</th>';
     html += '</tr></thead><tbody>';
     
     results.sort((a,b)=>b.marge-a.marge).forEach(r=>{
-      const color = r.marge>=0?'var(--verde)':'var(--rojo)';
+      const colorSense = r.margeSenseMO>=0?'var(--verde)':'var(--rojo)';
+      const colorAmb = r.margeAmbMO>=0?'var(--verde)':'var(--rojo)';
       html += `<tr>
         <td><strong>${r.finca.nom}</strong></td>
         <td style="text-align:right">${r.finca.ha}</td>
         <td style="text-align:right;color:var(--verde);font-weight:600">${fmt(r.ingCultius)}</td>
         <td style="text-align:right;color:var(--rojo)">${fmt(r.costInsums)}</td>
-        <td style="text-align:right;color:var(--rojo)">${fmt(r.costMecanitzacio)}<div style="font-size:10px;color:var(--gris-texto)">${r.horesMecanitzacio.toFixed(1)}h</div></td>
+        <td style="text-align:right;color:var(--rojo)">${fmt(r.costMecanitzacioSenseMO)}<div style="font-size:10px;color:var(--gris-texto)">${r.horesMecanitzacio.toFixed(1)}h</div></td>
+        <td style="text-align:right;color:var(--gris-texto)">${fmt(r.costMecanitzacioAmbMO)}</td>
         <td style="text-align:right;color:var(--rojo)">${r.arrendament>0?fmt(r.arrendament):'—'}</td>
-        <td style="text-align:right;font-weight:700;color:${color}">${fmt(r.marge)}</td>
-        <td style="text-align:right;font-weight:700;color:${color}">${fmt(r.margePerHa)}</td>
+        <td style="text-align:right;font-weight:700;color:${colorSense}">${fmt(r.margeSenseMO)}<div style="font-size:10px;color:${colorAmb}">amb MO: ${fmt(r.margeAmbMO)}</div></td>
+        <td style="text-align:right;font-weight:700;color:${colorSense}">${fmt(r.margePerHa)}</td>
       </tr>`;
     });
     
     // Totals row
     const totIng = results.reduce((s,r)=>s+r.ingCultius,0);
-    const totCost = results.reduce((s,r)=>s+r.costTotal,0);
-    const totMarge = results.reduce((s,r)=>s+r.marge,0);
+    const totCostSense = results.reduce((s,r)=>s+r.costTotalSenseMO,0);
+    const totMargeSense = results.reduce((s,r)=>s+r.margeSenseMO,0);
+    const totMargeAmb = results.reduce((s,r)=>s+r.margeAmbMO,0);
     const totHa = results.reduce((s,r)=>s+r.finca.ha,0);
     html += `<tr style="border-top:2px solid #ddd;font-weight:600;background:var(--gris-bg)">
       <td>TOTAL</td><td style="text-align:right">${totHa.toFixed(2)}</td>
       <td style="text-align:right;color:var(--verde)">${fmt(totIng)}</td>
-      <td colspan="3" style="text-align:right;color:var(--rojo)">${fmt(totCost)}</td>
-      <td style="text-align:right;color:${totMarge>=0?'var(--verde)':'var(--rojo)'}">${fmt(totMarge)}</td>
-      <td style="text-align:right;color:${totMarge>=0?'var(--verde)':'var(--rojo)'}">${totHa>0?fmt(totMarge/totHa):'—'}</td>
+      <td colspan="3" style="text-align:right;color:var(--rojo)">${fmt(totCostSense)}</td>
+      <td></td>
+      <td style="text-align:right;color:${totMargeSense>=0?'var(--verde)':'var(--rojo)'}">
+        ${fmt(totMargeSense)}<div style="font-size:10px">amb MO: ${fmt(totMargeAmb)}</div>
+      </td>
+      <td style="text-align:right;color:${totMargeSense>=0?'var(--verde)':'var(--rojo)'}">
+        ${totHa>0?fmt(totMargeSense/totHa):'—'}
+      </td>
     </tr>`;
     
     html += '</tbody></table></div>';
-    html += '<div style="font-size:11px;color:var(--gris-texto);margin-top:8px">💡 Mecanització = hores de treball a la finca × cost/hora de cada màquina (amortització + MO). Assigna treballs a finques/parcel·les per veure el desglossament complet.</div>';
+    html += '<div style="font-size:11px;color:var(--gris-texto);margin-top:8px">💡 <strong>Mec. sense MO</strong> = hores × (amortització/hora). <strong>Mec. amb MO</strong> = hores × (amortització + ma d obra/hora). El marge principal exclou la MO perquè treballes tu mateix.</div>';
     
     body.innerHTML = html;
   } catch(e){
